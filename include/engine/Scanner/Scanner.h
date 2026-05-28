@@ -5,7 +5,7 @@
 
 class Scanner {
 public:
-    explicit Scanner(const std::string& source);
+    explicit Scanner(std::string& source);
     ~Scanner() = default;
     std::vector<Token> scan();
 private:
@@ -22,7 +22,7 @@ private:
     char peekNext();
     bool match(const char& expected);
     void add(const TokenKind& kind);
-    void add(const TokenKind& kind, const Value& literal);
+    void add(const TokenKind& kind, const std::string& literal);
     void makeString();
     void makeNumber();
     void makeCharacter();
