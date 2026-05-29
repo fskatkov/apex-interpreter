@@ -1,6 +1,8 @@
 #include <iostream>
+#include "engine/Driver/Driver.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    Driver driver;
+    driver.run();
     return 0;
 }

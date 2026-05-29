@@ -9,11 +9,11 @@ public:
     explicit Scanner(std::string& source);
     ~Scanner() = default;
     std::vector<Token> scan();
+    std::vector<Token> tokens;
 private:
     std::string source;
     std::size_t startPosition;
     std::size_t currentPosition;
-    std::vector<Token> tokens;
     std::size_t line;
     std::size_t column;
     std::vector<LexerError> errors;

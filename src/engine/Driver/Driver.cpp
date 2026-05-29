@@ -2,8 +2,9 @@
 
 void Driver::run() {
     while (true) {
-        std::string prompt;
-        if (!std::getline(std::cin, prompt)) {
+        std::cout << "> ";
+
+        if (std::string prompt; !std::getline(std::cin, prompt)) {
             std::cerr << "\n";
             std::exit(EXIT_CODE_BROKEN_INPUT);
         }
@@ -28,7 +29,6 @@ std::string Driver::executeFile(const char* path) {
 }
 
 void Driver::raiseError(const int& exitCode, const std::string& message) {
-
     std::cerr << message << "\n";
     std::exit(EXIT_CODE_BROKEN_PATH);
 }
