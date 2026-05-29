@@ -11,6 +11,9 @@ add_executable(apex_interpreter main.cpp
         include/engine/Scanner/Scanner.h
         include/structures/Token/TokenKind.h
         src/engine/Scanner/Scanner.cpp
+        utils/Diagnostics/SourceLocation.h
+        include/structures/Diagnostics/LexerError/LexerError.h
+        include/structures/Diagnostics/LexerError/LexerErrorCode.h
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)

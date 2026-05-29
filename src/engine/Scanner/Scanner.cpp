@@ -1,7 +1,7 @@
 #include "engine/Scanner/Scanner.h"
 
 Scanner::Scanner(std::string& source)
-    : source(std::move(source)), startPosition(0), currentPosition(0), line(1) {  }
+    : source(std::move(source)), startPosition(0), currentPosition(0), line(1), column(1) {  }
 
 std::vector<Token> Scanner::scan() {
     while (!isReachedEnd()) {
@@ -9,7 +9,12 @@ std::vector<Token> Scanner::scan() {
         scanToken();
     }
 
-    tokens.emplace_back(TokenKind::END_OF_FILE, "", "", line);
+    tokens.emplace_back(
+        TokenKind::END_OF_FILE,
+        "",
+        "",
+        SourceLocation{ line, column, currentPosition, 0 }
+    );
     return tokens;
 }
 
@@ -37,18 +42,22 @@ void Scanner::scanToken() {
         case '>':
             add(match('=') ? TokenKind::GREATER_EQUAL : TokenKind::GREATER);
             break;
-        case '/':
+        case '/': {
             if (match('/')) {
                 while (peek() != '\n' && !isReachedEnd()) advance();
             } else {
                 add(TokenKind::SLASH);
             }
+
+            break;
+        }
         case ' ':
         case '\r':
         case '\t':
             break;
         case '\n':
             line++;
+            column = 1;
             break;
         case '"': {
             makeString();
@@ -63,7 +72,7 @@ void Scanner::scanToken() {
             } else if (std::isalpha(c)) {
                 makeIdentifier();
             } else {
-
+                raiseError(LexerErrorCode::UnexpectedCharacter, "unexpected character");
             }
 
             break;
@@ -76,7 +85,10 @@ bool Scanner::isReachedEnd() const {
 }
 
 char Scanner::advance() {
-    return source[currentPosition++];
+    const auto c = source[currentPosition];
+    currentPosition++;
+    column++;
+    return c;
 }
 
 char Scanner::peek() {
@@ -104,22 +116,29 @@ TokenKind Scanner::check(std::size_t starting, std::size_t ending, std::string r
     return TokenKind::IDENTIFIER;
 }
 
-void Scanner::add(const TokenKind& kind) {
-    add(kind, "");
-}
-
 void Scanner::add(const TokenKind& kind, const std::string& literal) {
-    tokens.emplace_back(kind, source.substr(startPosition, currentPosition - startPosition), literal, line);
+    const auto length = currentPosition - startPosition;
+    const auto startColumn = column - length;
+
+    tokens.emplace_back(
+        kind,
+        source.substr(startPosition, length),
+        literal,
+        SourceLocation{ line, startColumn, startPosition, length }
+    );
 }
 
 void Scanner::makeString() {
     while (peek() != '"' && !isReachedEnd()) {
-        if (peek() == '\n')
+        if (peek() == '\n') {
             line++;
+            column = 1;
+        }
         advance();
     }
 
     if (isReachedEnd()) {
+        raiseError(LexerErrorCode::UnterminatedString, "unterminated string");
         return;
     }
 
@@ -149,9 +168,8 @@ void Scanner::makeCharacter() {
 }
 
 void Scanner::makeIdentifier() {
-    while (std::isalnum(peek()))
-        advance();
-    add(checkIdentifierType());
+    while (std::isalnum(peek())) advance();
+    add(checkIdentifierType(), "");
 }
 
 TokenKind Scanner::checkIdentifierType() {
@@ -231,4 +249,15 @@ TokenKind Scanner::checkIdentifierType() {
     }
 
     return TokenKind::IDENTIFIER;
+}
+
+void Scanner::raiseError(LexerErrorCode errorCode, std::string message) {
+    SourceLocation sourceLocation{
+        line,
+        column - (currentPosition - startPosition),
+        startPosition,
+        currentPosition - startPosition
+    };
+
+    errors.emplace_back(errorCode, sourceLocation, std::move(message));
 }

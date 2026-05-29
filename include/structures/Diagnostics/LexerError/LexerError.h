@@ -1,12 +1,11 @@
 #pragma once
 
 #include "Common/Common.h"
-#include "TokenKind.h"
 #include "Diagnostics/SourceLocation.h"
+#include "LexerErrorCode.h"
 
-struct Token {
-    TokenKind kind;
-    std::string lexeme;
-    std::string literal;
+struct LexerError {
+    LexerErrorCode errorCode;
     SourceLocation sourceLocation;
+    std::string message;
 };
