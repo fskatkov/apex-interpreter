@@ -1,11 +1,14 @@
 #include "engine/Scanner/Scanner.h"
 
 Scanner::Scanner(std::string& source)
-    : source(std::move(source)), startPosition(0), currentPosition(0), line(1), column(1) {  }
+    : source(std::move(source)), startPosition(0), currentPosition(0),
+      line(1), startLine(1), column(1), startColumn(1), encounteredError(false) {  }
 
 std::vector<Token> Scanner::scan() {
     while (!isReachedEnd()) {
         startPosition = currentPosition;
+        startLine = line;
+        startColumn = column;
         scanToken();
     }
 
@@ -15,7 +18,24 @@ std::vector<Token> Scanner::scan() {
         "",
         SourceLocation{ line, column, currentPosition, 0 }
     );
+
     return tokens;
+}
+
+const std::vector<Token>& Scanner::getTokens() const {
+    return tokens;
+}
+
+bool Scanner::encounteredErrors() const {
+    return encounteredError;
+}
+
+void Scanner::raiseErrors() const {
+    if (encounteredError) {
+        for (const auto& error : errors) {
+            raiseError(error);
+        }
+    }
 }
 
 void Scanner::scanToken() {
@@ -88,7 +108,10 @@ void Scanner::scanToken() {
             break;
         }
         case '#': {
-            while (peek() != '\n' && !isReachedEnd()) advance();
+            while (peek() != '\n' && !isReachedEnd()) {
+                advance();
+            }
+
             break;
         }
         case '!': {
@@ -141,10 +164,7 @@ void Scanner::scanToken() {
         case ' ':
         case '\r':
         case '\t':
-            break;
         case '\n':
-            line++;
-            column = 1;
             break;
         case '"': {
             addStringToken();
@@ -154,9 +174,9 @@ void Scanner::scanToken() {
             addCharacterToken();
             break;
         default: {
-            if (std::isdigit(c)) {
+            if (std::isdigit(static_cast<unsigned char>(c))) {
                 addNumberToken();
-            } else if (std::isalpha(c)) {
+            } else if (std::isalpha(static_cast<unsigned char>(c))) {
                 addIdentifierToken();
             } else {
                 insertError(LexerErrorCode::UnexpectedCharacter, "unexpected character");
@@ -173,10 +193,14 @@ bool Scanner::isReachedEnd() const {
 }
 
 char Scanner::advance() {
-    const auto c = source[currentPosition];
-    currentPosition++;
-    column++;
-    return c;
+    const auto symbol = source[currentPosition++];
+    if (symbol == '\n') {
+        line++;
+        column = 1;
+    } else {
+        column++;
+    }
+    return symbol;
 }
 
 char Scanner::peek() {
@@ -199,29 +223,28 @@ bool Scanner::match(const char& expected) {
 }
 
 TokenKind Scanner::check(std::size_t starting, std::size_t ending, std::string rest, TokenKind kind) {
-    if (currentPosition - startPosition == starting + ending && source.substr(startPosition + starting, ending) == rest)
-        return kind;
+    if (currentPosition - startPosition == starting + ending) {
+        if (const std::string_view text(source.data() + startPosition + starting, ending); text == rest) {
+            return kind;
+        }
+    }
+
     return TokenKind::IDENTIFIER;
 }
 
 void Scanner::add(const TokenKind& kind, const std::string& literal) {
     const auto length = currentPosition - startPosition;
-    const auto startColumn = column - length;
 
     tokens.emplace_back(
         kind,
         source.substr(startPosition, length),
         literal,
-        SourceLocation{ line, startColumn, startPosition, length }
+        SourceLocation{ startLine, startColumn, startPosition, length }
     );
 }
 
 void Scanner::addStringToken() {
     while (peek() != '"' && !isReachedEnd()) {
-        if (peek() == '\n') {
-            line++;
-            column = 1;
-        }
         advance();
     }
 
@@ -236,11 +259,11 @@ void Scanner::addStringToken() {
 }
 
 void Scanner::addNumberToken() {
-    while (std::isdigit(peek()))
+    while (std::isdigit(static_cast<unsigned char>(peek())))
         advance();
-    if (peek() == '.' && std::isdigit(peekNext())) {
+    if (peek() == '.' && std::isdigit(static_cast<unsigned char>(peekNext()))) {
         advance();
-        while (std::isdigit(peek()))
+        while (std::isdigit(static_cast<unsigned char>(peek())))
             advance();
     }
 
@@ -258,7 +281,7 @@ void Scanner::addCharacterToken() {
 }
 
 void Scanner::addIdentifierToken() {
-    while (std::isalnum(peek())) {
+    while (std::isalnum(static_cast<unsigned char>(peek()))) {
         advance();
     }
 
@@ -426,8 +449,8 @@ TokenKind Scanner::checkIdentifierType() {
 
 void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
     SourceLocation sourceLocation{
-        line,
-        column - (currentPosition - startPosition),
+        startLine,
+        startColumn,
         startPosition,
         currentPosition - startPosition
     };
@@ -437,13 +460,5 @@ void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
 
 void Scanner::raiseError(const LexerError& error) const {
     std::cerr << "current:" << error.sourceLocation.line << ":" << error.sourceLocation.column
-    << ": SyntaxError" << error.message << "\n";
-}
-
-void Scanner::raiseErrors() const {
-    if (encounteredError) {
-        for (const auto& error : errors) {
-            raiseError(error);
-        }
-    }
+    << ": SyntaxError: " << error.message << "\n";
 }

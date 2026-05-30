@@ -4,9 +4,22 @@ void Driver::run() {
     while (true) {
         std::cout << "> ";
 
-        if (std::string prompt; !std::getline(std::cin, prompt)) {
+        std::string prompt;
+
+        if (!std::getline(std::cin, prompt)) {
             std::cerr << "\n";
             std::exit(EXIT_CODE_BROKEN_INPUT);
+        }
+
+        Scanner scanner(prompt);
+        scanner.scan();
+
+        if (scanner.encounteredErrors()) {
+            scanner.raiseErrors();
+        } else {
+            for (const auto& token : scanner.getTokens()) {
+                std::cout << token.sourceLocation.line << ", " << token.sourceLocation.column << ", " << token.lexeme << "\n";
+            }
         }
     }
 }

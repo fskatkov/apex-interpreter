@@ -9,14 +9,19 @@ public:
     explicit Scanner(std::string& source);
     ~Scanner() = default;
     std::vector<Token> scan();
-    std::vector<Token> tokens;
+    const std::vector<Token>& getTokens() const;
+    bool encounteredErrors() const;
+    void raiseErrors() const;
 private:
     std::string source;
     std::size_t startPosition;
     std::size_t currentPosition;
     std::size_t line;
+    std::size_t startLine;
     std::size_t column;
-    bool encounteredError = false;
+    std::size_t startColumn;
+    std::vector<Token> tokens;
+    bool encounteredError;
     std::vector<LexerError> errors;
 
     void scanToken();
@@ -34,5 +39,4 @@ private:
     TokenKind checkIdentifierType();
     void insertError(LexerErrorCode errorCode, std::string message);
     void raiseError(const LexerError& error) const;
-    void raiseErrors() const;
 };
