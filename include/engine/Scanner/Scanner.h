@@ -26,10 +26,11 @@ private:
     bool match(const char& expected);
     TokenKind check(std::size_t starting, std::size_t ending, std::string rest, TokenKind kind);
     void add(const TokenKind& kind, const std::string& literal = "");
-    void makeString();
-    void makeNumber();
-    void makeCharacter();
-    void makeIdentifier();
+    void addStringToken();
+    void addNumberToken();
+    void addCharacterToken();
+    void addIdentifierToken();
     TokenKind checkIdentifierType();
-    void raiseError(LexerErrorCode errorCode, std::string message);
+    void insertError(LexerErrorCode errorCode, std::string message);
+    void raiseErrors();
 };

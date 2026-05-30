@@ -28,20 +28,20 @@ void Scanner::scanToken() {
             add(TokenKind::RIGHT_PAREN);
             break;
         }
-        case '[': {
-            add(TokenKind::LEFT_BRACKET);
-            break;
-        }
-        case ']': {
-            add(TokenKind::RIGHT_BRACKET);
-            break;
-        }
         case '{': {
             add(TokenKind::LEFT_BRACE);
             break;
         }
         case '}': {
             add(TokenKind::RIGHT_BRACE);
+            break;
+        }
+        case '[': {
+            add(TokenKind::LEFT_BRACKET);
+            break;
+        }
+        case ']': {
+            add(TokenKind::RIGHT_BRACKET);
             break;
         }
         case '+': {
@@ -68,7 +68,23 @@ void Scanner::scanToken() {
             break;
         }
         case '%': {
-            add(TokenKind::MODULO);
+            add(match('=') ? TokenKind::MODULO_EQUALS : TokenKind::MODULO);
+            break;
+        }
+        case '&': {
+            add(match('=') ? TokenKind::BITWISE_AND_EQUALS : TokenKind::BITWISE_AND);
+            break;
+        }
+        case '|': {
+            add(match('=') ? TokenKind::BITWISE_OR_EQUALS : TokenKind::BITWISE_OR);
+            break;
+        }
+        case '^': {
+            add(match('=') ? TokenKind::BITWISE_XOR_EQUALS : TokenKind::BITWISE_XOR);
+            break;
+        }
+        case '~': {
+            add(match('=') ? TokenKind::BITWISE_NOT_EQUALS : TokenKind::BITWISE_NOT);
             break;
         }
         case '#': {
@@ -76,7 +92,7 @@ void Scanner::scanToken() {
             break;
         }
         case '!': {
-            add(match('=') ? TokenKind::BANG_EQUAL : TokenKind::BANG);
+            add(match('=') ? TokenKind::BANG_EQUALS : TokenKind::BANG);
             break;
         }
         case ';': {
@@ -92,13 +108,35 @@ void Scanner::scanToken() {
             break;
         }
         case '=':
-            add(match('=') ? TokenKind::EQUAL_EQUAL : TokenKind::EQUAL);
+            add(match('=') ? TokenKind::EQUALS_EQUALS : TokenKind::EQUALS);
             break;
         case '<':
-            add(match('=') ? TokenKind::LESS_EQUAL : TokenKind::LESS);
+            if (match('=')) {
+                add(TokenKind::LESS_EQUALS);
+            } else if (match('<')) {
+                if (match('=')) {
+                    add(TokenKind::BITWISE_LEFT_SHIFT_EQUALS);
+                } else {
+                    add(TokenKind::BITWISE_LEFT_SHIFT);
+                }
+            } else {
+                add(TokenKind::LESS);
+            }
+
             break;
         case '>':
-            add(match('=') ? TokenKind::GREATER_EQUAL : TokenKind::GREATER);
+            if (match('=')) {
+                add(TokenKind::GREATER_EQUALS);
+            } else if (match('>')) {
+                if (match('=')) {
+                    add(TokenKind::BITWISE_RIGHT_SHIFT_EQUALS);
+                } else {
+                    add(TokenKind::BITWISE_RIGHT_SHIFT);
+                }
+            } else {
+                add(TokenKind::GREATER);
+            }
+
             break;
         case ' ':
         case '\r':
@@ -109,19 +147,19 @@ void Scanner::scanToken() {
             column = 1;
             break;
         case '"': {
-            makeString();
+            addStringToken();
             break;
         }
         case '\'':
-            makeCharacter();
+            addCharacterToken();
             break;
         default: {
             if (std::isdigit(c)) {
-                makeNumber();
+                addNumberToken();
             } else if (std::isalpha(c)) {
-                makeIdentifier();
+                addIdentifierToken();
             } else {
-                raiseError(LexerErrorCode::UnexpectedCharacter, "unexpected character");
+                insertError(LexerErrorCode::UnexpectedCharacter, "unexpected character");
             }
 
             break;
@@ -177,7 +215,7 @@ void Scanner::add(const TokenKind& kind, const std::string& literal) {
     );
 }
 
-void Scanner::makeString() {
+void Scanner::addStringToken() {
     while (peek() != '"' && !isReachedEnd()) {
         if (peek() == '\n') {
             line++;
@@ -187,7 +225,7 @@ void Scanner::makeString() {
     }
 
     if (isReachedEnd()) {
-        raiseError(LexerErrorCode::UnterminatedString, "unterminated string");
+        insertError(LexerErrorCode::UnterminatedString, "unterminated string");
         return;
     }
 
@@ -195,7 +233,7 @@ void Scanner::makeString() {
     add(TokenKind::STRING, source.substr(startPosition + 1, currentPosition - startPosition - 2));
 }
 
-void Scanner::makeNumber() {
+void Scanner::addNumberToken() {
     while (std::isdigit(peek()))
         advance();
     if (peek() == '.' && std::isdigit(peekNext())) {
@@ -207,7 +245,7 @@ void Scanner::makeNumber() {
     add(TokenKind::NUMBER, source.substr(startPosition, currentPosition - startPosition));
 }
 
-void Scanner::makeCharacter() {
+void Scanner::addCharacterToken() {
     advance();
     if (isReachedEnd()) {
         return;
@@ -216,7 +254,7 @@ void Scanner::makeCharacter() {
     add(TokenKind::CHARACTER, source.substr(startPosition, currentPosition - startPosition));
 }
 
-void Scanner::makeIdentifier() {
+void Scanner::addIdentifierToken() {
     while (std::isalnum(peek())) advance();
     add(checkIdentifierType(), "");
 }
@@ -300,7 +338,7 @@ TokenKind Scanner::checkIdentifierType() {
     return TokenKind::IDENTIFIER;
 }
 
-void Scanner::raiseError(LexerErrorCode errorCode, std::string message) {
+void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
     SourceLocation sourceLocation{
         line,
         column - (currentPosition - startPosition),
@@ -309,4 +347,10 @@ void Scanner::raiseError(LexerErrorCode errorCode, std::string message) {
     };
 
     errors.emplace_back(errorCode, sourceLocation, std::move(message));
+}
+
+void Scanner::raiseErrors() {
+    for (const auto& error : errors) {
+
+    }
 }
