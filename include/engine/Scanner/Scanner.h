@@ -16,6 +16,7 @@ private:
     std::size_t currentPosition;
     std::size_t line;
     std::size_t column;
+    bool encounteredError = false;
     std::vector<LexerError> errors;
 
     void scanToken();
@@ -32,5 +33,6 @@ private:
     void addIdentifierToken();
     TokenKind checkIdentifierType();
     void insertError(LexerErrorCode errorCode, std::string message);
-    void raiseErrors();
+    void raiseError(const LexerError& error) const;
+    void raiseErrors() const;
 };

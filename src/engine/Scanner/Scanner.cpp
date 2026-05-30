@@ -160,6 +160,7 @@ void Scanner::scanToken() {
                 addIdentifierToken();
             } else {
                 insertError(LexerErrorCode::UnexpectedCharacter, "unexpected character");
+                encounteredError = true;
             }
 
             break;
@@ -226,6 +227,7 @@ void Scanner::addStringToken() {
 
     if (isReachedEnd()) {
         insertError(LexerErrorCode::UnterminatedString, "unterminated string");
+        encounteredError = true;
         return;
     }
 
@@ -248,6 +250,7 @@ void Scanner::addNumberToken() {
 void Scanner::addCharacterToken() {
     advance();
     if (isReachedEnd()) {
+        insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
         return;
     }
     advance();
@@ -255,56 +258,118 @@ void Scanner::addCharacterToken() {
 }
 
 void Scanner::addIdentifierToken() {
-    while (std::isalnum(peek())) advance();
+    while (std::isalnum(peek())) {
+        advance();
+    }
+
     add(checkIdentifierType(), "");
 }
 
 TokenKind Scanner::checkIdentifierType() {
     switch (source[startPosition]) {
-        case 'a': return check(1, 2, "nd", TokenKind::AND);
+        case 'a': {
+            return check(1, 2, "nd", TokenKind::AND);
+        }
         case 'c': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'l': return check(2, 3, "ass", TokenKind::CLASS);
+                    case 'l': {
+                        return check(2, 3, "ass", TokenKind::CLASS);
+                    }
                     case 'o': {
                         if (currentPosition - startPosition > 2 && source[startPosition + 2] == 'n') {
                             if (currentPosition - startPosition > 3) {
                                 switch (source[startPosition + 3]) {
-                                    case 's': return check(4, 1, "t", TokenKind::CONST);
-                                    case 't': return check(4, 4, "inue", TokenKind::CONTINUE);
+                                    case 's': {
+                                        return check(4, 1, "t", TokenKind::CONST);
+                                    }
+                                    case 't': {
+                                        return check(4, 4, "inue", TokenKind::CONTINUE);
+                                    }
+                                    default: {
+                                        return TokenKind::IDENTIFIER;
+                                    }
                                 }
                             }
                         }
 
                         break;
                     }
-                    case 'a': return check(2, 2, "se", TokenKind::CASE);
+                    case 'a': {
+                        return check(2, 2, "se", TokenKind::CASE);
+                    }
+                    default: {
+                        return TokenKind::IDENTIFIER;
+                    }
                 }
             }
 
             return TokenKind::IDENTIFIER;
         }
-        case 'e': return check(1, 3, "lse", TokenKind::ELSE);
+        case 'e': {
+            if (currentPosition - startPosition > 1) {
+                switch (source[startPosition + 1]) {
+                    case 'l': {
+                        return check(2, 2, "se", TokenKind::ELSE);
+                    }
+                    case 'n': {
+                        return check(2, 2, "um", TokenKind::ENUM);
+                    }
+                    default: {
+                        return TokenKind::IDENTIFIER;
+                    }
+                }
+            }
+
+            return TokenKind::IDENTIFIER;
+        }
         case 'f': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'a': return check(2, 3, "lse", TokenKind::FALSE);
-                    case 'o': return check(2, 1, "r", TokenKind::FOR);
-                    case 'u': return check(2, 6, "nction", TokenKind::FUNC);
+                    case 'a': {
+                        return check(2, 3, "lse", TokenKind::FALSE);
+                    }
+                    case 'o': {
+                        return check(2, 1, "r", TokenKind::FOR);
+                    }
+                    case 'u': {
+                        return check(2, 6, "nction", TokenKind::FUNCTION);
+                    }
+                    default: {
+                        return TokenKind::IDENTIFIER;
+                    }
                 }
             }
 
             return TokenKind::IDENTIFIER;
         }
-        case 'i': return check(1, 1, "f", TokenKind::IF);
-        case 'n': return check(1, 2, "il", TokenKind::NIL);
-        case 'o': return check(1, 1, "r", TokenKind::OR);
-        case 'r': return check(1, 5, "eturn", TokenKind::RETURN);
+        case 'i': {
+            return check(1, 1, "f", TokenKind::IF);
+        }
+        case 'n': {
+            return check(1, 3, "ull", TokenKind::NIL);
+        }
+        case 'o': {
+            return check(1, 1, "r", TokenKind::OR);
+        }
+        case 'r': {
+            return check(1, 5, "eturn", TokenKind::RETURN);
+        }
         case 's': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'u': return check(2, 3, "per", TokenKind::SUPER);
-                    case 'w': return check(2, 4, "itch", TokenKind::SWITCH);
+                    case 'u': {
+                        return check(2, 3, "per", TokenKind::SUPER);
+                    }
+                    case 'w': {
+                        return check(2, 4, "itch", TokenKind::SWITCH);
+                    }
+                    case 't': {
+                        return check(2, 4, "ruct", TokenKind::STRUCTURE);
+                    }
+                    default: {
+                        return TokenKind::IDENTIFIER;
+                    }
                 }
             }
 
@@ -313,29 +378,50 @@ TokenKind Scanner::checkIdentifierType() {
         case 't': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'h': return check(2, 2, "is", TokenKind::THIS);
-                    case 'r': return check(2, 2, "ue", TokenKind::TRUE);
+                    case 'h': {
+                        return check(2, 2, "is", TokenKind::THIS);
+                    }
+                    case 'r': {
+                        return check(2, 2, "ue", TokenKind::TRUE);
+                    }
+                    default: {
+                        return TokenKind::IDENTIFIER;
+                    }
                 }
             }
 
             return TokenKind::IDENTIFIER;
         }
-        case 'v': return check(1, 2, "ar", TokenKind::VAR);
-        case 'w': return check(1, 4, "hile", TokenKind::WHILE);
+        case 'v': {
+            return check(1, 2, "ar", TokenKind::VAR);
+        }
+        case 'w': {
+            return check(1, 4, "hile", TokenKind::WHILE);
+        }
         case 'd': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'e': return check(2, 5, "fault", TokenKind::DEFAULT);
-                    case 'o': return check(2, 0, "", TokenKind::DO);
+                    case 'e': {
+                        return check(2, 5, "fault", TokenKind::DEFAULT);
+                    }
+                    case 'o': {
+                        return check(2, 0, "", TokenKind::DO);
+                    }
+                    default: {
+                        return TokenKind::IDENTIFIER;
+                    }
                 }
             }
 
             return TokenKind::IDENTIFIER;
         }
-        case 'b': return check(1, 4, "reak", TokenKind::BREAK);
+        case 'b': {
+            return check(1, 4, "reak", TokenKind::BREAK);
+        }
+        default: {
+            return TokenKind::IDENTIFIER;
+        }
     }
-
-    return TokenKind::IDENTIFIER;
 }
 
 void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
@@ -349,8 +435,15 @@ void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
     errors.emplace_back(errorCode, sourceLocation, std::move(message));
 }
 
-void Scanner::raiseErrors() {
-    for (const auto& error : errors) {
+void Scanner::raiseError(const LexerError& error) const {
+    std::cerr << "current:" << error.sourceLocation.line << ":" << error.sourceLocation.column
+    << ": SyntaxError" << error.message << "\n";
+}
 
+void Scanner::raiseErrors() const {
+    if (encounteredError) {
+        for (const auto& error : errors) {
+            raiseError(error);
+        }
     }
 }
