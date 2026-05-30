@@ -30,10 +30,10 @@ bool Scanner::encounteredErrors() const {
     return encounteredError;
 }
 
-void Scanner::raiseErrors() const {
+void Scanner::raiseErrors(const std::string& type) const {
     if (encounteredError) {
         for (const auto& error : errors) {
-            raiseError(error);
+            raiseError(type, error);
         }
     }
 }
@@ -219,6 +219,7 @@ bool Scanner::match(const char& expected) {
     if (isReachedEnd() || source[currentPosition] != expected)
         return false;
     currentPosition++;
+    column++;
     return true;
 }
 
@@ -458,7 +459,29 @@ void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
     errors.emplace_back(errorCode, sourceLocation, std::move(message));
 }
 
-void Scanner::raiseError(const LexerError& error) const {
-    std::cerr << "current:" << error.sourceLocation.line << ":" << error.sourceLocation.column
+void Scanner::raiseError(const std::string& type, const LexerError& error) const {
+    std::cerr << type << ": " << error.sourceLocation.line << ":" << error.sourceLocation.column
     << ": SyntaxError: " << error.message << "\n";
+
+    std::stringstream stream(source);
+    std::string codeBlock;
+    for (int i = 0; i < error.sourceLocation.line; ++i) {
+        std::getline(stream, codeBlock);
+    }
+
+    std::cerr << " " << error.sourceLocation.line << " | " << codeBlock << "\n";
+
+    const std::string padding(std::to_string(error.sourceLocation.line).length(), ' ');
+    std::cerr << " " << padding << " | ";
+
+    for (int i = 1; i < error.sourceLocation.column; ++i) {
+        std::cerr << " ";
+    }
+    std::cerr << "^";
+
+    const auto errorLength = error.sourceLocation.length > 0 ? error.sourceLocation.length : 1;
+    for (int i = 1; i < errorLength; ++i) {
+        std::cerr << "~";
+    }
+    std::cerr << "\n\n";
 }

@@ -11,7 +11,7 @@ public:
     std::vector<Token> scan();
     const std::vector<Token>& getTokens() const;
     bool encounteredErrors() const;
-    void raiseErrors() const;
+    void raiseErrors(const std::string& type = "<stdin>") const;
 private:
     std::string source;
     std::size_t startPosition;
@@ -38,5 +38,5 @@ private:
     void addIdentifierToken();
     TokenKind checkIdentifierType();
     void insertError(LexerErrorCode errorCode, std::string message);
-    void raiseError(const LexerError& error) const;
+    void raiseError(const std::string& type, const LexerError& error) const;
 };
