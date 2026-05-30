@@ -20,19 +20,77 @@ std::vector<Token> Scanner::scan() {
 
 void Scanner::scanToken() {
     switch (const auto c = advance(); c) {
-        case '(': add(TokenKind::LEFT_PAREN); break;
-        case ')': add(TokenKind::RIGHT_PAREN); break;
-        case '[': add(TokenKind::LEFT_BRACKET); break;
-        case ']': add(TokenKind::RIGHT_BRACKET); break;
-        case '{': add(TokenKind::LEFT_BRACE); break;
-        case '}': add(TokenKind::RIGHT_BRACE); break;
-        case '-': add(TokenKind::MINUS); break;
-        case '+': add(TokenKind::PLUS); break;
-        case ';': add(TokenKind::SEMICOLON); break;
-        case '*': add(TokenKind::STAR); break;
-        case '!':
+        case '(': {
+            add(TokenKind::LEFT_PAREN);
+            break;
+        }
+        case ')': {
+            add(TokenKind::RIGHT_PAREN);
+            break;
+        }
+        case '[': {
+            add(TokenKind::LEFT_BRACKET);
+            break;
+        }
+        case ']': {
+            add(TokenKind::RIGHT_BRACKET);
+            break;
+        }
+        case '{': {
+            add(TokenKind::LEFT_BRACE);
+            break;
+        }
+        case '}': {
+            add(TokenKind::RIGHT_BRACE);
+            break;
+        }
+        case '+': {
+            add(match('=') ? TokenKind::PLUS_EQUALS : TokenKind::PLUS);
+            break;
+        }
+        case '-': {
+            add(match('=') ? TokenKind::MINUS_EQUALS : TokenKind::MINUS);
+            break;
+        }
+        case '*': {
+            if (match('=')) {
+                add(TokenKind::STAR_EQUALS);
+            } else if (match('*')) {
+                add(TokenKind::POWER);
+            } else {
+                add(TokenKind::STAR);
+            }
+
+            break;
+        }
+        case '/': {
+            add(match('=') ? TokenKind::SLASH_EQUALS : TokenKind::SLASH);
+            break;
+        }
+        case '%': {
+            add(TokenKind::MODULO);
+            break;
+        }
+        case '#': {
+            while (peek() != '\n' && !isReachedEnd()) advance();
+            break;
+        }
+        case '!': {
             add(match('=') ? TokenKind::BANG_EQUAL : TokenKind::BANG);
             break;
+        }
+        case ';': {
+            add(TokenKind::SEMICOLON);
+            break;
+        }
+        case ':': {
+            add(TokenKind::COLON);
+            break;
+        }
+        case '.': {
+            add(TokenKind::DOT);
+            break;
+        }
         case '=':
             add(match('=') ? TokenKind::EQUAL_EQUAL : TokenKind::EQUAL);
             break;
@@ -42,15 +100,6 @@ void Scanner::scanToken() {
         case '>':
             add(match('=') ? TokenKind::GREATER_EQUAL : TokenKind::GREATER);
             break;
-        case '/': {
-            if (match('/')) {
-                while (peek() != '\n' && !isReachedEnd()) advance();
-            } else {
-                add(TokenKind::SLASH);
-            }
-
-            break;
-        }
         case ' ':
         case '\r':
         case '\t':
