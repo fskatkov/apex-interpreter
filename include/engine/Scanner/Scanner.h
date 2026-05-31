@@ -9,8 +9,8 @@ public:
     explicit Scanner(std::string& source);
     ~Scanner() = default;
     std::vector<Token> scan();
-    const std::vector<Token>& getTokens() const;
-    bool encounteredErrors() const;
+    [[nodiscard]] const std::vector<Token>& getTokens() const;
+    [[nodiscard]] bool encounteredErrors() const;
     void raiseErrors(const std::string& type = "<stdin>") const;
 private:
     std::string source;
@@ -31,7 +31,7 @@ private:
     char peekNext();
     bool match(const char& expected);
     TokenKind check(std::size_t starting, std::size_t ending, std::string rest, TokenKind kind);
-    void add(const TokenKind& kind, const std::string& literal = "");
+    void add(const TokenKind& kind, const std::any& literal = "");
     void addStringToken();
     void addNumberToken();
     void addCharacterToken();

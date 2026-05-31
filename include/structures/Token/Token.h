@@ -7,6 +7,6 @@
 struct Token {
     TokenKind kind;
     std::string lexeme;
-    std::string literal;
+    std::any literal;
     SourceLocation sourceLocation;
 };

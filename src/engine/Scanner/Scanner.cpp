@@ -233,7 +233,7 @@ TokenKind Scanner::check(std::size_t starting, std::size_t ending, std::string r
     return TokenKind::IDENTIFIER;
 }
 
-void Scanner::add(const TokenKind& kind, const std::string& literal) {
+void Scanner::add(const TokenKind& kind, const std::any& literal) {
     const auto length = currentPosition - startPosition;
 
     tokens.emplace_back(
@@ -256,7 +256,7 @@ void Scanner::addStringToken() {
     }
 
     advance();
-    add(TokenKind::STRING, source.substr(startPosition + 1, currentPosition - startPosition - 2));
+    add(TokenKind::STRING, source.substr(startPosition, currentPosition - startPosition));
 }
 
 void Scanner::addNumberToken() {
@@ -268,17 +268,42 @@ void Scanner::addNumberToken() {
             advance();
     }
 
-    add(TokenKind::NUMBER, source.substr(startPosition, currentPosition - startPosition));
+    add(TokenKind::NUMBER, std::stod(source.substr(startPosition, currentPosition - startPosition)));
 }
 
 void Scanner::addCharacterToken() {
     advance();
-    if (isReachedEnd()) {
-        insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+
+    if (peek() == '\'') {
+        insertError(LexerErrorCode::UnexpectedCharacter, "empty character literal");
+        encounteredError = true;
+        advance();
         return;
     }
+
+    if (isReachedEnd()) {
+        insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+        encounteredError = true;
+        return;
+    }
+
+    if (const auto symbol = advance(); symbol == '\\') {
+        if (isReachedEnd()) {
+            insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+            encounteredError = true;
+            return;
+        }
+        advance();
+    }
+
+    if (isReachedEnd() || peek() != '\'') {
+        insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+        encounteredError = true;
+        return;
+    }
+
     advance();
-    add(TokenKind::CHARACTER, source.substr(startPosition, currentPosition - startPosition));
+    add(TokenKind::CHARACTER, source.substr(startPosition + 1, currentPosition - startPosition - 2));
 }
 
 void Scanner::addIdentifierToken() {
@@ -457,6 +482,7 @@ void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
     };
 
     errors.emplace_back(errorCode, sourceLocation, std::move(message));
+    encounteredError = true;
 }
 
 void Scanner::raiseError(const std::string& type, const LexerError& error) const {
