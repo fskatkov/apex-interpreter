@@ -19,6 +19,7 @@ add_executable(apex_interpreter main.cpp
         include/structures/AST/GroupingExpression.h
         include/structures/AST/LiteralExpression.h
         include/structures/AST/UnaryExpression.h
+        include/structures/AST/ExprVisitor.h
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)

@@ -8,4 +8,8 @@ struct LiteralExpression : public Expression {
 
     explicit LiteralExpression(std::any value)
         : value(std::move(value)) {  }
+
+    std::any accept(ExpressionVisitor& visitor) override {
+        return visitor.visitLiteralExpression(this);
+    }
 };

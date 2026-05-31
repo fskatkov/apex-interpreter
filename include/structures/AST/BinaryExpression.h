@@ -11,4 +11,8 @@ struct BinaryExpression : public Expression {
 
     explicit BinaryExpression(std::unique_ptr<Expression> lhs, const Token& binaryOperator, std::unique_ptr<Expression> rhs)
         : lhs(std::move(lhs)), binaryOperator(binaryOperator), rhs(std::move(rhs)) {  }
+
+    std::any accept(ExpressionVisitor& visitor) override {
+        return visitor.visitBinaryExpression(this);
+    }
 };

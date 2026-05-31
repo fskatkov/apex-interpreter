@@ -8,4 +8,8 @@ struct GroupingExpression : public Expression {
 
     explicit GroupingExpression(std::unique_ptr<Expression> expression)
         : expression(std::move(expression)) {  }
+
+    std::any accept(ExpressionVisitor& visitor) override {
+        return visitor.visitGroupingExpression(this);
+    }
 };

@@ -10,4 +10,8 @@ struct UnaryExpression : public Expression {
 
     explicit UnaryExpression(const Token& unaryOperator, std::unique_ptr<Expression> expression)
         : unaryOperator(unaryOperator), expression(std::move(expression)) {  }
+
+    std::any accept(ExpressionVisitor& visitor) override {
+        return visitor.visitUnaryExpression(this);
+    }
 };
