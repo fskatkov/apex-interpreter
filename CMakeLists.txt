@@ -14,6 +14,11 @@ add_executable(apex_interpreter main.cpp
         utils/Diagnostics/SourceLocation.h
         include/structures/Diagnostics/LexerError/LexerError.h
         include/structures/Diagnostics/LexerError/LexerErrorCode.h
+        include/structures/AST/Expression.h
+        include/structures/AST/BinaryExpression.h
+        include/structures/AST/GroupingExpression.h
+        include/structures/AST/LiteralExpression.h
+        include/structures/AST/UnaryExpression.h
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)
