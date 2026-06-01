@@ -4,10 +4,10 @@
 #include "structures/Token/Token.h"
 #include "diagnostics/DiagnosticEngine.h"
 
-class Scanner {
+class Lexer {
 public:
-    explicit Scanner(std::string& source, DiagnosticEngine& diagnosticEngine);
-    ~Scanner() = default;
+    explicit Lexer(std::string& source, DiagnosticEngine& diagnosticEngine);
+    ~Lexer() = default;
     std::vector<Token> scan();
     [[nodiscard]] const std::vector<Token>& getTokens() const;
     [[nodiscard]] bool encounteredErrors() const;

@@ -5,42 +5,25 @@ void Driver::run() {
         std::cout << "> ";
 
         std::string prompt;
-
         if (!std::getline(std::cin, prompt)) {
             std::cerr << "\n";
             std::exit(EXIT_CODE_BROKEN_INPUT);
         }
 
-        Scanner scanner(prompt);
-        scanner.scan();
+        DiagnosticEngine engine(prompt);
 
-        if (scanner.encounteredErrors()) {
-            scanner.raiseErrors();
+        Lexer lexer(prompt, engine);
+        auto tokens = lexer.scan();
+
+        if (engine.encounteredErrors()) {
+            engine.raise();
             std::exit(EXIT_CODE_BROKEN_INPUT);
-        }
-
-        for (const auto& token : scanner.getTokens()) {
-            std::cout << token.sourceLocation.line << ", " << token.sourceLocation.column << ", " << token.lexeme << "\n";
         }
     }
 }
 
 void Driver::run(const char* path) {
     auto executedFile = executeFile(path);
-
-    Scanner scanner(executedFile);
-    scanner.scan();
-
-    if (scanner.encounteredErrors()) {
-        const std::string strPath = path;
-        scanner.raiseErrors(strPath);
-        std::exit(EXIT_CODE_BROKEN_INPUT);
-    }
-
-    for (const auto& token : scanner.getTokens()) {
-        std::cout << token.sourceLocation.line << ", " << token.sourceLocation.column << ", " << token.lexeme << "\n";
-    }
-
 }
 
 std::string Driver::executeFile(const char* path) {

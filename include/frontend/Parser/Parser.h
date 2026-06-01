@@ -3,11 +3,14 @@
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
 #include "structures/AST/Expr/Expression.h"
+#include "diagnostics/DiagnosticEngine.h"
 
 class Parser {
 public:
-    explicit Parser(const std::vector<Token>& tokens);
+    explicit Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine);
 private:
+    DiagnosticEngine& diagnosticEngine;
+
     std::vector<Token> tokens;
     std::size_t current;
 
@@ -26,4 +29,10 @@ private:
     Token peek();
     Token previous();
     void consume(const TokenKind& kind, const std::string& message);
+    void synchronize();
+
+    struct ParseError : public std::runtime_error {
+        explicit ParseError()
+            : std::runtime_error("") {  }
+    };
 };

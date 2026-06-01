@@ -8,12 +8,10 @@ add_executable(apex_interpreter main.cpp
         utils/common/Common.h
         src/Driver/Driver.cpp
         include/structures/Token/Token.h
-        include/frontend/Scanner/Scanner.h
+        include/frontend/Lexer/Lexer.h
         include/structures/Token/TokenKind.h
-        src/frontend/Scanner/Scanner.cpp
+        src/frontend/Lexer/Lexer.cpp
         utils/SourceLocation/SourceLocation.h
-        include/structures/Diagnostics/LexerError/LexerError.h
-        include/structures/Diagnostics/LexerError/LexerErrorCode.h
         include/structures/AST/Expr/Expression.h
         include/structures/AST/Expr/ExpressionVisitor.h
         include/frontend/Parser/Parser.h

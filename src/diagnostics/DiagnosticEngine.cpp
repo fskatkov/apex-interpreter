@@ -13,8 +13,15 @@ void DiagnosticEngine::report(Diagnostic::DiagnosticKind kind, SourceLocation lo
 
 void DiagnosticEngine::raise() const {
     for (const auto& diagnostic : diagnostics) {
-        std::cerr << "<stdin>: " << diagnostic.location.line << ":" << diagnostic.location.column
-        << ": SyntaxError: " << diagnostic.message << "\n";
+        std::cerr << "<stdin>: " << diagnostic.location.line << ":" << diagnostic.location.column << ": ";
+        if (diagnostic.kind == Diagnostic::DiagnosticKind::Warning) {
+            std::cerr << "warning: ";
+        } else if (diagnostic.kind == Diagnostic::DiagnosticKind::Fatal) {
+            std::cerr << "fatal error: ";
+        } else {
+            std::cerr << "error: ";
+        }
+        std::cerr << diagnostic.message << "\n";
 
         std::stringstream stream(source);
         std::string codeBlock;
@@ -43,4 +50,3 @@ void DiagnosticEngine::raise() const {
 bool DiagnosticEngine::encounteredErrors() const {
     return hasErrors;
 }
-

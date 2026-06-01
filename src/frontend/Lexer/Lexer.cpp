@@ -1,10 +1,10 @@
-#include "frontend/Scanner/Scanner.h"
+#include "frontend/Lexer/Lexer.h"
 
-Scanner::Scanner(std::string& source, DiagnosticEngine& diagnosticEngine)
+Lexer::Lexer(std::string& source, DiagnosticEngine& diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), source(std::move(source)), startPosition(0), currentPosition(0),
       line(1), startLine(1), column(1), startColumn(1), encounteredError(false) {  }
 
-std::vector<Token> Scanner::scan() {
+std::vector<Token> Lexer::scan() {
     while (!isReachedEnd()) {
         startPosition = currentPosition;
         startLine = line;
@@ -22,15 +22,15 @@ std::vector<Token> Scanner::scan() {
     return tokens;
 }
 
-const std::vector<Token>& Scanner::getTokens() const {
+const std::vector<Token>& Lexer::getTokens() const {
     return tokens;
 }
 
-bool Scanner::encounteredErrors() const {
+bool Lexer::encounteredErrors() const {
     return encounteredError;
 }
 
-void Scanner::scanToken() {
+void Lexer::scanToken() {
     switch (const auto c = advance(); c) {
         case '(': {
             add(TokenKind::LEFT_PAREN);
@@ -180,11 +180,11 @@ void Scanner::scanToken() {
     }
 }
 
-bool Scanner::isReachedEnd() const {
+bool Lexer::isReachedEnd() const {
     return currentPosition >= source.length();
 }
 
-char Scanner::advance() {
+char Lexer::advance() {
     const auto symbol = source[currentPosition++];
     if (symbol == '\n') {
         line++;
@@ -195,19 +195,19 @@ char Scanner::advance() {
     return symbol;
 }
 
-char Scanner::peek() const {
+char Lexer::peek() const {
     if (isReachedEnd())
         return '\0';
     return source[currentPosition];
 }
 
-char Scanner::peekNext() const {
+char Lexer::peekNext() const {
     if (currentPosition + 1 >= source.length())
         return '\0';
     return source[currentPosition + 1];
 }
 
-bool Scanner::match(const char& expected) {
+bool Lexer::match(const char& expected) {
     if (isReachedEnd() || source[currentPosition] != expected)
         return false;
     currentPosition++;
@@ -215,7 +215,7 @@ bool Scanner::match(const char& expected) {
     return true;
 }
 
-TokenKind Scanner::check(std::size_t starting, std::size_t ending, const std::string& rest, TokenKind kind) const {
+TokenKind Lexer::check(std::size_t starting, std::size_t ending, const std::string& rest, TokenKind kind) const {
     if (currentPosition - startPosition == starting + ending) {
         if (const std::string_view text(source.data() + startPosition + starting, ending); text == rest) {
             return kind;
@@ -225,7 +225,7 @@ TokenKind Scanner::check(std::size_t starting, std::size_t ending, const std::st
     return TokenKind::IDENTIFIER;
 }
 
-void Scanner::add(const TokenKind& kind, const std::any& literal) {
+void Lexer::add(const TokenKind& kind, const std::any& literal) {
     const auto length = currentPosition - startPosition;
 
     tokens.emplace_back(
@@ -236,7 +236,7 @@ void Scanner::add(const TokenKind& kind, const std::any& literal) {
     );
 }
 
-void Scanner::addStringToken() {
+void Lexer::addStringToken() {
     while (peek() != '"' && !isReachedEnd()) {
         advance();
     }
@@ -251,7 +251,7 @@ void Scanner::addStringToken() {
     add(TokenKind::STRING, source.substr(startPosition, currentPosition - startPosition));
 }
 
-void Scanner::addNumberToken() {
+void Lexer::addNumberToken() {
     while (std::isdigit(static_cast<unsigned char>(peek())))
         advance();
     if (peek() == '.' && std::isdigit(static_cast<unsigned char>(peekNext()))) {
@@ -263,7 +263,7 @@ void Scanner::addNumberToken() {
     add(TokenKind::NUMBER, std::stod(source.substr(startPosition, currentPosition - startPosition)));
 }
 
-void Scanner::addCharacterToken() {
+void Lexer::addCharacterToken() {
     advance();
 
     if (peek() == '\'') {
@@ -298,7 +298,7 @@ void Scanner::addCharacterToken() {
     add(TokenKind::CHARACTER, source.substr(startPosition + 1, currentPosition - startPosition - 2));
 }
 
-void Scanner::addIdentifierToken() {
+void Lexer::addIdentifierToken() {
     while (std::isalnum(static_cast<unsigned char>(peek()))) {
         advance();
     }
@@ -306,7 +306,7 @@ void Scanner::addIdentifierToken() {
     add(checkIdentifierType(), "");
 }
 
-TokenKind Scanner::checkIdentifierType() const {
+TokenKind Lexer::checkIdentifierType() const {
     switch (source[startPosition]) {
         case 'a': {
             return check(1, 2, "nd", TokenKind::AND);
@@ -465,7 +465,7 @@ TokenKind Scanner::checkIdentifierType() const {
     }
 }
 
-void Scanner::reportError(const std::string& message) const {
+void Lexer::reportError(const std::string& message) const {
     SourceLocation sourceLocation{
         startLine,
         startColumn,

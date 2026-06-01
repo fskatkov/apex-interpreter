@@ -1,7 +1,7 @@
 #include "frontend/Parser/Parser.h"
 
-Parser::Parser(const std::vector<Token>& tokens)
-    : tokens(tokens), current(0) {  }
+Parser::Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine)
+    : diagnosticEngine(diagnosticEngine), tokens(tokens), current(0) {  }
 
 std::unique_ptr<Expression> Parser::parseExpression() {
     return parseEqualityExpression();
@@ -148,5 +148,33 @@ Token Parser::previous() {
 }
 
 void Parser::consume(const TokenKind& kind, const std::string& message) {
+    if (check(kind)) {
+        advance();
+    }
 
+    diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, peek().sourceLocation, message);
+    throw ParseError();
+}
+
+void Parser::synchronize() {
+    advance();
+
+    while (!isReachedEnd()) {
+        if (previous().kind == TokenKind::SEMICOLON) {
+            return;
+        }
+
+        switch (peek().kind) {
+            case TokenKind::CLASS:
+            case TokenKind::FUNCTION:
+            case TokenKind::VAR:
+            case TokenKind::FOR:
+            case TokenKind::IF:
+            case TokenKind::WHILE:
+            case TokenKind::RETURN:
+                return;
+            default:
+                advance();
+        }
+    }
 }
