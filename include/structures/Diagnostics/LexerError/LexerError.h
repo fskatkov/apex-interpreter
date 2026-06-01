@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common/Common.h"
-#include "Diagnostics/SourceLocation.h"
+#include "../../../../utils/SourceLocation/SourceLocation.h"
 #include "LexerErrorCode.h"
 
 struct LexerError {

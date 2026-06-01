@@ -2,7 +2,7 @@
 
 #include "Common/Common.h"
 #include "TokenKind.h"
-#include "Diagnostics/SourceLocation.h"
+#include "../../../utils/SourceLocation/SourceLocation.h"
 
 struct Token {
     TokenKind kind;
