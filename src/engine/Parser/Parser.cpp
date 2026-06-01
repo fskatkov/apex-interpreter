@@ -1,6 +1,8 @@
 #include "engine/Parser/Parser.h"
 
 #include "structures/AST/BinaryExpression.h"
+#include "structures/AST/BinaryExpression.h"
+#include "structures/AST/BinaryExpression.h"
 
 Parser::Parser(const std::vector<Token>& tokens)
     : tokens(tokens), current(0) {  }
@@ -14,7 +16,7 @@ std::unique_ptr<Expression> Parser::parseEqualityExpression() {
 
     while (match({TokenKind::BANG_EQUALS, TokenKind::EQUALS_EQUALS})) {
         const auto operatorSymbol = previous();
-        std::unique_ptr<Expression> rhs = parseComparisonExpression();
+        auto rhs = parseComparisonExpression();
         expression = std::make_unique<BinaryExpression>(
             std::move(expression),
             operatorSymbol,
@@ -26,7 +28,88 @@ std::unique_ptr<Expression> Parser::parseEqualityExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseComparisonExpression() {
+    std::unique_ptr<Expression> expression = parseTermExpression();
 
+    while (match({ TokenKind::GREATER, TokenKind::GREATER_EQUALS, TokenKind::LESS, TokenKind::LESS_EQUALS })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseTermExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseTermExpression() {
+    std::unique_ptr<Expression> expression = parseFactorExpression();
+
+    while (match({ TokenKind::PLUS, TokenKind::MINUS })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseFactorExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseFactorExpression() {
+    std::unique_ptr<Expression> expression = parseUnaryExpression();
+
+    while (match({ TokenKind::SLASH, TokenKind::STAR })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseUnaryExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseUnaryExpression() {
+    while (match({ TokenKind::BANG, TokenKind::MINUS })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseUnaryExpression();
+        return std::make_unique<UnaryExpression>(
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return parsePrimaryExpression();
+}
+
+std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
+    if (match({ TokenKind::TRUE })) {
+        return std::make_unique<LiteralExpression>(true);
+    }
+
+    if (match({ TokenKind::FALSE })) {
+        return std::make_unique<LiteralExpression>(false);
+    }
+
+    if (match({ TokenKind::NIL })) {
+        return std::make_unique<LiteralExpression>(NULL);
+    }
+
+    if (match({ TokenKind::NUMBER, TokenKind::STRING, TokenKind::CHARACTER })) {
+        return std::make_unique<LiteralExpression>(previous().literal);
+    }
+
+    if (match({ TokenKind::LEFT_PAREN })) {
+        std::unique_ptr<Expression> expression = parseExpression();
+        consume(TokenKind::RIGHT_PAREN, "expect `)` after expression");
+        return std::make_unique<GroupingExpression>(std::move(expression));
+    }
 }
 
 bool Parser::match(std::initializer_list<TokenKind> kinds) {
@@ -66,4 +149,8 @@ Token Parser::peek() {
 
 Token Parser::previous() {
     return tokens[current - 1];
+}
+
+void Parser::consume(const TokenKind& kind, const std::string& message) {
+    
 }

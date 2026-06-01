@@ -3,6 +3,9 @@
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
 #include "structures/AST/Expression.h"
+#include "structures/AST/UnaryExpression.h"
+#include "structures/AST/LiteralExpression.h"
+#include "structures/AST/GroupingExpression.h"
 
 class Parser {
 public:
@@ -14,6 +17,10 @@ private:
     std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseEqualityExpression();
     std::unique_ptr<Expression> parseComparisonExpression();
+    std::unique_ptr<Expression> parseTermExpression();
+    std::unique_ptr<Expression> parseFactorExpression();
+    std::unique_ptr<Expression> parseUnaryExpression();
+    std::unique_ptr<Expression> parsePrimaryExpression();
 
     bool match(std::initializer_list<TokenKind> kinds);
     bool check(const TokenKind& kind);
@@ -21,4 +28,5 @@ private:
     bool isReachedEnd();
     Token peek();
     Token previous();
+    void consume(const TokenKind& kind, const std::string& message);
 };
