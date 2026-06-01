@@ -22,6 +22,9 @@ add_executable(apex_interpreter main.cpp
         include/structures/BytecodeBuffer/BytecodeBuffer.h
         src/structures/BytecodeBuffer/BytecodeBuffer.cpp
         include/structures/InstructionType/InstructionType.h
+        include/backend/ExecutionEngine/ExecutionEngine.h
+        include/structures/ExecutionResult/ExecutionResult.h
+        src/backend/ExecutionEngine/ExecutionEngine.cpp
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)
