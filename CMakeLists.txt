@@ -19,6 +19,9 @@ add_executable(apex_interpreter main.cpp
         include/diagnostics/DiagnosticEngine.h
         src/diagnostics/DiagnosticEngine.cpp
         include/structures/Diagnostic/Diagnostic.h
+        include/structures/BytecodeBuffer/BytecodeBuffer.h
+        src/structures/BytecodeBuffer/BytecodeBuffer.cpp
+        include/structures/InstructionType/InstructionType.h
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)
