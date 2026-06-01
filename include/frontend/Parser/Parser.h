@@ -2,10 +2,7 @@
 
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
-#include "structures/AST/Expression.h"
-#include "structures/AST/UnaryExpression.h"
-#include "structures/AST/LiteralExpression.h"
-#include "structures/AST/GroupingExpression.h"
+#include "structures/AST/Expr/Expression.h"
 
 class Parser {
 public:

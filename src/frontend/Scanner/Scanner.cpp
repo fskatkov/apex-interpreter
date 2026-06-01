@@ -1,4 +1,4 @@
-#include "engine/Scanner/Scanner.h"
+#include "frontend/Scanner/Scanner.h"
 
 Scanner::Scanner(std::string& source)
     : source(std::move(source)), startPosition(0), currentPosition(0),

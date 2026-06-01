@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common/Common.h"
-#include "engine/Scanner/Scanner.h"
+#include "frontend/Scanner/Scanner.h"
 
 constexpr int EXIT_CODE_BROKEN_INPUT = 65;
 constexpr int EXIT_CODE_BROKEN_PATH = 66;

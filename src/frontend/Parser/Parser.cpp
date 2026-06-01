@@ -1,8 +1,4 @@
-#include "engine/Parser/Parser.h"
-
-#include "structures/AST/BinaryExpression.h"
-#include "structures/AST/BinaryExpression.h"
-#include "structures/AST/BinaryExpression.h"
+#include "frontend/Parser/Parser.h"
 
 Parser::Parser(const std::vector<Token>& tokens)
     : tokens(tokens), current(0) {  }
@@ -152,5 +148,5 @@ Token Parser::previous() {
 }
 
 void Parser::consume(const TokenKind& kind, const std::string& message) {
-    
+
 }
