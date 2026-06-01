@@ -2,17 +2,18 @@
 
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
-#include "structures/Diagnostics/LexerError/LexerError.h"
+#include "diagnostics/DiagnosticEngine.h"
 
 class Scanner {
 public:
-    explicit Scanner(std::string& source);
+    explicit Scanner(std::string& source, DiagnosticEngine& diagnosticEngine);
     ~Scanner() = default;
     std::vector<Token> scan();
     [[nodiscard]] const std::vector<Token>& getTokens() const;
     [[nodiscard]] bool encounteredErrors() const;
-    void raiseErrors(const std::string& type = "<stdin>") const;
 private:
+    DiagnosticEngine& diagnosticEngine;
+
     std::string source;
     std::size_t startPosition;
     std::size_t currentPosition;
@@ -22,21 +23,19 @@ private:
     std::size_t startColumn;
     std::vector<Token> tokens;
     bool encounteredError;
-    std::vector<LexerError> errors;
 
     void scanToken();
-    bool isReachedEnd() const;
+    [[nodiscard]] bool isReachedEnd() const;
     char advance();
-    char peek();
-    char peekNext();
+    [[nodiscard]] char peek() const;
+    [[nodiscard]] char peekNext() const;
     bool match(const char& expected);
-    TokenKind check(std::size_t starting, std::size_t ending, std::string rest, TokenKind kind);
+    [[nodiscard]] TokenKind check(std::size_t starting, std::size_t ending, const std::string &rest, TokenKind kind) const;
     void add(const TokenKind& kind, const std::any& literal = "");
     void addStringToken();
     void addNumberToken();
     void addCharacterToken();
     void addIdentifierToken();
-    TokenKind checkIdentifierType();
-    void insertError(LexerErrorCode errorCode, std::string message);
-    void raiseError(const std::string& type, const LexerError& error) const;
+    [[nodiscard]] TokenKind checkIdentifierType() const;
+    void reportError(const std::string& message) const;
 };

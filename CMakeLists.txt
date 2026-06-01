@@ -21,7 +21,6 @@ add_executable(apex_interpreter main.cpp
         include/diagnostics/DiagnosticEngine.h
         src/diagnostics/DiagnosticEngine.cpp
         include/structures/Diagnostic/Diagnostic.h
-        src/structures/Diagnostic/Diagnostic.cpp
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)

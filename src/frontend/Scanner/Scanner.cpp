@@ -1,7 +1,7 @@
 #include "frontend/Scanner/Scanner.h"
 
-Scanner::Scanner(std::string& source)
-    : source(std::move(source)), startPosition(0), currentPosition(0),
+Scanner::Scanner(std::string& source, DiagnosticEngine& diagnosticEngine)
+    : diagnosticEngine(diagnosticEngine), source(std::move(source)), startPosition(0), currentPosition(0),
       line(1), startLine(1), column(1), startColumn(1), encounteredError(false) {  }
 
 std::vector<Token> Scanner::scan() {
@@ -28,14 +28,6 @@ const std::vector<Token>& Scanner::getTokens() const {
 
 bool Scanner::encounteredErrors() const {
     return encounteredError;
-}
-
-void Scanner::raiseErrors(const std::string& type) const {
-    if (encounteredError) {
-        for (const auto& error : errors) {
-            raiseError(type, error);
-        }
-    }
 }
 
 void Scanner::scanToken() {
@@ -179,7 +171,7 @@ void Scanner::scanToken() {
             } else if (std::isalpha(static_cast<unsigned char>(c))) {
                 addIdentifierToken();
             } else {
-                insertError(LexerErrorCode::UnexpectedCharacter, "unexpected character");
+                reportError("unexpected character");
                 encounteredError = true;
             }
 
@@ -203,13 +195,13 @@ char Scanner::advance() {
     return symbol;
 }
 
-char Scanner::peek() {
+char Scanner::peek() const {
     if (isReachedEnd())
         return '\0';
     return source[currentPosition];
 }
 
-char Scanner::peekNext() {
+char Scanner::peekNext() const {
     if (currentPosition + 1 >= source.length())
         return '\0';
     return source[currentPosition + 1];
@@ -223,7 +215,7 @@ bool Scanner::match(const char& expected) {
     return true;
 }
 
-TokenKind Scanner::check(std::size_t starting, std::size_t ending, std::string rest, TokenKind kind) {
+TokenKind Scanner::check(std::size_t starting, std::size_t ending, const std::string& rest, TokenKind kind) const {
     if (currentPosition - startPosition == starting + ending) {
         if (const std::string_view text(source.data() + startPosition + starting, ending); text == rest) {
             return kind;
@@ -250,7 +242,7 @@ void Scanner::addStringToken() {
     }
 
     if (isReachedEnd()) {
-        insertError(LexerErrorCode::UnterminatedString, "unterminated string");
+        reportError("unterminated string");
         encounteredError = true;
         return;
     }
@@ -275,21 +267,21 @@ void Scanner::addCharacterToken() {
     advance();
 
     if (peek() == '\'') {
-        insertError(LexerErrorCode::UnexpectedCharacter, "empty character literal");
+        reportError("empty character literal");
         encounteredError = true;
         advance();
         return;
     }
 
     if (isReachedEnd()) {
-        insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+        reportError("unterminated character");
         encounteredError = true;
         return;
     }
 
     if (const auto symbol = advance(); symbol == '\\') {
         if (isReachedEnd()) {
-            insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+            reportError("unterminated character");
             encounteredError = true;
             return;
         }
@@ -297,7 +289,7 @@ void Scanner::addCharacterToken() {
     }
 
     if (isReachedEnd() || peek() != '\'') {
-        insertError(LexerErrorCode::UnterminatedCharacter, "unterminated character");
+        reportError("unterminated character");
         encounteredError = true;
         return;
     }
@@ -314,7 +306,7 @@ void Scanner::addIdentifierToken() {
     add(checkIdentifierType(), "");
 }
 
-TokenKind Scanner::checkIdentifierType() {
+TokenKind Scanner::checkIdentifierType() const {
     switch (source[startPosition]) {
         case 'a': {
             return check(1, 2, "nd", TokenKind::AND);
@@ -473,41 +465,12 @@ TokenKind Scanner::checkIdentifierType() {
     }
 }
 
-void Scanner::insertError(LexerErrorCode errorCode, std::string message) {
+void Scanner::reportError(const std::string& message) const {
     SourceLocation sourceLocation{
         startLine,
         startColumn,
         startPosition,
         currentPosition - startPosition
     };
-
-    errors.emplace_back(errorCode, sourceLocation, std::move(message));
-    encounteredError = true;
-}
-
-void Scanner::raiseError(const std::string& type, const LexerError& error) const {
-    std::cerr << type << ": " << error.sourceLocation.line << ":" << error.sourceLocation.column
-    << ": SyntaxError: " << error.message << "\n";
-
-    std::stringstream stream(source);
-    std::string codeBlock;
-    for (int i = 0; i < error.sourceLocation.line; ++i) {
-        std::getline(stream, codeBlock);
-    }
-
-    std::cerr << " " << error.sourceLocation.line << " | " << codeBlock << "\n";
-
-    const std::string padding(std::to_string(error.sourceLocation.line).length(), ' ');
-    std::cerr << " " << padding << " | ";
-
-    for (int i = 1; i < error.sourceLocation.column; ++i) {
-        std::cerr << " ";
-    }
-    std::cerr << "^";
-
-    const auto errorLength = error.sourceLocation.length > 0 ? error.sourceLocation.length : 1;
-    for (int i = 1; i < errorLength; ++i) {
-        std::cerr << "~";
-    }
-    std::cerr << "\n\n";
+    diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, sourceLocation, message);
 }
