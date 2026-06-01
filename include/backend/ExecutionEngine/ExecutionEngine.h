@@ -15,6 +15,9 @@ private:
 
     ExecutionResult execute();
 
+    std::uint8_t readByte();
+    std::any readConstant();
+
     template<typename T, typename U>
     void executeBinaryOperation(U operation);
     void resetStack();
