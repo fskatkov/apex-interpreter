@@ -3,6 +3,14 @@
 Parser::Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), tokens(tokens), current(0) {  }
 
+std::unique_ptr<Expression> Parser::parse() {
+    try {
+        return parseExpression();
+    } catch (ParseError& error) {
+        return nullptr;
+    }
+}
+
 std::unique_ptr<Expression> Parser::parseExpression() {
     return parseEqualityExpression();
 }
@@ -106,6 +114,9 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         consume(TokenKind::RIGHT_PAREN, "expect `)` after expression");
         return std::make_unique<GroupingExpression>(std::move(expression));
     }
+
+    diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, peek().sourceLocation, "expected expression");
+    throw ParseError();
 }
 
 bool Parser::match(std::initializer_list<TokenKind> kinds) {
@@ -147,9 +158,9 @@ Token Parser::previous() {
     return tokens[current - 1];
 }
 
-void Parser::consume(const TokenKind& kind, const std::string& message) {
+Token Parser::consume(const TokenKind& kind, const std::string& message) {
     if (check(kind)) {
-        advance();
+        return advance();
     }
 
     diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, peek().sourceLocation, message);

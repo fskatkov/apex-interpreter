@@ -8,6 +8,7 @@
 class Parser {
 public:
     explicit Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine);
+    std::unique_ptr<Expression> parse();
 private:
     DiagnosticEngine& diagnosticEngine;
 
@@ -28,7 +29,7 @@ private:
     bool isReachedEnd();
     Token peek();
     Token previous();
-    void consume(const TokenKind& kind, const std::string& message);
+    Token consume(const TokenKind& kind, const std::string& message);
     void synchronize();
 
     struct ParseError : public std::runtime_error {

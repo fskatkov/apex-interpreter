@@ -19,6 +19,14 @@ void Driver::run() {
             engine.raise();
             std::exit(EXIT_CODE_BROKEN_INPUT);
         }
+
+        Parser parser(tokens, engine);
+        auto expression = parser.parse();
+
+        if (engine.encounteredErrors()) {
+            engine.raise();
+            std::exit(EXIT_CODE_BROKEN_INPUT);
+        }
     }
 }
 
