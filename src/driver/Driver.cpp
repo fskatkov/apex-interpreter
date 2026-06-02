@@ -10,23 +10,8 @@ void Driver::run() {
             std::exit(EXIT_CODE_BROKEN_INPUT);
         }
 
-        DiagnosticEngine engine(prompt);
-
-        Lexer lexer(prompt, engine);
-        auto tokens = lexer.scan();
-
-        if (engine.encounteredErrors()) {
-            engine.raise();
-            std::exit(EXIT_CODE_BROKEN_INPUT);
-        }
-
-        Parser parser(tokens, engine);
-        auto expression = parser.parse();
-
-        if (engine.encounteredErrors()) {
-            engine.raise();
-            std::exit(EXIT_CODE_BROKEN_INPUT);
-        }
+        ExecutionEngine engine;
+        engine.run(prompt);
     }
 }
 

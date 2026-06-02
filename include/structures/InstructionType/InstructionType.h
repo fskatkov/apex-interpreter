@@ -9,4 +9,9 @@ enum class InstructionType {
     OP_MINUS,
     OP_STAR,
     OP_SLASH,
+
+    OP_NOT,
+    OP_NEGATE,
+
+    OP_RETURN
 };

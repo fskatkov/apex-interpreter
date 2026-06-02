@@ -1,15 +1,17 @@
 #pragma once
 
 #include "Common/Common.h"
+#include "diagnostics/DiagnosticEngine.h"
+#include "backend/BytecodeGenerator/BytecodeGenerator.h"
 #include "structures/ExecutionResult/ExecutionResult.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
 
 class ExecutionEngine {
 public:
     explicit ExecutionEngine();
-    ExecutionResult run(const std::string& source);
+    ExecutionResult run(std::string& source);
 private:
-    std::shared_ptr<BytecodeBuffer> buffer;
+    std::unique_ptr<BytecodeBuffer> buffer;
     const std::uint8_t* address;
     std::vector<std::any> stack;
 

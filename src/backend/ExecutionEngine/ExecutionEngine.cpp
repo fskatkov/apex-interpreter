@@ -4,7 +4,17 @@ ExecutionEngine::ExecutionEngine() : buffer(nullptr), address(nullptr) {
     stack.reserve(256);
 }
 
-ExecutionResult ExecutionEngine::run(const std::string& source) {
+ExecutionResult ExecutionEngine::run(std::string& source) {
+    DiagnosticEngine diagnosticEngine(source);
+    BytecodeGenerator generator(diagnosticEngine);
+
+    auto compiledBuffer = generator.generate(source);
+    if (!compiledBuffer) {
+        return ExecutionResult::INTERPRETER_COMPILE_ERROR;
+    }
+
+    this->buffer = std::move(compiledBuffer);
+    this->address = this->buffer->code.data();
     return execute();
 }
 
@@ -40,6 +50,23 @@ ExecutionResult ExecutionEngine::execute() {
                 push(NULL);
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_RETURN): {
+                if (!stack.empty()) {
+                    const auto result = pop();
+
+                    if (result.type() == typeid(double)) {
+                        std::cout << std::any_cast<double>(result) << "\n";
+                    } else if (result.type() == typeid(std::string)) {
+                        std::cout << std::any_cast<std::string>(result) << "\n";
+                    } else if (result.type() == typeid(bool)) {
+                        std::cout << (std::any_cast<bool>(result) ? "True" : "False") << "\n";
+                    } else if (result.type() == typeid(NULL) || !result.has_value()) {
+                        std::cout << "null\n";
+                    }
+                }
+
+                return ExecutionResult::INTERPRETER_OK;
+            }
             default:
                 return ExecutionResult::INTERPRETER_OK;
         }
@@ -56,7 +83,7 @@ std::any ExecutionEngine::readConstant() {
 
 template<typename T, typename U>
 void ExecutionEngine::executeBinaryOperation(U operation) {
-    if (peek(0).type() != typeid(double) && peek(1).type() != typeid(double)) {
+    if (peek(0).type() != typeid(double) || peek(1).type() != typeid(double)) {
         return;
     }
 

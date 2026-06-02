@@ -1,12 +1,10 @@
 #pragma once
 
 #include "Common/Common.h"
-#include "frontend/Lexer/Lexer.h"
-#include "frontend/Parser/Parser.h"
+#include "backend/ExecutionEngine/ExecutionEngine.h"
 
 constexpr int EXIT_CODE_BROKEN_INPUT = 65;
 constexpr int EXIT_CODE_BROKEN_PATH = 66;
-
 
 class Driver {
 public:
