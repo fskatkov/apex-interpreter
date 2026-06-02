@@ -99,6 +99,24 @@ ExecutionResult ExecutionEngine::execute() {
 
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_NOT): {
+                if (peek(0).type() == typeid(bool)) {
+                    push(!std::any_cast<bool>(pop()));
+                } else {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_NEGATE): {
+                if (peek(0).type() == typeid(double)) {
+                    push(-std::any_cast<double>(pop()));
+                } else {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND): {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
@@ -162,6 +180,61 @@ ExecutionResult ExecutionEngine::execute() {
                             return value >> (shift % 64);
                         });
                     });
+                } else {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS): {
+                const auto rhs = pop();
+                const auto lhs = pop();
+
+                if (lhs.type() != rhs.type()) {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                bool flag = false;
+                if (lhs.type() == typeid(double)) {
+                    flag = std::any_cast<double>(lhs) == std::any_cast<double>(rhs);
+                } else if (lhs.type() == typeid(bool)) {
+                    flag = std::any_cast<bool>(lhs) == std::any_cast<bool>(rhs);
+                } else if (lhs.type() == typeid(std::string)) {
+                    flag = std::any_cast<std::string>(lhs) == std::any_cast<std::string>(rhs);
+                }
+                push(flag);
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_GREATER): {
+                if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+                    executeBinaryOperation<bool>(std::greater<double>{});
+                } else {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_GREATER_EQUALS): {
+                if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+                    executeBinaryOperation<bool>(std::greater_equal<double>{});
+                } else {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_LESS): {
+                if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+                    executeBinaryOperation<bool>(std::less<double>{});
+                } else {
+                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                }
+
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_LESS_EQUALS): {
+                if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+                    executeBinaryOperation<bool>(std::less_equal<double>{});
                 } else {
                     return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
                 }
@@ -232,8 +305,4 @@ std::any ExecutionEngine::pop() {
 
 std::any ExecutionEngine::peek(const int& distance) const {
     return stack[stack.size() - distance - 1];
-}
-
-bool ExecutionEngine::isNegative(const std::any& value) const {
-    return !value.has_value() || (value.type() == typeid(bool) && std::any_cast<bool>(value) == false);
 }

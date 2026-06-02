@@ -28,5 +28,4 @@ private:
     void push(const std::any& value);
     std::any pop();
     [[nodiscard]] std::any peek(const int& distance) const;
-    [[nodiscard]] bool isNegative(const std::any& value) const;
 };

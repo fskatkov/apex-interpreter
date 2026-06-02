@@ -23,9 +23,9 @@ std::unique_ptr<BytecodeBuffer> BytecodeGenerator::generate(std::string& source)
 }
 
 void BytecodeGenerator::compileExpression(Expression* originalExpression, BytecodeBuffer* buffer) {
-    if (auto* literalExpression = dynamic_cast<LiteralExpression*>(originalExpression)) {
+    if (const auto* literalExpression = dynamic_cast<LiteralExpression*>(originalExpression)) {
         buffer->insert(literalExpression->value, 1);
-    } else if (auto* binaryExpression = dynamic_cast<BinaryExpression*>(originalExpression)) {
+    } else if (const auto* binaryExpression = dynamic_cast<BinaryExpression*>(originalExpression)) {
         compileExpression(binaryExpression->lhs.get(), buffer);
         compileExpression(binaryExpression->rhs.get(), buffer);
 
@@ -75,10 +75,30 @@ void BytecodeGenerator::compileExpression(Expression* originalExpression, Byteco
                 buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
                 break;
             }
+            case TokenKind::EQUALS_EQUALS: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS), line);
+                break;
+            }
+            case TokenKind::GREATER: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_GREATER), line);
+                break;
+            }
+            case TokenKind::GREATER_EQUALS: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_GREATER_EQUALS), line);
+                break;
+            }
+            case TokenKind::LESS: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_LESS), line);
+                break;
+            }
+            case TokenKind::LESS_EQUALS: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_LESS_EQUALS), line);
+                break;
+            }
             default:
                 break;
         }
-    } else if (auto* groupingExpression = dynamic_cast<GroupingExpression*>(originalExpression)) {
+    } else if (const auto* groupingExpression = dynamic_cast<GroupingExpression*>(originalExpression)) {
         compileExpression(groupingExpression->expression.get(), buffer);
     } else if (const auto* unaryExpression = dynamic_cast<UnaryExpression*>(originalExpression)) {
         compileExpression(unaryExpression->expression.get(), buffer);

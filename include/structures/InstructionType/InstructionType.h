@@ -20,6 +20,11 @@ enum class InstructionType {
     OP_BITWISE_RIGHT_SHIFT,
     OP_NOT,
     OP_NEGATE,
+    OP_EQUALS_EQUALS,
+    OP_GREATER,
+    OP_GREATER_EQUALS,
+    OP_LESS,
+    OP_LESS_EQUALS,
 
     OP_RETURN
 };
