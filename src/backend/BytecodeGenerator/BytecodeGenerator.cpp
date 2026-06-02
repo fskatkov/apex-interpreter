@@ -47,6 +47,38 @@ void BytecodeGenerator::compileExpression(Expression* originalExpression, Byteco
                 buffer->update(static_cast<std::uint8_t>(InstructionType::OP_SLASH), line);
                 break;
             }
+            case TokenKind::MODULO: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_MODULO), line);
+                break;
+            }
+            case TokenKind::POWER: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_POWER), line);
+                break;
+            }
+            case TokenKind::BITWISE_AND: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+                break;
+            }
+            case TokenKind::BITWISE_OR: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+                break;
+            }
+            case TokenKind::BITWISE_XOR: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+                break;
+            }
+            case TokenKind::BITWISE_NOT: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
+                break;
+            }
+            case TokenKind::BITWISE_LEFT_SHIFT: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+                break;
+            }
+            case TokenKind::BITWISE_RIGHT_SHIFT: {
+                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+                break;
+            }
             default:
                 break;
         }

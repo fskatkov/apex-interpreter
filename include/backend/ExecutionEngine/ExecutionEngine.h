@@ -22,6 +22,8 @@ private:
 
     template<typename T, typename U>
     void executeBinaryOperation(U operation);
+    template<typename T>
+    double executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, T operation);
     void resetStack();
     void push(const std::any& value);
     std::any pop();

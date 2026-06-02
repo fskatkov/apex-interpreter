@@ -13,7 +13,6 @@ add_executable(apex_interpreter main.cpp
         src/frontend/Lexer/Lexer.cpp
         utils/SourceLocation/SourceLocation.h
         include/structures/AST/Expr/Expression.h
-        include/structures/AST/Expr/ExpressionVisitor.h
         include/frontend/Parser/Parser.h
         src/frontend/Parser/Parser.cpp
         include/diagnostics/DiagnosticEngine.h

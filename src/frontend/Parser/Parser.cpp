@@ -66,7 +66,7 @@ std::unique_ptr<Expression> Parser::parseTermExpression() {
 std::unique_ptr<Expression> Parser::parseFactorExpression() {
     std::unique_ptr<Expression> expression = parseUnaryExpression();
 
-    while (match({ TokenKind::SLASH, TokenKind::STAR })) {
+    while (match({ TokenKind::MODULO, TokenKind::SLASH, TokenKind::STAR, TokenKind::POWER })) {
         const auto operatorSymbol = previous();
         auto rhs = parseUnaryExpression();
         expression = std::make_unique<BinaryExpression>(

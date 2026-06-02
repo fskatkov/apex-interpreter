@@ -5,11 +5,19 @@ enum class InstructionType {
     OP_NIL,
     OP_TRUE,
     OP_FALSE,
+
     OP_ADD,
     OP_MINUS,
     OP_STAR,
     OP_SLASH,
-
+    OP_MODULO,
+    OP_POWER,
+    OP_BITWISE_AND,
+    OP_BITWISE_OR,
+    OP_BITWISE_XOR,
+    OP_BITWISE_NOT,
+    OP_BITWISE_LEFT_SHIFT,
+    OP_BITWISE_RIGHT_SHIFT,
     OP_NOT,
     OP_NEGATE,
 
