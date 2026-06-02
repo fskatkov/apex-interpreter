@@ -12,7 +12,55 @@ std::unique_ptr<Expression> Parser::parse() {
 }
 
 std::unique_ptr<Expression> Parser::parseExpression() {
-    return parseEqualityExpression();
+    return parseBitwiseOrExpression();
+}
+
+std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
+    std::unique_ptr<Expression> expression = parseBitwiseXorExpression();
+
+    while (match({ TokenKind::BITWISE_OR })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseBitwiseXorExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
+    std::unique_ptr<Expression> expression = parseBitwiseAndExpression();
+
+    while (match({ TokenKind::BITWISE_XOR })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseBitwiseAndExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseBitwiseAndExpression() {
+    std::unique_ptr<Expression> expression = parseEqualityExpression();
+
+    while (match({ TokenKind::BITWISE_AND })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseEqualityExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
 }
 
 std::unique_ptr<Expression> Parser::parseEqualityExpression() {
@@ -32,9 +80,25 @@ std::unique_ptr<Expression> Parser::parseEqualityExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseComparisonExpression() {
-    std::unique_ptr<Expression> expression = parseTermExpression();
+    std::unique_ptr<Expression> expression = parseShiftExpression();
 
     while (match({ TokenKind::GREATER, TokenKind::GREATER_EQUALS, TokenKind::LESS, TokenKind::LESS_EQUALS })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseShiftExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseShiftExpression() {
+    std::unique_ptr<Expression> expression = parseTermExpression();
+
+    while (match({ TokenKind::BITWISE_LEFT_SHIFT, TokenKind::BITWISE_RIGHT_SHIFT })) {
         const auto operatorSymbol = previous();
         auto rhs = parseTermExpression();
         expression = std::make_unique<BinaryExpression>(
@@ -64,9 +128,25 @@ std::unique_ptr<Expression> Parser::parseTermExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseFactorExpression() {
-    std::unique_ptr<Expression> expression = parseUnaryExpression();
+    std::unique_ptr<Expression> expression = parseExponentialExpression();
 
     while (match({ TokenKind::MODULO, TokenKind::SLASH, TokenKind::STAR, TokenKind::POWER })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseExponentialExpression();
+        expression = std::make_unique<BinaryExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseExponentialExpression() {
+    std::unique_ptr<Expression> expression = parseUnaryExpression();
+
+    while (match({ TokenKind::POWER })) {
         const auto operatorSymbol = previous();
         auto rhs = parseUnaryExpression();
         expression = std::make_unique<BinaryExpression>(
@@ -80,7 +160,7 @@ std::unique_ptr<Expression> Parser::parseFactorExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseUnaryExpression() {
-    while (match({ TokenKind::BANG, TokenKind::MINUS })) {
+    while (match({ TokenKind::BANG, TokenKind::MINUS, TokenKind::BITWISE_NOT })) {
         const auto operatorSymbol = previous();
         auto rhs = parseUnaryExpression();
         return std::make_unique<UnaryExpression>(

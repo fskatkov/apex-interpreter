@@ -102,7 +102,7 @@ ExecutionResult ExecutionEngine::execute() {
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND): {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-                        return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::uint64_t>{});
+                        return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::int64_t>{});
                     });
                 } else {
                     return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
@@ -113,7 +113,7 @@ ExecutionResult ExecutionEngine::execute() {
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR): {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-                        return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::uint64_t>{});
+                        return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::int64_t>{});
                     });
                 } else {
                     return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
@@ -124,7 +124,7 @@ ExecutionResult ExecutionEngine::execute() {
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR): {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-                        return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::uint64_t>{});
+                        return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::int64_t>{});
                     });
                 } else {
                     return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
@@ -134,7 +134,7 @@ ExecutionResult ExecutionEngine::execute() {
             }
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT): {
                 if (peek(0).type() == typeid(double)) {
-                    const auto value = static_cast<std::uint64_t>(std::any_cast<double>(pop()));
+                    const auto value = static_cast<std::int64_t>(std::any_cast<double>(pop()));
                     push(static_cast<double>(~value));
                 } else {
                     return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
@@ -145,7 +145,7 @@ ExecutionResult ExecutionEngine::execute() {
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT): {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-                        return executeBitwiseBinaryOperation(lhs, rhs, [](const std::uint64_t& value, const std::uint64_t& shift) {
+                        return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t& value, const std::int64_t& shift) {
                             return value << (shift % 64);
                         });
                     });
@@ -158,7 +158,7 @@ ExecutionResult ExecutionEngine::execute() {
             case static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT): {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-                        return executeBitwiseBinaryOperation(lhs, rhs, [](const std::uint64_t& value, const std::uint64_t& shift) {
+                        return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t& value, const std::int64_t& shift) {
                             return value >> (shift % 64);
                         });
                     });
@@ -210,9 +210,9 @@ void ExecutionEngine::executeBinaryOperation(U operation) {
 
 template<typename T>
 double ExecutionEngine::executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, T operation) {
-    auto lhs = static_cast<std::uint64_t>(firstNumber);
-    auto rhs = static_cast<std::uint64_t>(secondNumber);
-    const std::uint64_t result = operation(lhs, rhs);
+    auto lhs = static_cast<std::int64_t>(firstNumber);
+    auto rhs = static_cast<std::int64_t>(secondNumber);
+    const std::int64_t result = operation(lhs, rhs);
     return static_cast<double>(result);
 }
 

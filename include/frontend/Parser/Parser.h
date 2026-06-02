@@ -16,10 +16,15 @@ private:
     std::size_t current;
 
     std::unique_ptr<Expression> parseExpression();
+    std::unique_ptr<Expression> parseBitwiseOrExpression();
+    std::unique_ptr<Expression> parseBitwiseXorExpression();
+    std::unique_ptr<Expression> parseBitwiseAndExpression();
     std::unique_ptr<Expression> parseEqualityExpression();
     std::unique_ptr<Expression> parseComparisonExpression();
+    std::unique_ptr<Expression> parseShiftExpression();
     std::unique_ptr<Expression> parseTermExpression();
     std::unique_ptr<Expression> parseFactorExpression();
+    std::unique_ptr<Expression> parseExponentialExpression();
     std::unique_ptr<Expression> parseUnaryExpression();
     std::unique_ptr<Expression> parsePrimaryExpression();
 

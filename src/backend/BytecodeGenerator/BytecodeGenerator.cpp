@@ -67,10 +67,6 @@ void BytecodeGenerator::compileExpression(Expression* originalExpression, Byteco
                 buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
                 break;
             }
-            case TokenKind::BITWISE_NOT: {
-                buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
-                break;
-            }
             case TokenKind::BITWISE_LEFT_SHIFT: {
                 buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
                 break;
@@ -92,6 +88,8 @@ void BytecodeGenerator::compileExpression(Expression* originalExpression, Byteco
             buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NOT), line);
         } else if (unaryExpression->unaryOperator.kind == TokenKind::MINUS) {
             buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NEGATE), line);
+        } else if (unaryExpression->unaryOperator.kind == TokenKind::BITWISE_NOT) {
+            buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
         }
     }
 }
