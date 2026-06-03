@@ -16,7 +16,9 @@ private:
     std::shared_ptr<Lexer> lexer;
     std::shared_ptr<Parser> parser;
     std::vector<Token> tokens;
+    std::vector<std::unique_ptr<Statement>> statements;
     std::unique_ptr<Expression> expression;
 
+    void compileStatement(Statement* statement, BytecodeBuffer* buffer);
     void compileExpression(Expression* originalExpression, BytecodeBuffer* buffer);
 };

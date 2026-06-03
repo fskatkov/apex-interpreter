@@ -26,5 +26,6 @@ enum class InstructionType {
     OP_LESS,
     OP_LESS_EQUALS,
 
+    OP_POP,
     OP_RETURN
 };

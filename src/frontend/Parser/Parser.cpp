@@ -3,12 +3,22 @@
 Parser::Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), tokens(tokens), current(0) {  }
 
-std::unique_ptr<Expression> Parser::parse() {
-    try {
-        return parseExpression();
-    } catch (ParseError& error) {
-        return nullptr;
+std::vector<std::unique_ptr<Statement>> Parser::parse() {
+    std::vector<std::unique_ptr<Statement>> statements;
+    while (!isReachedEnd()) {
+        statements.push_back(parseStatement());
     }
+    return statements;
+}
+
+std::unique_ptr<Statement> Parser::parseStatement() {
+    return parseExpressionStatement();
+}
+
+std::unique_ptr<Statement> Parser::parseExpressionStatement() {
+    std::unique_ptr<Expression> expression = parseExpression();
+    consume(TokenKind::SEMICOLON, "expect `;` at end of expression");
+    return std::make_unique<ExpressionStatement>(std::move(expression));
 }
 
 std::unique_ptr<Expression> Parser::parseExpression() {
@@ -196,7 +206,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     }
 
     diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, peek().sourceLocation, "expected expression");
-    throw ParseError();
+    return nullptr;
 }
 
 bool Parser::match(std::initializer_list<TokenKind> kinds) {
@@ -244,7 +254,7 @@ Token Parser::consume(const TokenKind& kind, const std::string& message) {
     }
 
     diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, peek().sourceLocation, message);
-    throw ParseError();
+    return Token{};
 }
 
 void Parser::synchronize() {

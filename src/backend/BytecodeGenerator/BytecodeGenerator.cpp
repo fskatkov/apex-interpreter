@@ -11,15 +11,25 @@ std::unique_ptr<BytecodeBuffer> BytecodeGenerator::generate(std::string& source)
     }
 
     parser = std::make_shared<Parser>(tokens, diagnosticEngine);
-    expression = parser->parse();
-    if (!expression) {
+    statements = parser->parse();
+    if (diagnosticEngine.encounteredErrors()) {
         return nullptr;
     }
 
     auto buffer = std::make_unique<BytecodeBuffer>();
-    compileExpression(expression.get(), buffer.get());
+    for (const auto& statement : statements) {
+        compileStatement(statement.get(), buffer.get());
+    }
+
     buffer->update(static_cast<std::uint8_t>(InstructionType::OP_RETURN), 0);
     return buffer;
+}
+
+void BytecodeGenerator::compileStatement(Statement* statement, BytecodeBuffer* buffer) {
+    if (const auto* expressionStatement = dynamic_cast<ExpressionStatement*>(statement)) {
+        compileExpression(expressionStatement->expression.get(), buffer);
+        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    }
 }
 
 void BytecodeGenerator::compileExpression(Expression* originalExpression, BytecodeBuffer* buffer) {

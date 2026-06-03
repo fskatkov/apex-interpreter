@@ -281,6 +281,10 @@ ExecutionResult ExecutionEngine::execute() {
 
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_POP): {
+                pop();
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_RETURN): {
                 if (!stack.empty()) {
                     if (const auto result = pop(); result.type() == typeid(double)) {

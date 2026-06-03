@@ -3,17 +3,20 @@
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
 #include "structures/AST/Expr/Expression.h"
+#include "structures/AST/Stmt/Statement.h"
 #include "diagnostics/DiagnosticEngine.h"
 
 class Parser {
 public:
     explicit Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine);
-    std::unique_ptr<Expression> parse();
+    std::vector<std::unique_ptr<Statement>> parse();
 private:
     DiagnosticEngine& diagnosticEngine;
-
     std::vector<Token> tokens;
     std::size_t current;
+
+    std::unique_ptr<Statement> parseStatement();
+    std::unique_ptr<Statement> parseExpressionStatement();
 
     std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseBitwiseOrExpression();
@@ -36,9 +39,4 @@ private:
     Token previous();
     Token consume(const TokenKind& kind, const std::string& message);
     void synchronize();
-
-    struct ParseError : public std::runtime_error {
-        explicit ParseError()
-            : std::runtime_error("") {  }
-    };
 };
