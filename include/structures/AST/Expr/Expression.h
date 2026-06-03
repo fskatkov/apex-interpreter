@@ -37,3 +37,10 @@ struct LiteralExpression : public Expression {
     explicit LiteralExpression(std::any value)
         : value(std::move(value)) {  }
 };
+
+struct VariableExpression : public Expression {
+    Token name;
+
+    explicit VariableExpression(Token name)
+        : name(std::move(name)) {  }
+};

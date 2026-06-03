@@ -1,18 +1,21 @@
 #include "REPL/REPL.h"
 
 void REPL::run() {
-    TerminalController controller;
     std::string buffer;
 
     while (true) {
-        std::string promptStr = buffer.empty() ? "> " : "... ";
-        std::string prompt = controller.readLine(promptStr);
+        std::cout << (buffer.empty() ? "> " : "... ");
 
-        if (prompt == "exit") {
+        std::string input;
+        if (!std::getline(std::cin, input)) {
+            std::exit(65);
+        }
+
+        if (input == "exit") {
             break;
         }
 
-        buffer += prompt + "\n";
+        buffer += input + "\n";
         if (isIncompleteCommand(buffer)) continue;
 
         DiagnosticEngine diagnosticEngine(buffer);

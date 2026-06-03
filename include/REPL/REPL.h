@@ -2,7 +2,6 @@
 
 #include "Common/Common.h"
 #include "backend/ExecutionEngine/ExecutionEngine.h"
-#include "structures/TerminalController/TerminalController.h"
 
 class REPL {
 public:

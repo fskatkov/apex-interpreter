@@ -15,8 +15,10 @@ private:
     std::vector<Token> tokens;
     std::size_t current;
 
+    std::unique_ptr<Statement> parseDeclarationStatement();
     std::unique_ptr<Statement> parseStatement();
     std::unique_ptr<Statement> parseExpressionStatement();
+    std::unique_ptr<Statement> parseVariableDeclarationStatement();
 
     std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseBitwiseOrExpression();

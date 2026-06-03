@@ -6,9 +6,17 @@ Parser::Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEng
 std::vector<std::unique_ptr<Statement>> Parser::parse() {
     std::vector<std::unique_ptr<Statement>> statements;
     while (!isReachedEnd()) {
-        statements.push_back(parseStatement());
+        statements.push_back(parseDeclarationStatement());
     }
     return statements;
+}
+
+std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
+    if (match({ TokenKind::VAR })) {
+        return parseVariableDeclarationStatement();
+    }
+
+    return parseStatement();
 }
 
 std::unique_ptr<Statement> Parser::parseStatement() {
@@ -19,6 +27,18 @@ std::unique_ptr<Statement> Parser::parseExpressionStatement() {
     std::unique_ptr<Expression> expression = parseExpression();
     consume(TokenKind::SEMICOLON, "expect `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
+}
+
+std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement() {
+    const auto name = consume(TokenKind::IDENTIFIER, "expect variable name");
+
+    std::unique_ptr<Expression> initializer = nullptr;
+    if (match({ TokenKind::EQUALS })) {
+        initializer = parseExpression();
+    }
+
+    consume(TokenKind::SEMICOLON, "expect `;` at end of variable declaration");
+    return std::make_unique<VariableStatement>(name, std::move(initializer));
 }
 
 std::unique_ptr<Expression> Parser::parseExpression() {
@@ -197,6 +217,10 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
 
     if (match({ TokenKind::NUMBER, TokenKind::STRING, TokenKind::CHARACTER })) {
         return std::make_unique<LiteralExpression>(previous().literal);
+    }
+
+    if (match({ TokenKind::IDENTIFIER })) {
+        return std::make_unique<VariableExpression>(previous());
     }
 
     if (match({ TokenKind::LEFT_PAREN })) {

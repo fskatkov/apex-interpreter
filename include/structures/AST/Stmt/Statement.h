@@ -13,3 +13,11 @@ struct ExpressionStatement : public Statement {
     explicit ExpressionStatement(std::unique_ptr<Expression> expression)
         : expression(std::move(expression)) { }
 };
+
+struct VariableStatement : public Statement {
+    Token name;
+    std::unique_ptr<Expression> expression;
+
+    explicit VariableStatement(Token name, std::unique_ptr<Expression> expression)
+        : name(std::move(name)), expression(std::move(expression)) { }
+};
