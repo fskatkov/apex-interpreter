@@ -1,23 +1,24 @@
 #include "REPL/REPL.h"
 
 void REPL::run() {
+    TerminalController controller;
     std::string buffer;
 
     while (true) {
-        std::cout << "> ";
+        std::string promptStr = buffer.empty() ? "> " : "... ";
+        std::string prompt = controller.readLine(promptStr);
 
-        std::string line;
-        if (!std::getline(std::cin, line)) {
+        if (prompt == "exit") {
             break;
         }
 
-        if (buffer.empty() && handleSpecialCommands(line)) continue;
-        buffer += line + "\n";
+        buffer += prompt + "\n";
         if (isIncompleteCommand(buffer)) continue;
 
         DiagnosticEngine diagnosticEngine(buffer);
         ExecutionEngine executionEngine(buffer, diagnosticEngine);
         executionEngine.run();
+
         buffer.clear();
     }
 }
@@ -32,24 +33,11 @@ void REPL::run(const char* path) {
 
     std::stringstream buffer;
     buffer << file.rdbuf();
-    
+
     auto executedFile = buffer.str();
     DiagnosticEngine diagnosticEngine(executedFile, strPath + ": ");
     ExecutionEngine engine(executedFile, diagnosticEngine);
     engine.run();
-}
-
-bool REPL::handleSpecialCommands(const std::string& command) {
-    if (command == "exit") {
-        std::exit(0);
-    }
-
-    if (command == "clear") {
-        std::cout << "\033[2J\033[1;1H";
-        return true;
-    }
-
-    return false;
 }
 
 bool REPL::isIncompleteCommand(const std::string& buffer) {

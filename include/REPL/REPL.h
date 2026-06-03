@@ -2,6 +2,7 @@
 
 #include "Common/Common.h"
 #include "backend/ExecutionEngine/ExecutionEngine.h"
+#include "structures/TerminalController/TerminalController.h"
 
 class REPL {
 public:
@@ -9,6 +10,5 @@ public:
     static void run();
     static void run(const char* path);
 private:
-    static bool handleSpecialCommands(const std::string& command);
     static bool isIncompleteCommand(const std::string& buffer);
 };

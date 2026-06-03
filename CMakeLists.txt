@@ -26,6 +26,8 @@ add_executable(apex_interpreter main.cpp
         src/backend/ExecutionEngine/ExecutionEngine.cpp
         include/backend/BytecodeGenerator/BytecodeGenerator.h
         src/backend/BytecodeGenerator/BytecodeGenerator.cpp
+        include/structures/TerminalController/TerminalController.h
+        src/structures/TerminalController/TerminalController.cpp
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)
