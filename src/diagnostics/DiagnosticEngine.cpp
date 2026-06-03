@@ -1,7 +1,7 @@
 #include "diagnostics/DiagnosticEngine.h"
 
-DiagnosticEngine::DiagnosticEngine(const std::string& source)
-    : source(source), hasErrors(false) {  }
+DiagnosticEngine::DiagnosticEngine(const std::string& source, const std::string& REPL_TYPE)
+    : REPL_TYPE(REPL_TYPE), source(source), hasErrors(false) {  }
 
 void DiagnosticEngine::report(Diagnostic::DiagnosticKind kind, SourceLocation location, const std::string& message) {
     diagnostics.emplace_back(kind, location, message);
@@ -12,16 +12,18 @@ void DiagnosticEngine::report(Diagnostic::DiagnosticKind kind, SourceLocation lo
 }
 
 void DiagnosticEngine::raise() const {
+    std::cout << "\033[31m";
+
     for (const auto& diagnostic : diagnostics) {
-        std::cerr << "<stdin>: " << diagnostic.location.line << ":" << diagnostic.location.column << ": ";
+        std::cout << REPL_TYPE << diagnostic.location.line << ":" << diagnostic.location.column << ": ";
         if (diagnostic.kind == Diagnostic::DiagnosticKind::Warning) {
-            std::cerr << "warning: ";
+            std::cout << "warning: ";
         } else if (diagnostic.kind == Diagnostic::DiagnosticKind::Fatal) {
-            std::cerr << "fatal error: ";
+            std::cout << "runtime error: ";
         } else {
-            std::cerr << "error: ";
+            std::cout << "compile-time error: ";
         }
-        std::cerr << diagnostic.message << "\n";
+        std::cout << diagnostic.message << "\n";
 
         std::stringstream stream(source);
         std::string codeBlock;
@@ -29,21 +31,21 @@ void DiagnosticEngine::raise() const {
             std::getline(stream, codeBlock);
         }
 
-        std::cerr << " " << diagnostic.location.line << " | " << codeBlock << "\n";
+        std::cout << " " << diagnostic.location.line << " | " << codeBlock << "\n";
 
         const std::string padding(std::to_string(diagnostic.location.line).length(), ' ');
-        std::cerr << " " << padding << " | ";
+        std::cout << " " << padding << " | ";
 
         for (int i = 1; i < diagnostic.location.column; ++i) {
-            std::cerr << " ";
+            std::cout << " ";
         }
-        std::cerr << "^";
+        std::cout << "^";
 
         const auto errorLength = diagnostic.location.length > 0 ? diagnostic.location.length : 1;
         for (int i = 1; i < errorLength; ++i) {
-            std::cerr << "~";
+            std::cout << "~";
         }
-        std::cerr << "\n\n";
+        std::cout << "\033[0m" << "\n";
     }
 }
 

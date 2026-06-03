@@ -367,9 +367,6 @@ TokenKind Lexer::checkIdentifierType() const {
         case 'f': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'a': {
-                        return check(2, 3, "lse", TokenKind::FALSE);
-                    }
                     case 'o': {
                         return check(2, 1, "r", TokenKind::FOR);
                     }
@@ -422,9 +419,6 @@ TokenKind Lexer::checkIdentifierType() const {
                     case 'h': {
                         return check(2, 2, "is", TokenKind::THIS);
                     }
-                    case 'r': {
-                        return check(2, 2, "ue", TokenKind::TRUE);
-                    }
                     default: {
                         return TokenKind::IDENTIFIER;
                     }
@@ -432,6 +426,12 @@ TokenKind Lexer::checkIdentifierType() const {
             }
 
             return TokenKind::IDENTIFIER;
+        }
+        case 'T': {
+            return check(1, 3, "rue", TokenKind::TRUE);
+        }
+        case 'F': {
+            return check(1, 4, "alse", TokenKind::FALSE);
         }
         case 'v': {
             return check(1, 2, "ar", TokenKind::VAR);

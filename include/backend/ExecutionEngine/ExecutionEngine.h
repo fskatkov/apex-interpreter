@@ -8,9 +8,12 @@
 
 class ExecutionEngine {
 public:
-    explicit ExecutionEngine();
-    ExecutionResult run(std::string& source);
+    explicit ExecutionEngine(std::string& source, DiagnosticEngine& diagnosticEngine);
+    ExecutionResult run();
 private:
+    DiagnosticEngine& diagnosticEngine;
+    std::string source;
+
     std::unique_ptr<BytecodeBuffer> buffer;
     const std::uint8_t* address;
     std::vector<std::any> stack;
@@ -28,4 +31,5 @@ private:
     void push(const std::any& value);
     std::any pop();
     [[nodiscard]] std::any peek(const int& distance) const;
+    void reportRuntimeError(const std::string& message);
 };

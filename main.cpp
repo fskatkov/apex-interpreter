@@ -2,11 +2,10 @@
 #include "driver/Driver.h"
 
 int main(int argc, const char* argv[]) {
-    Driver driver;
     if (argc == 1) {
-        driver.run();
+        Driver::run();
     } else if (argc == 2) {
-        driver.run(argv[1]);
+        Driver::run(argv[1]);
     }
     return 0;
 }

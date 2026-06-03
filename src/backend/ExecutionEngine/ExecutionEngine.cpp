@@ -1,16 +1,17 @@
 #include "backend/ExecutionEngine/ExecutionEngine.h"
 
-ExecutionEngine::ExecutionEngine() : buffer(nullptr), address(nullptr) {
+ExecutionEngine::ExecutionEngine(std::string& source, DiagnosticEngine& diagnosticEngine)
+    : diagnosticEngine(diagnosticEngine), source(source), buffer(nullptr), address(nullptr) {
     stack.reserve(256);
 }
 
-ExecutionResult ExecutionEngine::run(std::string& source) {
-    DiagnosticEngine diagnosticEngine(source);
+ExecutionResult ExecutionEngine::run() {
     BytecodeGenerator generator(diagnosticEngine);
 
     auto compiledBuffer = generator.generate(source);
-    if (!compiledBuffer) {
-        return ExecutionResult::INTERPRETER_COMPILE_ERROR;
+    if (!compiledBuffer || diagnosticEngine.encounteredErrors()) {
+        diagnosticEngine.raise();
+        return ExecutionResult::COMPILETIME_ERROR;
     }
 
     this->buffer = std::move(compiledBuffer);
@@ -45,7 +46,28 @@ ExecutionResult ExecutionEngine::execute() {
                 } else if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>(std::plus<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    auto getType = [](const std::any& value) {
+                        if (value.type() == typeid(double)) {
+                            return "Number";
+                        } else if (value.type() == typeid(std::string)) {
+                            return "String";
+                        } else if (value.type() == typeid(bool)) {
+                            return "Boolean";
+                        } else if (value.type() == typeid(NULL) || !value.has_value()) {
+                            return "Null";
+                        } else if (value.type() == typeid(char)) {
+                            return "Character";
+                        }
+
+                        return "Unknown";
+                    };
+
+
+                    const std::string rhsType = getType(pop());
+                    const std::string lhsType = getType(pop());
+                    auto errorMessage = "unsupported operand types [" + lhsType + "] and [" + rhsType + "] for '+': expected either two numbers or two strings.";
+                    reportRuntimeError(errorMessage);
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -54,7 +76,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>(std::minus<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `-`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -63,7 +86,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>(std::multiplies<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `*`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -72,7 +96,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<double>(std::divides<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `/`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -83,7 +108,8 @@ ExecutionResult ExecutionEngine::execute() {
                         return std::fmod(lhs, rhs);
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `%`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -94,7 +120,8 @@ ExecutionResult ExecutionEngine::execute() {
                         return std::pow(lhs, rhs);
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `**`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -103,7 +130,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(bool)) {
                     push(!std::any_cast<bool>(pop()));
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand for `!`: expected a boolean");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -112,7 +140,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double)) {
                     push(-std::any_cast<double>(pop()));
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand for unary `-`: expected a number");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -123,7 +152,8 @@ ExecutionResult ExecutionEngine::execute() {
                         return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::int64_t>{});
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -134,7 +164,8 @@ ExecutionResult ExecutionEngine::execute() {
                         return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::int64_t>{});
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -145,7 +176,8 @@ ExecutionResult ExecutionEngine::execute() {
                         return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::int64_t>{});
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -155,7 +187,8 @@ ExecutionResult ExecutionEngine::execute() {
                     const auto value = static_cast<std::int64_t>(std::any_cast<double>(pop()));
                     push(static_cast<double>(~value));
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand for unary `~`: expected a number");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -168,7 +201,8 @@ ExecutionResult ExecutionEngine::execute() {
                         });
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -181,7 +215,8 @@ ExecutionResult ExecutionEngine::execute() {
                         });
                     });
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -191,7 +226,8 @@ ExecutionResult ExecutionEngine::execute() {
                 const auto lhs = pop();
 
                 if (lhs.type() != rhs.type()) {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("type mismatch in equality comparison: cannot compare different data types");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 bool flag = false;
@@ -209,7 +245,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<bool>(std::greater<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `>`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -218,7 +255,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<bool>(std::greater_equal<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `>=`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -227,7 +265,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<bool>(std::less<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `<`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -236,7 +275,8 @@ ExecutionResult ExecutionEngine::execute() {
                 if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
                     executeBinaryOperation<bool>(std::less_equal<double>{});
                 } else {
-                    return ExecutionResult::INTERPRETER_RUNTIME_ERROR;
+                    reportRuntimeError("unsupported operand types for `<=`: expected two numbers");
+                    return ExecutionResult::RUNTIME_ERROR;
                 }
 
                 break;
@@ -248,16 +288,17 @@ ExecutionResult ExecutionEngine::execute() {
                     } else if (result.type() == typeid(std::string)) {
                         std::cout << std::any_cast<std::string>(result) << "\n";
                     } else if (result.type() == typeid(bool)) {
-                        std::cout << (std::any_cast<bool>(result) ? "True" : "False") << "\n";
+                        const auto booleanResult = std::any_cast<bool>(result);
+                        std::cout << (booleanResult ? "True" : "False") << "\n";
                     } else if (result.type() == typeid(NULL) || !result.has_value()) {
                         std::cout << "null\n";
                     }
                 }
 
-                return ExecutionResult::INTERPRETER_OK;
+                return ExecutionResult::OK;
             }
             default:
-                return ExecutionResult::INTERPRETER_OK;
+                return ExecutionResult::OK;
         }
     }
 }
@@ -305,4 +346,16 @@ std::any ExecutionEngine::pop() {
 
 std::any ExecutionEngine::peek(const int& distance) const {
     return stack[stack.size() - distance - 1];
+}
+
+void ExecutionEngine::reportRuntimeError(const std::string& message) {
+    const auto line = buffer->at(address - buffer->code.data() - 1);
+    diagnosticEngine.report(
+        Diagnostic::DiagnosticKind::Fatal,
+        SourceLocation{ line, 1, 0, 0 },
+        message
+    );
+    diagnosticEngine.raise();
+
+    resetStack();
 }

@@ -16,6 +16,6 @@ std::uint8_t BytecodeBuffer::add(const std::any& value) {
     return static_cast<std::uint8_t>(values.size() - 1);
 }
 
-int BytecodeBuffer::at(const std::uint8_t& offset) const {
+std::size_t BytecodeBuffer::at(const std::uint8_t& offset) const {
     return lines[offset];
 }

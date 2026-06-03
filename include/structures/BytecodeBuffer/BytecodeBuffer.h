@@ -14,5 +14,5 @@ public:
     void update(const std::uint8_t& byte, const std::size_t& at);
     void insert(const std::any& value, const std::size_t& at);
     std::uint8_t add(const std::any& value);
-    [[nodiscard]] int at(const std::uint8_t& offset) const;
+    [[nodiscard]] std::size_t at(const std::uint8_t& offset) const;
 };
