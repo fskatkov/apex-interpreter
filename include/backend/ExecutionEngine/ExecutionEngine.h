@@ -14,6 +14,7 @@ private:
     DiagnosticEngine& diagnosticEngine;
     std::string source;
 
+    std::unordered_map<std::string, std::any> globalVariables;
     std::unique_ptr<BytecodeBuffer> buffer;
     const std::uint8_t* address;
     std::vector<std::any> stack;

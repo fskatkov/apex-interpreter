@@ -16,8 +16,8 @@ struct ExpressionStatement : public Statement {
 
 struct VariableStatement : public Statement {
     Token name;
-    std::unique_ptr<Expression> expression;
+    std::unique_ptr<Expression> initializer;
 
-    explicit VariableStatement(Token name, std::unique_ptr<Expression> expression)
-        : name(std::move(name)), expression(std::move(expression)) { }
+    explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer)
+        : name(std::move(name)), initializer(std::move(initializer)) { }
 };

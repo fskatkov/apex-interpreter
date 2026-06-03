@@ -281,6 +281,24 @@ ExecutionResult ExecutionEngine::execute() {
 
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL): {
+                const auto name = std::any_cast<std::string>(readConstant());
+                globalVariables[name] = peek(0);
+                pop();
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL): {
+                const auto name = std::any_cast<std::string>(readConstant());
+
+                if (auto it = globalVariables.find(name); it != globalVariables.end()) {
+                    push(it->second);
+                } else {
+                    reportRuntimeError("undefined variable `" + name + "`");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_POP): {
                 pop();
                 break;
