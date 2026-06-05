@@ -300,6 +300,20 @@ ExecutionResult ExecutionEngine::execute() {
 
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_PRINT): {
+                if (const auto result = pop(); result.type() == typeid(double)) {
+                    std::cout << std::any_cast<double>(result) << "\n";
+                } else if (result.type() == typeid(std::string)) {
+                    std::cout << std::any_cast<std::string>(result) << "\n";
+                } else if (result.type() == typeid(bool)) {
+                    const auto booleanResult = std::any_cast<bool>(result);
+                    std::cout << (booleanResult ? "True" : "False") << "\n";
+                } else if (result.type() == typeid(NULL) || !result.has_value()) {
+                    std::cout << "null\n";
+                }
+
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_POP): {
                 pop();
                 break;

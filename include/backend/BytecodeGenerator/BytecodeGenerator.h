@@ -10,7 +10,6 @@
 class BytecodeGenerator {
 public:
     std::unique_ptr<BytecodeBuffer> buffer;
-
     explicit BytecodeGenerator(DiagnosticEngine& diagnosticEngine);
     void generate(std::string& source);
 private:
@@ -23,6 +22,7 @@ private:
     std::unique_ptr<Expression> expression;
 
     void compileStatement(Statement* statement);
+    void compilePrintStatement(const PrintStatement* statement);
     void compileExpressionStatement(const ExpressionStatement* statement);
     void compileVariableStatement(VariableStatement* statement);
 

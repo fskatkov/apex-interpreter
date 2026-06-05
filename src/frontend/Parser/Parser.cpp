@@ -1,5 +1,7 @@
 #include "frontend/Parser/Parser.h"
 
+#include "structures/ExecutionResult/ExecutionResult.h"
+
 Parser::Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), tokens(tokens), current(0) {  }
 
@@ -16,7 +18,19 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
         return parseVariableDeclarationStatement();
     }
 
+    if (match({ TokenKind::PRINT })) {
+        return parsePrintStatement();
+    }
+
     return parseStatement();
+}
+
+std::unique_ptr<Statement> Parser::parsePrintStatement() {
+    consume(TokenKind::LEFT_PAREN, "expect `(` before print expression");
+    std::unique_ptr<Expression> expression = parseExpression();
+    consume(TokenKind::RIGHT_PAREN, "expect `)` at end of print statement");
+    consume(TokenKind::SEMICOLON, "expect `;` at end of print statement");
+    return std::make_unique<PrintStatement>(std::move(expression));
 }
 
 std::unique_ptr<Statement> Parser::parseStatement() {
@@ -25,7 +39,6 @@ std::unique_ptr<Statement> Parser::parseStatement() {
 
 std::unique_ptr<Statement> Parser::parseExpressionStatement() {
     std::unique_ptr<Expression> expression = parseExpression();
-    consume(TokenKind::SEMICOLON, "expect `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
 }
 

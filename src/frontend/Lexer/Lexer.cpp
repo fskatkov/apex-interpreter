@@ -381,6 +381,9 @@ TokenKind Lexer::checkIdentifierType() const {
 
             return TokenKind::IDENTIFIER;
         }
+        case 'p': {
+            return check(1, 4, "rint", TokenKind::PRINT);
+        }
         case 'i': {
             return check(1, 1, "f", TokenKind::IF);
         }

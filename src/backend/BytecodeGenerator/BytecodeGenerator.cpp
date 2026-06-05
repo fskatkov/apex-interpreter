@@ -25,7 +25,14 @@ void BytecodeGenerator::compileStatement(Statement* statement) {
         compileExpressionStatement(expressionStatement);
     } else if (auto* variableStatement = dynamic_cast<VariableStatement*>(statement)) {
         compileVariableStatement(variableStatement);
+    } else if (auto* printStatement = dynamic_cast<PrintStatement*>(statement)) {
+        compilePrintStatement(printStatement);
     }
+}
+
+void BytecodeGenerator::compilePrintStatement(const PrintStatement* statement) {
+    compileExpression(statement->expression.get());
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_PRINT), 0);
 }
 
 void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement* statement) {
