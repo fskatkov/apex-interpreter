@@ -7,8 +7,9 @@ ExecutionEngine::ExecutionEngine(std::string& source, DiagnosticEngine& diagnost
 
 ExecutionResult ExecutionEngine::run() {
     BytecodeGenerator generator(diagnosticEngine);
+    generator.generate(source);
 
-    auto compiledBuffer = generator.generate(source);
+    auto compiledBuffer = std::move(generator.buffer);
     if (!compiledBuffer || diagnosticEngine.encounteredErrors()) {
         diagnosticEngine.raise();
         return ExecutionResult::COMPILETIME_ERROR;
