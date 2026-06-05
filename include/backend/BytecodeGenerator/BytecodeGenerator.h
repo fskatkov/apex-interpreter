@@ -27,6 +27,7 @@ private:
     void compileVariableStatement(VariableStatement* statement);
 
     void compileExpression(Expression* originalExpression);
+    void compileAssignmentExpression(AssignmentExpression* originalExpression);
     void compileVariableExpression(VariableExpression* originalExpression) const;
     void compileGroupingExpression(const GroupingExpression* originalExpression);
     void compileBinaryExpression(const BinaryExpression* originalExpression);

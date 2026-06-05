@@ -1,7 +1,5 @@
 #include "frontend/Parser/Parser.h"
 
-#include "structures/ExecutionResult/ExecutionResult.h"
-
 Parser::Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), tokens(tokens), current(0) {  }
 
@@ -39,6 +37,7 @@ std::unique_ptr<Statement> Parser::parseStatement() {
 
 std::unique_ptr<Statement> Parser::parseExpressionStatement() {
     std::unique_ptr<Expression> expression = parseExpression();
+    consume(TokenKind::SEMICOLON, "expect `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
 }
 
@@ -55,7 +54,23 @@ std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement() {
 }
 
 std::unique_ptr<Expression> Parser::parseExpression() {
-    return parseBitwiseOrExpression();
+    return parseAssignmentExpression();
+}
+
+std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
+    std::unique_ptr<Expression> expression = parseBitwiseOrExpression();
+
+    if (match({ TokenKind::EQUALS })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseAssignmentExpression();
+
+        if (const auto* variableExpression = dynamic_cast<VariableExpression*>(expression.get())) {
+            const auto name = variableExpression->name;
+            return std::make_unique<AssignmentExpression>(name, std::move(rhs));
+        }
+    }
+
+    return expression;
 }
 
 std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {

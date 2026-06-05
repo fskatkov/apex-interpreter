@@ -300,6 +300,17 @@ ExecutionResult ExecutionEngine::execute() {
 
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL): {
+                const auto name = std::any_cast<std::string>(readConstant());
+                if (auto it = globalVariables.find(name); it != globalVariables.end()) {
+                    globalVariables[name] = peek(0);
+                } else {
+                    reportRuntimeError("undefined variable `" + name + "`");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_PRINT): {
                 if (const auto result = pop(); result.type() == typeid(double)) {
                     std::cout << std::any_cast<double>(result) << "\n";

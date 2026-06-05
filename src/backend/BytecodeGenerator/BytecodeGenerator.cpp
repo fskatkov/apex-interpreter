@@ -63,7 +63,18 @@ void BytecodeGenerator::compileExpression(Expression* originalExpression) {
         compileUnaryExpression(unaryExpression);
     } else if (const auto* literalExpression = dynamic_cast<LiteralExpression*>(originalExpression)) {
         compileLiteralExpression(literalExpression);
+    } else if (auto* assignmentExpression = dynamic_cast<AssignmentExpression*>(originalExpression)) {
+        compileAssignmentExpression(assignmentExpression);
     }
+}
+
+void BytecodeGenerator::compileAssignmentExpression(AssignmentExpression* originalExpression) {
+    compileExpression(originalExpression->value.get());
+
+    buffer->values.emplace_back(originalExpression->name.lexeme);
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), originalExpression->name.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileVariableExpression(VariableExpression* originalExpression) const {

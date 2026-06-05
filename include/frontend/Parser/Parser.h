@@ -22,6 +22,7 @@ private:
     std::unique_ptr<Statement> parseVariableDeclarationStatement();
 
     std::unique_ptr<Expression> parseExpression();
+    std::unique_ptr<Expression> parseAssignmentExpression();
     std::unique_ptr<Expression> parseBitwiseOrExpression();
     std::unique_ptr<Expression> parseBitwiseXorExpression();
     std::unique_ptr<Expression> parseBitwiseAndExpression();

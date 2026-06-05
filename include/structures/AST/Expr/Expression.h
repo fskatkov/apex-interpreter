@@ -44,3 +44,11 @@ struct VariableExpression : public Expression {
     explicit VariableExpression(Token name)
         : name(std::move(name)) {  }
 };
+
+struct AssignmentExpression : public Expression {
+    Token name;
+    std::unique_ptr<Expression> value;
+
+    explicit AssignmentExpression(const Token& name, std::unique_ptr<Expression> value)
+        : name(name), value(std::move(value)) {  }
+};
