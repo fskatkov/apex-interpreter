@@ -24,7 +24,8 @@ struct PrintStatement : public Statement {
 struct VariableStatement : public Statement {
     Token name;
     std::unique_ptr<Expression> initializer;
+    bool isConst;
 
-    explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer)
-        : name(std::move(name)), initializer(std::move(initializer)) { }
+    explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer, const bool isConst = false)
+        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) { }
 };

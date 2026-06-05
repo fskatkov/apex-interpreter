@@ -288,6 +288,13 @@ ExecutionResult ExecutionEngine::execute() {
                 pop();
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_DEFINE_CONST): {
+                const auto name = std::any_cast<std::string>(readConstant());
+                globalVariables[name] = peek(0);
+                constants.insert(name);
+                pop();
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL): {
                 const auto name = std::any_cast<std::string>(readConstant());
 
@@ -302,6 +309,12 @@ ExecutionResult ExecutionEngine::execute() {
             }
             case static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL): {
                 const auto name = std::any_cast<std::string>(readConstant());
+
+                if (constants.contains(name)) {
+                    reportRuntimeError("cannot reassign constant variable `" + name + "`");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
                 if (auto it = globalVariables.find(name); it != globalVariables.end()) {
                     globalVariables[name] = peek(0);
                 } else {

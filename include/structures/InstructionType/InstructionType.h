@@ -27,6 +27,7 @@ enum class InstructionType {
     OP_LESS_EQUALS,
 
     OP_DEFINE_GLOBAL,
+    OP_DEFINE_CONST,
     OP_GET_GLOBAL,
     OP_SET_GLOBAL,
 

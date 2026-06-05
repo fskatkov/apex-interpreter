@@ -13,12 +13,18 @@ std::vector<std::unique_ptr<Statement>> Parser::parse() {
 
 std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
     if (match({ TokenKind::VAR })) {
-        return parseVariableDeclarationStatement();
+        return parseVariableDeclarationStatement(false);
+    }
+
+    if (match({ TokenKind::CONST })) {
+        return parseVariableDeclarationStatement(true);
     }
 
     if (match({ TokenKind::PRINT })) {
         return parsePrintStatement();
     }
+
+
 
     return parseStatement();
 }
@@ -41,16 +47,23 @@ std::unique_ptr<Statement> Parser::parseExpressionStatement() {
     return std::make_unique<ExpressionStatement>(std::move(expression));
 }
 
-std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement() {
+std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement(bool isConst) {
     const auto name = consume(TokenKind::IDENTIFIER, "expect variable name");
 
     std::unique_ptr<Expression> initializer = nullptr;
     if (match({ TokenKind::EQUALS })) {
         initializer = parseExpression();
+    } else if (isConst) {
+        diagnosticEngine.report(
+            Diagnostic::DiagnosticKind::Error,
+            name.sourceLocation,
+            "const variables must be initialized"
+        );
+        return nullptr;
     }
 
     consume(TokenKind::SEMICOLON, "expect `;` at end of variable declaration");
-    return std::make_unique<VariableStatement>(name, std::move(initializer));
+    return std::make_unique<VariableStatement>(name, std::move(initializer), isConst);
 }
 
 std::unique_ptr<Expression> Parser::parseExpression() {
