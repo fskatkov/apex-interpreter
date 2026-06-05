@@ -20,5 +20,13 @@ private:
     std::unique_ptr<Expression> expression;
 
     void compileStatement(Statement* statement, BytecodeBuffer* buffer);
+    void compileExpressionStatement(ExpressionStatement* statement, BytecodeBuffer* buffer);
+    void compileVariableStatement(VariableStatement* statement, BytecodeBuffer* buffer);
+
     void compileExpression(Expression* originalExpression, BytecodeBuffer* buffer);
+    void compileVariableExpression(VariableExpression* originalExpression, BytecodeBuffer* buffer);
+    void compileGroupingExpression(const GroupingExpression* originalExpression, BytecodeBuffer* buffer);
+    void compileBinaryExpression(const BinaryExpression* originalExpression, BytecodeBuffer* buffer);
+    void compileUnaryExpression(const UnaryExpression* originalExpression, BytecodeBuffer* buffer);
+    void compileLiteralExpression(const LiteralExpression* originalExpression, BytecodeBuffer* buffer);
 };

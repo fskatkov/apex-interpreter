@@ -26,31 +26,60 @@ std::unique_ptr<BytecodeBuffer> BytecodeGenerator::generate(std::string& source)
 }
 
 void BytecodeGenerator::compileStatement(Statement* statement, BytecodeBuffer* buffer) {
-    if (const auto* expressionStatement = dynamic_cast<ExpressionStatement*>(statement)) {
-        compileExpression(expressionStatement->expression.get(), buffer);
-        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
-    } else if (const auto* variableStatement = dynamic_cast<VariableStatement*>(statement)) {
-        if (variableStatement->initializer) {
-            compileExpression(variableStatement->initializer.get(), buffer);
-        } else {
-            buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NIL), variableStatement->name.sourceLocation.line);
-        }
-
-        buffer->values.emplace_back(variableStatement->name.lexeme);
-        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL), variableStatement->name.sourceLocation.line);
-        buffer->update(static_cast<std::uint8_t>(buffer->values.size() - 1), variableStatement->name.sourceLocation.line);
+    if (auto* expressionStatement = dynamic_cast<ExpressionStatement*>(statement)) {
+        compileExpressionStatement(expressionStatement, buffer);
+    } else if (auto* variableStatement = dynamic_cast<VariableStatement*>(statement)) {
+        compileVariableStatement(variableStatement, buffer);
     }
 }
 
-void BytecodeGenerator::compileExpression(Expression* originalExpression, BytecodeBuffer* buffer) {
-    if (const auto* literalExpression = dynamic_cast<LiteralExpression*>(originalExpression)) {
-        buffer->insert(literalExpression->value, 1);
-    } else if (const auto* binaryExpression = dynamic_cast<BinaryExpression*>(originalExpression)) {
-        compileExpression(binaryExpression->lhs.get(), buffer);
-        compileExpression(binaryExpression->rhs.get(), buffer);
+void BytecodeGenerator::compileExpressionStatement(ExpressionStatement* statement, BytecodeBuffer* buffer) {
+    compileExpression(statement->expression.get(), buffer);
+    buffer->update(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+}
 
-        const auto line = binaryExpression->binaryOperator.sourceLocation.line;
-        switch (binaryExpression->binaryOperator.kind) {
+void BytecodeGenerator::compileVariableStatement(VariableStatement* statement, BytecodeBuffer* buffer) {
+    if (statement->initializer) {
+        compileExpression(statement->initializer.get(), buffer);
+    } else {
+        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NIL), statement->name.sourceLocation.line);
+    }
+
+    buffer->values.emplace_back(statement->name.lexeme);
+    buffer->update(static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL), statement->name.sourceLocation.line);
+    buffer->update(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
+}
+
+void BytecodeGenerator::compileExpression(Expression* originalExpression, BytecodeBuffer* buffer) {
+    if (auto* variableExpression = dynamic_cast<VariableExpression*>(originalExpression)) {
+        compileVariableExpression(variableExpression, buffer);
+    } else if (const auto* groupingExpression = dynamic_cast<GroupingExpression*>(originalExpression)) {
+        compileGroupingExpression(groupingExpression, buffer);
+    } else if (const auto* binaryExpression = dynamic_cast<BinaryExpression*>(originalExpression)) {
+        compileBinaryExpression(binaryExpression, buffer);
+    } else if (const auto* unaryExpression = dynamic_cast<UnaryExpression*>(originalExpression)) {
+        compileUnaryExpression(unaryExpression, buffer);
+    } else if (const auto* literalExpression = dynamic_cast<LiteralExpression*>(originalExpression)) {
+        compileLiteralExpression(literalExpression, buffer);
+    }
+}
+
+void BytecodeGenerator::compileVariableExpression(VariableExpression* originalExpression, BytecodeBuffer* buffer) {
+    buffer->values.emplace_back(originalExpression->name.lexeme);
+    buffer->update(static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL), originalExpression->name.sourceLocation.line);
+    buffer->update(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
+}
+
+void BytecodeGenerator::compileGroupingExpression(const GroupingExpression* originalExpression, BytecodeBuffer* buffer) {
+    compileExpression(originalExpression->expression.get(), buffer);
+}
+
+void BytecodeGenerator::compileBinaryExpression(const BinaryExpression* originalExpression, BytecodeBuffer* buffer) {
+        compileExpression(originalExpression->lhs.get(), buffer);
+        compileExpression(originalExpression->rhs.get(), buffer);
+
+        const auto line = originalExpression->binaryOperator.sourceLocation.line;
+        switch (originalExpression->binaryOperator.kind) {
             case TokenKind::PLUS: {
                 buffer->update(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
                 break;
@@ -118,22 +147,21 @@ void BytecodeGenerator::compileExpression(Expression* originalExpression, Byteco
             default:
                 break;
         }
-    } else if (const auto* groupingExpression = dynamic_cast<GroupingExpression*>(originalExpression)) {
-        compileExpression(groupingExpression->expression.get(), buffer);
-    } else if (const auto* unaryExpression = dynamic_cast<UnaryExpression*>(originalExpression)) {
-        compileExpression(unaryExpression->expression.get(), buffer);
+}
 
-        const auto line = unaryExpression->unaryOperator.sourceLocation.line;
-        if (unaryExpression->unaryOperator.kind == TokenKind::BANG) {
-            buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NOT), line);
-        } else if (unaryExpression->unaryOperator.kind == TokenKind::MINUS) {
-            buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NEGATE), line);
-        } else if (unaryExpression->unaryOperator.kind == TokenKind::BITWISE_NOT) {
-            buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
-        }
-    } else if (const auto* variableExpression = dynamic_cast<VariableExpression*>(originalExpression)) {
-        buffer->values.emplace_back(variableExpression->name.lexeme);
-        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL), variableExpression->name.sourceLocation.line);
-        buffer->update(static_cast<std::uint8_t>(buffer->values.size() - 1), variableExpression->name.sourceLocation.line);
+void BytecodeGenerator::compileUnaryExpression(const UnaryExpression* originalExpression, BytecodeBuffer* buffer) {
+    compileExpression(originalExpression->expression.get(), buffer);
+
+    const auto line = originalExpression->unaryOperator.sourceLocation.line;
+    if (originalExpression->unaryOperator.kind == TokenKind::BANG) {
+        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NOT), line);
+    } else if (originalExpression->unaryOperator.kind == TokenKind::MINUS) {
+        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_NEGATE), line);
+    } else if (originalExpression->unaryOperator.kind == TokenKind::BITWISE_NOT) {
+        buffer->update(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
     }
+}
+
+void BytecodeGenerator::compileLiteralExpression(const LiteralExpression* originalExpression, BytecodeBuffer* buffer) {
+    buffer->insert(originalExpression->value, 1);
 }
