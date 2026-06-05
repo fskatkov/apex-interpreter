@@ -324,6 +324,14 @@ ExecutionResult ExecutionEngine::execute() {
 
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL): {
+                push(stack[readByte()]);
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL): {
+                stack[readByte()] = peek(0);
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_PRINT): {
                 if (const auto result = pop(); result.type() == typeid(double)) {
                     std::cout << std::any_cast<double>(result) << "\n";

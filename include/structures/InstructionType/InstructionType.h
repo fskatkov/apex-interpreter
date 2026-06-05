@@ -30,6 +30,8 @@ enum class InstructionType {
     OP_DEFINE_CONST,
     OP_GET_GLOBAL,
     OP_SET_GLOBAL,
+    OP_GET_LOCAL,
+    OP_SET_LOCAL,
 
     OP_PRINT,
     OP_POP,

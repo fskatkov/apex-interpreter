@@ -29,3 +29,10 @@ struct VariableStatement : public Statement {
     explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer, const bool isConst = false)
         : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) { }
 };
+
+struct BlockStatement : public Statement {
+    std::vector<std::unique_ptr<Statement>> statements;
+
+    explicit BlockStatement(std::vector<std::unique_ptr<Statement>> statements)
+        : statements(std::move(statements)) { }
+};

@@ -16,6 +16,7 @@ private:
     std::size_t current;
 
     std::unique_ptr<Statement> parseDeclarationStatement();
+    std::unique_ptr<Statement> parseBlockStatement();
     std::unique_ptr<Statement> parsePrintStatement();
     std::unique_ptr<Statement> parseStatement();
     std::unique_ptr<Statement> parseExpressionStatement();

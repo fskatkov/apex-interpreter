@@ -25,14 +25,11 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
         compileExpressionStatement(expressionStatement);
     } else if (auto *variableStatement = dynamic_cast<VariableStatement *>(statement)) {
         compileVariableStatement(variableStatement);
+    } else if (auto *blockStatement = dynamic_cast<BlockStatement*>(statement)) {
+        compileBlockStatement(blockStatement);
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
         compilePrintStatement(printStatement);
     }
-}
-
-void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
-    compileExpression(statement->expression.get());
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_PRINT), 0);
 }
 
 void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement *statement) {
@@ -44,23 +41,33 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
     if (statement->initializer) {
         compileExpression(statement->initializer.get());
     } else {
-        emitByte(
-            static_cast<std::uint8_t>(InstructionType::OP_NIL),
-            statement->name.sourceLocation.line
-        );
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NIL), statement->name.sourceLocation.line);
+    }
+
+    if (scopeDepth > 0) {
+        locals.emplace_back(statement->name, scopeDepth);
+        return;
     }
 
     buffer->values.emplace_back(statement->name.lexeme);
     emitByte(
-        static_cast<std::uint8_t>(statement->isConst
-                                      ? InstructionType::OP_DEFINE_CONST
-                                      : InstructionType::OP_DEFINE_GLOBAL),
+        static_cast<std::uint8_t>(statement->isConst ? InstructionType::OP_DEFINE_CONST : InstructionType::OP_DEFINE_GLOBAL),
         statement->name.sourceLocation.line
     );
-    emitByte(
-        static_cast<std::uint8_t>(buffer->values.size() - 1),
-        statement->name.sourceLocation.line
-    );
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
+}
+
+void BytecodeGenerator::compileBlockStatement(const BlockStatement* statement) {
+    beginScope();
+    for (const auto& stmt : statement->statements) {
+        compileStatement(stmt.get());
+    }
+    endScope();
+}
+
+void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
+    compileExpression(statement->expression.get());
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_PRINT), 0);
 }
 
 void BytecodeGenerator::compileExpression(Expression *originalExpression) {
@@ -82,28 +89,25 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
 void BytecodeGenerator::compileAssignmentExpression(AssignmentExpression *originalExpression) {
     compileExpression(originalExpression->value.get());
 
-    buffer->values.emplace_back(originalExpression->name.lexeme);
-
-    emitByte(
-        static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL),
-        originalExpression->name.sourceLocation.line
-    );
-    emitByte(
-        static_cast<std::uint8_t>(buffer->values.size() - 1),
-        originalExpression->name.sourceLocation.line
-    );
+    if (const auto arg = resolveLocal(originalExpression->name); arg != -1) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), originalExpression->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(arg), originalExpression->name.sourceLocation.line);
+    } else {
+        buffer->values.emplace_back(originalExpression->name.lexeme);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), originalExpression->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
+    }
 }
 
-void BytecodeGenerator::compileVariableExpression(VariableExpression *originalExpression) const {
-    buffer->values.emplace_back(originalExpression->name.lexeme);
-    emitByte(
-        static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL),
-        originalExpression->name.sourceLocation.line
-    );
-    emitByte(
-        static_cast<std::uint8_t>(buffer->values.size() - 1),
-        originalExpression->name.sourceLocation.line
-    );
+void BytecodeGenerator::compileVariableExpression(VariableExpression *originalExpression) {
+    if (const auto arg = resolveLocal(originalExpression->name); arg != -1) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL), originalExpression->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(arg), originalExpression->name.sourceLocation.line);
+    } else {
+        buffer->values.emplace_back(originalExpression->name.lexeme);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL), originalExpression->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
+    }
 }
 
 void BytecodeGenerator::compileGroupingExpression(const GroupingExpression *originalExpression) {
@@ -204,4 +208,26 @@ void BytecodeGenerator::compileLiteralExpression(const LiteralExpression *origin
 
 void BytecodeGenerator::emitByte(const std::uint8_t &byte, const std::size_t &line) const {
     buffer->update(byte, line);
+}
+
+void BytecodeGenerator::beginScope() {
+    scopeDepth++;
+}
+
+void BytecodeGenerator::endScope() {
+    scopeDepth--;
+
+    while (!locals.empty() && locals.back().depth > scopeDepth) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        locals.pop_back();
+    }
+}
+
+int BytecodeGenerator::resolveLocal(Token& name) {
+    for (int i = static_cast<int>(locals.size() - 1); i >= 0; --i) {
+        if (locals[i].name.lexeme == name.lexeme) {
+            return i;
+        }
+    }
+    return -1;
 }

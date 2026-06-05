@@ -20,13 +20,30 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
         return parseVariableDeclarationStatement(true);
     }
 
+    if (match({ TokenKind::LEFT_BRACE })) {
+        return parseBlockStatement();
+    }
+
     if (match({ TokenKind::PRINT })) {
         return parsePrintStatement();
     }
 
-
-
     return parseStatement();
+}
+
+std::unique_ptr<Statement> Parser::parseBlockStatement() {
+    auto parseStatements = [this]() {
+        std::vector<std::unique_ptr<Statement>> statements;
+
+        while (!check(TokenKind::RIGHT_BRACE) && !isReachedEnd()) {
+            statements.push_back(parseDeclarationStatement());
+        }
+
+        consume(TokenKind::RIGHT_BRACE, "expect `}` at end of block statement");
+        return statements;
+    };
+
+    return std::make_unique<BlockStatement>(std::move(parseStatements()));
 }
 
 std::unique_ptr<Statement> Parser::parsePrintStatement() {
