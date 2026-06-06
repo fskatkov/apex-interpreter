@@ -75,6 +75,8 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
         compileVariableExpression(variableExpression);
     } else if (auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
         compileAssignmentExpression(assignmentExpression);
+    } else if (auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(originalExpression)) {
+        compileCompoundAssignmentExpression(compoundAssignmentExpression);
     } else if (auto *updateExpression = dynamic_cast<UpdateExpression *>(originalExpression)) {
         compileUpdateExpression(updateExpression);
     } else if (const auto *groupingExpression = dynamic_cast<GroupingExpression *>(originalExpression)) {
@@ -101,6 +103,78 @@ void BytecodeGenerator::compileAssignmentExpression(AssignmentExpression *origin
     }
 }
 
+void BytecodeGenerator::compileCompoundAssignmentExpression(CompoundAssignmentExpression* originalExpression) {
+    auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->lhs.get());
+    if (!variableExpression) {
+        diagnosticEngine.report(
+            Diagnostic::DiagnosticKind::Error,
+            originalExpression->operatorSymbol.sourceLocation,
+            "invalid target for compound assignment"
+        );
+
+        return;
+    }
+
+    const auto line = originalExpression->operatorSymbol.sourceLocation.line;
+
+    compileVariableExpression(variableExpression);
+    compileExpression(originalExpression->rhs.get());
+
+    switch (originalExpression->operatorSymbol.kind) {
+        case TokenKind::PLUS_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
+            break;
+        }
+        case TokenKind::MINUS_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MINUS), line);
+            break;
+        }
+        case TokenKind::STAR_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_STAR), line);
+            break;
+        }
+        case TokenKind::SLASH_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SLASH), line);
+            break;
+        }
+        case TokenKind::MODULO_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MODULO), line);
+            break;
+        }
+        case TokenKind::BITWISE_AND_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+            break;
+        }
+        case TokenKind::BITWISE_OR_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+            break;
+        }
+        case TokenKind::BITWISE_XOR_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+            break;
+        }
+        case TokenKind::BITWISE_LEFT_SHIFT_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+            break;
+        }
+        case TokenKind::BITWISE_RIGHT_SHIFT_EQUALS: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+            break;
+        }
+        default:
+            break;
+    }
+
+    if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
+        emitByte(static_cast<std::uint8_t>(arg), line);
+    } else {
+        buffer->values.emplace_back(variableExpression->name.lexeme);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), line);
+        emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
+    }
+}
+
 void BytecodeGenerator::compileUpdateExpression(UpdateExpression* originalExpression) {
     auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->expression.get());
     if (!variableExpression) {
@@ -109,6 +183,7 @@ void BytecodeGenerator::compileUpdateExpression(UpdateExpression* originalExpres
             originalExpression->operatorSymbol.sourceLocation,
             "target of increment/decrement must be a variable"
         );
+
         return;
     }
 

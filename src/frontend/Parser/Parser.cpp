@@ -100,6 +100,22 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
         }
     }
 
+    const std::initializer_list<TokenKind> compoundOperators{
+        TokenKind::PLUS_EQUALS, TokenKind::MINUS_EQUALS, TokenKind::STAR_EQUALS, TokenKind::SLASH_EQUALS,
+        TokenKind::MODULO_EQUALS, TokenKind::BITWISE_AND_EQUALS, TokenKind::BITWISE_OR_EQUALS, TokenKind::BITWISE_XOR_EQUALS,
+        TokenKind::BITWISE_LEFT_SHIFT_EQUALS, TokenKind::BITWISE_RIGHT_SHIFT_EQUALS
+    };
+
+    if (match(compoundOperators)) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseBitwiseOrExpression();
+        return std::make_unique<CompoundAssignmentExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
     return expression;
 }
 
