@@ -20,14 +20,6 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
         return parseVariableDeclarationStatement(true);
     }
 
-    if (match({ TokenKind::LEFT_BRACE })) {
-        return parseBlockStatement();
-    }
-
-    if (match({ TokenKind::PRINT })) {
-        return parsePrintStatement();
-    }
-
     return parseStatement();
 }
 
@@ -39,7 +31,7 @@ std::unique_ptr<Statement> Parser::parseBlockStatement() {
             statements.push_back(parseDeclarationStatement());
         }
 
-        consume(TokenKind::RIGHT_BRACE, "expect `}` at end of block statement");
+        consume(TokenKind::RIGHT_BRACE, "expected `}` at end of block statement");
         return statements;
     };
 
@@ -47,25 +39,55 @@ std::unique_ptr<Statement> Parser::parseBlockStatement() {
 }
 
 std::unique_ptr<Statement> Parser::parsePrintStatement() {
-    consume(TokenKind::LEFT_PAREN, "expect `(` before print expression");
+    consume(TokenKind::LEFT_PAREN, "expected `(` before print expression");
     auto expression = parseExpression();
-    consume(TokenKind::RIGHT_PAREN, "expect `)` at end of print statement");
-    consume(TokenKind::SEMICOLON, "expect `;` at end of print statement");
+    consume(TokenKind::RIGHT_PAREN, "expected `)` at end of print statement");
+    consume(TokenKind::SEMICOLON, "expected `;` at end of print statement");
     return std::make_unique<PrintStatement>(std::move(expression));
 }
 
+std::unique_ptr<Statement> Parser::parseConditionalStatement() {
+    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
+    auto condition = parseExpression();
+    consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
+
+    auto thenBranch = parseStatement();
+    std::unique_ptr<Statement> elseBranch = nullptr;
+    if (match({ TokenKind::ELSE })) {
+        elseBranch = parseStatement();
+    }
+
+    return std::make_unique<ConditionalStatement>(
+        std::move(condition),
+        std::move(thenBranch),
+        std::move(elseBranch)
+    );
+}
+
 std::unique_ptr<Statement> Parser::parseStatement() {
+    if (match({ TokenKind::LEFT_BRACE })) {
+        return parseBlockStatement();
+    }
+
+    if (match({ TokenKind::PRINT })) {
+        return parsePrintStatement();
+    }
+
+    if (match({ TokenKind::IF })) {
+        return parseConditionalStatement();
+    }
+
     return parseExpressionStatement();
 }
 
 std::unique_ptr<Statement> Parser::parseExpressionStatement() {
     auto expression = parseExpression();
-    consume(TokenKind::SEMICOLON, "expect `;` at end of expression");
+    consume(TokenKind::SEMICOLON, "expected `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
 }
 
 std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement(bool isConst) {
-    const auto name = consume(TokenKind::IDENTIFIER, "expect variable name");
+    const auto name = consume(TokenKind::IDENTIFIER, "expected variable name");
 
     std::unique_ptr<Expression> initializer = nullptr;
     if (match({ TokenKind::EQUALS })) {
@@ -79,7 +101,7 @@ std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement(bool isCons
         return nullptr;
     }
 
-    consume(TokenKind::SEMICOLON, "expect `;` at end of variable declaration");
+    consume(TokenKind::SEMICOLON, "expected `;` at end of variable declaration");
     return std::make_unique<VariableStatement>(name, std::move(initializer), isConst);
 }
 
@@ -313,7 +335,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
 
     if (match({ TokenKind::LEFT_PAREN })) {
         std::unique_ptr<Expression> expression = parseExpression();
-        consume(TokenKind::RIGHT_PAREN, "expect `)` after expression");
+        consume(TokenKind::RIGHT_PAREN, "expected `)` after expression");
         return std::make_unique<GroupingExpression>(std::move(expression));
     }
 

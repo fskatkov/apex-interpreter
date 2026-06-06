@@ -33,6 +33,9 @@ enum class InstructionType {
     OP_GET_LOCAL,
     OP_SET_LOCAL,
 
+    OP_JUMP_IF_FALSE,
+    OP_JUMP,
+
     OP_PRINT,
     OP_POP,
     OP_RETURN

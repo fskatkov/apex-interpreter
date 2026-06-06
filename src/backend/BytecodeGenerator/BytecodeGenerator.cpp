@@ -27,6 +27,8 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
         compileVariableStatement(variableStatement);
     } else if (auto *blockStatement = dynamic_cast<BlockStatement*>(statement)) {
         compileBlockStatement(blockStatement);
+    } else if (auto *conditionalStatement = dynamic_cast<ConditionalStatement *>(statement)) {
+        compileConditionalStatement(conditionalStatement);
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
         compilePrintStatement(printStatement);
     }
@@ -63,6 +65,25 @@ void BytecodeGenerator::compileBlockStatement(const BlockStatement* statement) {
         compileStatement(stmt.get());
     }
     endScope();
+}
+
+void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement* statement) {
+    compileExpression(statement->condition.get());
+
+    const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    compileStatement(statement->thenStatement.get());
+
+    const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+
+    patchJump(thenJump);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+
+    if (statement->elseStatement) {
+        compileStatement(statement->elseStatement.get());
+    }
+
+    patchJump(elseJump);
 }
 
 void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
@@ -315,6 +336,19 @@ void BytecodeGenerator::compileLiteralExpression(const LiteralExpression *origin
 
 void BytecodeGenerator::emitByte(const std::uint8_t &byte, const std::size_t &line) const {
     buffer->update(byte, line);
+}
+
+int BytecodeGenerator::emitJump(const std::uint8_t& instruction) const {
+    emitByte(instruction, 0);
+    emitByte(0xff, 0);
+    emitByte(0xff, 0);
+    return static_cast<int>(buffer->code.size() - 2);
+}
+
+void BytecodeGenerator::patchJump(const int& offset) const {
+    const auto jump = static_cast<int>(buffer->code.size()) - offset - 2;
+    buffer->code[offset] = jump >> 8 & 0xff;
+    buffer->code[offset + 1] = jump & 0xff;
 }
 
 void BytecodeGenerator::beginScope() {

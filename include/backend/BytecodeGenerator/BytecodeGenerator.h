@@ -32,6 +32,7 @@ private:
     void compileExpressionStatement(const ExpressionStatement* statement);
     void compileVariableStatement(VariableStatement* statement);
     void compileBlockStatement(const BlockStatement* statement);
+    void compileConditionalStatement(const ConditionalStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expression* originalExpression);
@@ -45,6 +46,8 @@ private:
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;
+    int emitJump(const std::uint8_t& instruction) const;
+    void patchJump(const int& offset) const;
     void beginScope();
     void endScope();
     int resolveLocal(Token& name);

@@ -332,6 +332,27 @@ ExecutionResult ExecutionEngine::execute() {
                 stack[readByte()] = peek(0);
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE): {
+                auto offset = static_cast<std::uint16_t>(readByte()) << 8 | readByte();
+
+                auto condition = peek(0);
+                bool isFalse = false;
+
+                if (condition.type() == typeid(bool)) {
+                    isFalse = !std::any_cast<bool>(condition);
+                } else if (condition.type() == typeid(NULL) || !condition.has_value()) {
+                    isFalse = true;
+                }
+
+                if (isFalse) {
+                    address += offset;
+                }
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_JUMP): {
+                address += static_cast<std::uint16_t>(readByte()) << 8 | readByte();
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_PRINT): {
                 if (const auto result = pop(); result.type() == typeid(double)) {
                     std::cout << std::any_cast<double>(result) << "\n";
