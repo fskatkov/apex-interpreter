@@ -110,7 +110,7 @@ std::unique_ptr<Expression> Parser::parseExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
-    auto expression = parseBitwiseOrExpression();
+    auto expression = parseLogicalOrExpression();
 
     if (match({ TokenKind::EQUALS })) {
         const auto operatorSymbol = previous();
@@ -130,8 +130,40 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
 
     if (match(compoundOperators)) {
         const auto operatorSymbol = previous();
-        auto rhs = parseBitwiseOrExpression();
+        auto rhs = parseLogicalOrExpression();
         return std::make_unique<CompoundAssignmentExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseLogicalOrExpression() {
+    auto expression = parseLogicalAndExpression();
+
+    while (match({ TokenKind::OR })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseLogicalAndExpression();
+        expression = std::make_unique<LogicalExpression>(
+            std::move(expression),
+            operatorSymbol,
+            std::move(rhs)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expression> Parser::parseLogicalAndExpression() {
+    auto expression = parseBitwiseOrExpression();
+
+    while (match({ TokenKind::AND })) {
+        const auto operatorSymbol = previous();
+        auto rhs = parseBitwiseOrExpression();
+        expression = std::make_unique<LogicalExpression>(
             std::move(expression),
             operatorSymbol,
             std::move(rhs)

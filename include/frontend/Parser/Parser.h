@@ -25,6 +25,8 @@ private:
 
     std::unique_ptr<Expression> parseExpression();
     std::unique_ptr<Expression> parseAssignmentExpression();
+    std::unique_ptr<Expression> parseLogicalOrExpression();
+    std::unique_ptr<Expression> parseLogicalAndExpression();
     std::unique_ptr<Expression> parseBitwiseOrExpression();
     std::unique_ptr<Expression> parseBitwiseXorExpression();
     std::unique_ptr<Expression> parseBitwiseAndExpression();

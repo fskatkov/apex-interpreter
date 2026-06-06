@@ -37,9 +37,10 @@ private:
 
     void compileExpression(Expression* originalExpression);
     void compileAssignmentExpression(AssignmentExpression* originalExpression);
-    void compileCompoundAssignmentExpression(CompoundAssignmentExpression* originalExpression);
-    void compileUpdateExpression(UpdateExpression* originalExpression);
-    void compileVariableExpression(VariableExpression* originalExpression);
+    void compileLogicalExpression(const LogicalExpression* originalExpression);
+    void compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression);
+    void compileUpdateExpression(const UpdateExpression* originalExpression) const;
+    void compileVariableExpression(VariableExpression* originalExpression) const;
     void compileGroupingExpression(const GroupingExpression* originalExpression);
     void compileBinaryExpression(const BinaryExpression* originalExpression);
     void compileUnaryExpression(const UnaryExpression* originalExpression);
@@ -50,5 +51,5 @@ private:
     void patchJump(const int& offset) const;
     void beginScope();
     void endScope();
-    int resolveLocal(Token& name);
+    int resolveLocal(const Token& name) const;
 };

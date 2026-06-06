@@ -33,6 +33,15 @@ struct CompoundAssignmentExpression : Expression {
         : lhs(std::move(lhs)), operatorSymbol(std::move(operatorSymbol)), rhs(std::move(rhs)) {  }
 };
 
+struct LogicalExpression : Expression {
+    std::unique_ptr<Expression> lhs;
+    Token operatorSymbol;
+    std::unique_ptr<Expression> rhs;
+
+    explicit LogicalExpression(std::unique_ptr<Expression> lhs, Token operatorSymbol, std::unique_ptr<Expression> rhs)
+        : lhs(std::move(lhs)), operatorSymbol(std::move(operatorSymbol)), rhs(std::move(rhs)) {  }
+};
+
 struct GroupingExpression : Expression {
     std::unique_ptr<Expression> expression;
 
