@@ -36,6 +36,7 @@ private:
 
     void compileExpression(Expression* originalExpression);
     void compileAssignmentExpression(AssignmentExpression* originalExpression);
+    void compileUpdateExpression(UpdateExpression* originalExpression);
     void compileVariableExpression(VariableExpression* originalExpression);
     void compileGroupingExpression(const GroupingExpression* originalExpression);
     void compileBinaryExpression(const BinaryExpression* originalExpression);

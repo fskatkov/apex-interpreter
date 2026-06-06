@@ -57,11 +57,25 @@ void Lexer::scanToken() {
             break;
         }
         case '+': {
-            add(match('=') ? TokenKind::PLUS_EQUALS : TokenKind::PLUS);
+            if (match('=')) {
+                add(TokenKind::PLUS_EQUALS);
+            } else if (match('+')) {
+                add(TokenKind::INCREMENT);
+            } else {
+                add(TokenKind::PLUS);
+            }
+
             break;
         }
         case '-': {
-            add(match('=') ? TokenKind::MINUS_EQUALS : TokenKind::MINUS);
+            if (match('=')) {
+                add(TokenKind::MINUS_EQUALS);
+            } else if (match('-')) {
+                add(TokenKind::DECREMENT);
+            } else {
+                add(TokenKind::MINUS);
+            }
+
             break;
         }
         case '*': {

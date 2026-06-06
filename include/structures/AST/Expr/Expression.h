@@ -52,3 +52,11 @@ struct AssignmentExpression : public Expression {
     explicit AssignmentExpression(const Token& name, std::unique_ptr<Expression> value)
         : name(name), value(std::move(value)) {  }
 };
+
+struct UpdateExpression : public Expression {
+    Token operatorSymbol;
+    std::unique_ptr<Expression> expression;
+
+    explicit UpdateExpression(Token operatorSymbol, std::unique_ptr<Expression> expression)
+        : operatorSymbol(std::move(operatorSymbol)), expression(std::move(expression)) {  }
+};

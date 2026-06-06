@@ -73,6 +73,10 @@ void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
 void BytecodeGenerator::compileExpression(Expression *originalExpression) {
     if (auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression)) {
         compileVariableExpression(variableExpression);
+    } else if (auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
+        compileAssignmentExpression(assignmentExpression);
+    } else if (auto *updateExpression = dynamic_cast<UpdateExpression *>(originalExpression)) {
+        compileUpdateExpression(updateExpression);
     } else if (const auto *groupingExpression = dynamic_cast<GroupingExpression *>(originalExpression)) {
         compileGroupingExpression(groupingExpression);
     } else if (const auto *binaryExpression = dynamic_cast<BinaryExpression *>(originalExpression)) {
@@ -81,8 +85,6 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
         compileUnaryExpression(unaryExpression);
     } else if (const auto *literalExpression = dynamic_cast<LiteralExpression *>(originalExpression)) {
         compileLiteralExpression(literalExpression);
-    } else if (auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
-        compileAssignmentExpression(assignmentExpression);
     }
 }
 
@@ -96,6 +98,36 @@ void BytecodeGenerator::compileAssignmentExpression(AssignmentExpression *origin
         buffer->values.emplace_back(originalExpression->name.lexeme);
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), originalExpression->name.sourceLocation.line);
         emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
+    }
+}
+
+void BytecodeGenerator::compileUpdateExpression(UpdateExpression* originalExpression) {
+    auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->expression.get());
+    if (!variableExpression) {
+        diagnosticEngine.report(
+            Diagnostic::DiagnosticKind::Error,
+            originalExpression->operatorSymbol.sourceLocation,
+            "target of increment/decrement must be a variable"
+        );
+        return;
+    }
+
+    const auto line = originalExpression->operatorSymbol.sourceLocation.line;
+    const auto isIncrement = originalExpression->operatorSymbol.kind == TokenKind::INCREMENT;
+
+    compileVariableExpression(variableExpression);
+    buffer->values.emplace_back(1.0);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), line);
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
+    emitByte(static_cast<std::uint8_t>(isIncrement ? InstructionType::OP_ADD : InstructionType::OP_MINUS), line);
+
+    if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
+        emitByte(static_cast<std::uint8_t>(arg), line);
+    } else {
+        buffer->values.emplace_back(variableExpression->name.lexeme);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), line);
+        emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
     }
 }
 

@@ -34,6 +34,7 @@ private:
     std::unique_ptr<Expression> parseFactorExpression();
     std::unique_ptr<Expression> parseExponentialExpression();
     std::unique_ptr<Expression> parseUnaryExpression();
+    std::unique_ptr<Expression> parsePostfixExpression();
     std::unique_ptr<Expression> parsePrimaryExpression();
 
     bool match(std::initializer_list<TokenKind> kinds);

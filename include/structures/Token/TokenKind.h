@@ -20,6 +20,8 @@ enum class TokenKind {
     BITWISE_NOT,
     BITWISE_LEFT_SHIFT,
     BITWISE_RIGHT_SHIFT,
+    INCREMENT,
+    DECREMENT,
     HASHTAG,
     BANG,
     SEMICOLON,

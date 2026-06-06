@@ -48,7 +48,7 @@ std::unique_ptr<Statement> Parser::parseBlockStatement() {
 
 std::unique_ptr<Statement> Parser::parsePrintStatement() {
     consume(TokenKind::LEFT_PAREN, "expect `(` before print expression");
-    std::unique_ptr<Expression> expression = parseExpression();
+    auto expression = parseExpression();
     consume(TokenKind::RIGHT_PAREN, "expect `)` at end of print statement");
     consume(TokenKind::SEMICOLON, "expect `;` at end of print statement");
     return std::make_unique<PrintStatement>(std::move(expression));
@@ -59,7 +59,7 @@ std::unique_ptr<Statement> Parser::parseStatement() {
 }
 
 std::unique_ptr<Statement> Parser::parseExpressionStatement() {
-    std::unique_ptr<Expression> expression = parseExpression();
+    auto expression = parseExpression();
     consume(TokenKind::SEMICOLON, "expect `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
 }
@@ -88,7 +88,7 @@ std::unique_ptr<Expression> Parser::parseExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
-    std::unique_ptr<Expression> expression = parseBitwiseOrExpression();
+    auto expression = parseBitwiseOrExpression();
 
     if (match({ TokenKind::EQUALS })) {
         const auto operatorSymbol = previous();
@@ -104,7 +104,7 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
-    std::unique_ptr<Expression> expression = parseBitwiseXorExpression();
+    auto expression = parseBitwiseXorExpression();
 
     while (match({ TokenKind::BITWISE_OR })) {
         const auto operatorSymbol = previous();
@@ -120,7 +120,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
-    std::unique_ptr<Expression> expression = parseBitwiseAndExpression();
+    auto expression = parseBitwiseAndExpression();
 
     while (match({ TokenKind::BITWISE_XOR })) {
         const auto operatorSymbol = previous();
@@ -136,7 +136,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseBitwiseAndExpression() {
-    std::unique_ptr<Expression> expression = parseEqualityExpression();
+    auto expression = parseEqualityExpression();
 
     while (match({ TokenKind::BITWISE_AND })) {
         const auto operatorSymbol = previous();
@@ -152,7 +152,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseAndExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseEqualityExpression() {
-    std::unique_ptr<Expression> expression = parseComparisonExpression();
+    auto expression = parseComparisonExpression();
 
     while (match({TokenKind::BANG_EQUALS, TokenKind::EQUALS_EQUALS})) {
         const auto operatorSymbol = previous();
@@ -168,7 +168,7 @@ std::unique_ptr<Expression> Parser::parseEqualityExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseComparisonExpression() {
-    std::unique_ptr<Expression> expression = parseShiftExpression();
+    auto expression = parseShiftExpression();
 
     while (match({ TokenKind::GREATER, TokenKind::GREATER_EQUALS, TokenKind::LESS, TokenKind::LESS_EQUALS })) {
         const auto operatorSymbol = previous();
@@ -184,7 +184,7 @@ std::unique_ptr<Expression> Parser::parseComparisonExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseShiftExpression() {
-    std::unique_ptr<Expression> expression = parseTermExpression();
+    auto expression = parseTermExpression();
 
     while (match({ TokenKind::BITWISE_LEFT_SHIFT, TokenKind::BITWISE_RIGHT_SHIFT })) {
         const auto operatorSymbol = previous();
@@ -200,7 +200,7 @@ std::unique_ptr<Expression> Parser::parseShiftExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseTermExpression() {
-    std::unique_ptr<Expression> expression = parseFactorExpression();
+    auto expression = parseFactorExpression();
 
     while (match({ TokenKind::PLUS, TokenKind::MINUS })) {
         const auto operatorSymbol = previous();
@@ -216,7 +216,7 @@ std::unique_ptr<Expression> Parser::parseTermExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseFactorExpression() {
-    std::unique_ptr<Expression> expression = parseExponentialExpression();
+    auto expression = parseExponentialExpression();
 
     while (match({ TokenKind::MODULO, TokenKind::SLASH, TokenKind::STAR, TokenKind::POWER })) {
         const auto operatorSymbol = previous();
@@ -232,7 +232,7 @@ std::unique_ptr<Expression> Parser::parseFactorExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseExponentialExpression() {
-    std::unique_ptr<Expression> expression = parseUnaryExpression();
+    auto expression = parseUnaryExpression();
 
     while (match({ TokenKind::POWER })) {
         const auto operatorSymbol = previous();
@@ -257,7 +257,21 @@ std::unique_ptr<Expression> Parser::parseUnaryExpression() {
         );
     }
 
-    return parsePrimaryExpression();
+    return parsePostfixExpression();
+}
+
+std::unique_ptr<Expression> Parser::parsePostfixExpression() {
+    auto expression = parsePrimaryExpression();
+
+    if (match({ TokenKind::INCREMENT, TokenKind::DECREMENT })) {
+        const auto operatorSymbol = previous();
+        return std::make_unique<UpdateExpression>(
+            operatorSymbol,
+            std::move(expression)
+        );
+    }
+
+    return expression;
 }
 
 std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
