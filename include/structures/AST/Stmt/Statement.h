@@ -11,14 +11,16 @@ struct ExpressionStatement : Statement {
     std::unique_ptr<Expression> expression;
 
     explicit ExpressionStatement(std::unique_ptr<Expression> expression)
-        : expression(std::move(expression)) {  }
+        : expression(std::move(expression)) {
+    }
 };
 
 struct PrintStatement : Statement {
     std::unique_ptr<Expression> expression;
 
     explicit PrintStatement(std::unique_ptr<Expression> expression)
-        : expression(std::move(expression)) {  }
+        : expression(std::move(expression)) {
+    }
 };
 
 struct VariableStatement : Statement {
@@ -27,14 +29,29 @@ struct VariableStatement : Statement {
     bool isConst;
 
     explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer, const bool isConst = false)
-        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) {  }
+        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) {
+    }
 };
 
 struct BlockStatement : Statement {
     std::vector<std::unique_ptr<Statement> > statements;
 
     explicit BlockStatement(std::vector<std::unique_ptr<Statement> > statements)
-        : statements(std::move(statements)) {  }
+        : statements(std::move(statements)) {
+    }
+};
+
+struct ForStatement : Statement {
+    std::unique_ptr<Statement> initializer;
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Expression> increment;
+    std::unique_ptr<Statement> body;
+
+    explicit ForStatement(std::unique_ptr<Statement> initializer, std::unique_ptr<Expression> condition,
+                          std::unique_ptr<Expression> increment, std::unique_ptr<Statement> body)
+        : initializer(std::move(initializer)), condition(std::move(condition)), increment(std::move(increment)),
+          body(std::move(body)) {
+    }
 };
 
 struct WhileStatement : Statement {
@@ -42,7 +59,8 @@ struct WhileStatement : Statement {
     std::unique_ptr<Statement> body;
 
     explicit WhileStatement(std::unique_ptr<Expression> condition, std::unique_ptr<Statement> body)
-        : condition(std::move(condition)), body(std::move(body)) {  }
+        : condition(std::move(condition)), body(std::move(body)) {
+    }
 };
 
 struct ConditionalStatement : Statement {

@@ -29,6 +29,7 @@ private:
     int scopeDepth = 0;
 
     void compileStatement(Statement* statement);
+    void compileForStatement(const ForStatement* statement);
     void compileWhileStatement(const WhileStatement* statement);
     void compileConditionalStatement(const ConditionalStatement* statement);
     void compileBlockStatement(const BlockStatement* statement);
@@ -49,7 +50,7 @@ private:
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;
     [[nodiscard]] int emitJump(const std::uint8_t& instruction) const;
-    void emitLoop(const int& startingPoint);
+    void emitLoop(const int& startingPoint) const;
     void patchJump(const int& offset) const;
     void beginScope();
     void endScope();

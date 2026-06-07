@@ -21,7 +21,9 @@ void BytecodeGenerator::generate(std::string &source) {
 }
 
 void BytecodeGenerator::compileStatement(Statement *statement) {
-    if (const auto *whileStatement = dynamic_cast<WhileStatement *>(statement)) {
+    if (const auto *forStatement = dynamic_cast<ForStatement *>(statement)) {
+        compileForStatement(forStatement);
+    } else if (const auto *whileStatement = dynamic_cast<WhileStatement *>(statement)) {
         compileWhileStatement(whileStatement);
     } else if (const auto *conditionalStatement = dynamic_cast<ConditionalStatement *>(statement)) {
         compileConditionalStatement(conditionalStatement);
@@ -34,6 +36,42 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
         compilePrintStatement(printStatement);
     }
+}
+
+void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
+    beginScope();
+    compileStatement(statement->initializer.get());
+
+    auto startingPoint = static_cast<int>(buffer->code.size());
+
+    int exitJump = -1;
+    if (statement->condition) {
+        compileExpression(statement->condition.get());
+        exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    }
+
+    if (statement->increment) {
+        const auto bodyJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+        const auto increment = static_cast<int>(buffer->code.size());
+
+        compileExpression(statement->increment.get());
+
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitLoop(startingPoint);
+        startingPoint = increment;
+        patchJump(bodyJump);
+    }
+
+    compileStatement(statement->body.get());
+    emitLoop(startingPoint);
+
+    if (exitJump != -1) {
+        patchJump(exitJump);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    }
+
+    endScope();
 }
 
 void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
@@ -383,7 +421,7 @@ int BytecodeGenerator::emitJump(const std::uint8_t& instruction) const {
     return static_cast<int>(buffer->code.size() - 2);
 }
 
-void BytecodeGenerator::emitLoop(const int& startingPoint) {
+void BytecodeGenerator::emitLoop(const int& startingPoint) const {
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_LOOP), 0);
     const auto offset = static_cast<int>(buffer->code.size()) - startingPoint + 2;
     emitByte(offset >> 8 & 0xff, 0);

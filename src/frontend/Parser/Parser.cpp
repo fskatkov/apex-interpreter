@@ -40,7 +40,44 @@ std::unique_ptr<Statement> Parser::parseStatement() {
         return parseWhileStatement();
     }
 
+    if (match({ TokenKind::FOR })) {
+        return parseForStatement();
+    }
+
     return parseExpressionStatement();
+}
+
+std::unique_ptr<Statement> Parser::parseForStatement() {
+    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
+
+    std::unique_ptr<Statement> initializer = nullptr;
+    if (match({ TokenKind::VAR })) {
+        initializer = parseVariableDeclarationStatement(false);
+    } else {
+        initializer = parseExpressionStatement();
+    }
+
+    std::unique_ptr<Expression> condition = nullptr;
+    if (!check({ TokenKind::SEMICOLON })) {
+        condition = parseExpression();
+    }
+
+    consume(TokenKind::SEMICOLON, "expected `;` at end of `for` condition");
+
+    std::unique_ptr<Expression> increment = nullptr;
+    if (!check({ TokenKind::RIGHT_PAREN })) {
+        increment = parseExpression();
+    }
+
+    consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
+
+    std::unique_ptr<Statement> body = parseStatement();
+    return std::make_unique<ForStatement>(
+        std::move(initializer),
+        std::move(condition),
+        std::move(increment),
+        std::move(body)
+    );
 }
 
 std::unique_ptr<Statement> Parser::parseWhileStatement() {
