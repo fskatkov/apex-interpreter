@@ -371,6 +371,10 @@ ExecutionResult ExecutionEngine::execute() {
                 pop();
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_LOOP): {
+                address -= static_cast<std::uint16_t>(readByte()) << 8 | readByte();
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_RETURN): {
                 if (!stack.empty()) {
                     if (const auto result = pop(); result.type() == typeid(double)) {

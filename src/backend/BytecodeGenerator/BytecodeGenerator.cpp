@@ -21,22 +21,60 @@ void BytecodeGenerator::generate(std::string &source) {
 }
 
 void BytecodeGenerator::compileStatement(Statement *statement) {
-    if (const auto *expressionStatement = dynamic_cast<ExpressionStatement *>(statement)) {
-        compileExpressionStatement(expressionStatement);
+    if (const auto *whileStatement = dynamic_cast<WhileStatement *>(statement)) {
+        compileWhileStatement(whileStatement);
+    } else if (const auto *conditionalStatement = dynamic_cast<ConditionalStatement *>(statement)) {
+        compileConditionalStatement(conditionalStatement);
+    } else if (const auto *blockStatement = dynamic_cast<BlockStatement*>(statement)) {
+        compileBlockStatement(blockStatement);
     } else if (auto *variableStatement = dynamic_cast<VariableStatement *>(statement)) {
         compileVariableStatement(variableStatement);
-    } else if (auto *blockStatement = dynamic_cast<BlockStatement*>(statement)) {
-        compileBlockStatement(blockStatement);
-    } else if (auto *conditionalStatement = dynamic_cast<ConditionalStatement *>(statement)) {
-        compileConditionalStatement(conditionalStatement);
+    } else if (const auto *expressionStatement = dynamic_cast<ExpressionStatement *>(statement)) {
+        compileExpressionStatement(expressionStatement);
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
         compilePrintStatement(printStatement);
     }
 }
 
-void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement *statement) {
-    compileExpression(statement->expression.get());
+void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
+    const auto startingPoint = static_cast<int>(buffer->code.size());
+    compileExpression(statement->condition.get());
+
+    const auto exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+
+    compileStatement(statement->body.get());
+    emitLoop(startingPoint);
+
+    patchJump(exitJump);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+}
+
+void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement* statement) {
+    compileExpression(statement->condition.get());
+
+    const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    compileStatement(statement->thenStatement.get());
+
+    const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+
+    patchJump(thenJump);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+
+    if (statement->elseStatement) {
+        compileStatement(statement->elseStatement.get());
+    }
+
+    patchJump(elseJump);
+}
+
+void BytecodeGenerator::compileBlockStatement(const BlockStatement* statement) {
+    beginScope();
+    for (const auto& stmt : statement->statements) {
+        compileStatement(stmt.get());
+    }
+    endScope();
 }
 
 void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
@@ -59,31 +97,9 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 }
 
-void BytecodeGenerator::compileBlockStatement(const BlockStatement* statement) {
-    beginScope();
-    for (const auto& stmt : statement->statements) {
-        compileStatement(stmt.get());
-    }
-    endScope();
-}
-
-void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement* statement) {
-    compileExpression(statement->condition.get());
-
-    const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement *statement) {
+    compileExpression(statement->expression.get());
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
-    compileStatement(statement->thenStatement.get());
-
-    const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
-
-    patchJump(thenJump);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
-
-    if (statement->elseStatement) {
-        compileStatement(statement->elseStatement.get());
-    }
-
-    patchJump(elseJump);
 }
 
 void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
@@ -365,6 +381,13 @@ int BytecodeGenerator::emitJump(const std::uint8_t& instruction) const {
     emitByte(0xff, 0);
     emitByte(0xff, 0);
     return static_cast<int>(buffer->code.size() - 2);
+}
+
+void BytecodeGenerator::emitLoop(const int& startingPoint) {
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_LOOP), 0);
+    const auto offset = static_cast<int>(buffer->code.size()) - startingPoint + 2;
+    emitByte(offset >> 8 & 0xff, 0);
+    emitByte(offset & 0xff, 0);
 }
 
 void BytecodeGenerator::patchJump(const int& offset) const {

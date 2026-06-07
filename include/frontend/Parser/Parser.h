@@ -16,10 +16,11 @@ private:
     std::size_t current;
 
     std::unique_ptr<Statement> parseDeclarationStatement();
+    std::unique_ptr<Statement> parseStatement();
+    std::unique_ptr<Statement> parseWhileStatement();
+    std::unique_ptr<Statement> parseConditionalStatement();
     std::unique_ptr<Statement> parseBlockStatement();
     std::unique_ptr<Statement> parsePrintStatement();
-    std::unique_ptr<Statement> parseConditionalStatement();
-    std::unique_ptr<Statement> parseStatement();
     std::unique_ptr<Statement> parseExpressionStatement();
     std::unique_ptr<Statement> parseVariableDeclarationStatement(bool isConst);
 

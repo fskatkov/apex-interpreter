@@ -29,10 +29,11 @@ private:
     int scopeDepth = 0;
 
     void compileStatement(Statement* statement);
-    void compileExpressionStatement(const ExpressionStatement* statement);
-    void compileVariableStatement(VariableStatement* statement);
-    void compileBlockStatement(const BlockStatement* statement);
+    void compileWhileStatement(const WhileStatement* statement);
     void compileConditionalStatement(const ConditionalStatement* statement);
+    void compileBlockStatement(const BlockStatement* statement);
+    void compileVariableStatement(VariableStatement* statement);
+    void compileExpressionStatement(const ExpressionStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expression* originalExpression);
@@ -47,9 +48,10 @@ private:
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;
-    int emitJump(const std::uint8_t& instruction) const;
+    [[nodiscard]] int emitJump(const std::uint8_t& instruction) const;
+    void emitLoop(const int& startingPoint);
     void patchJump(const int& offset) const;
     void beginScope();
     void endScope();
-    int resolveLocal(const Token& name) const;
+    [[nodiscard]] int resolveLocal(const Token& name) const;
 };

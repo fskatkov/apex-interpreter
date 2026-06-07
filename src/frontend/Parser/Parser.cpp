@@ -23,6 +23,53 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
     return parseStatement();
 }
 
+std::unique_ptr<Statement> Parser::parseStatement() {
+    if (match({ TokenKind::LEFT_BRACE })) {
+        return parseBlockStatement();
+    }
+
+    if (match({ TokenKind::PRINT })) {
+        return parsePrintStatement();
+    }
+
+    if (match({ TokenKind::IF })) {
+        return parseConditionalStatement();
+    }
+
+    if (match({ TokenKind::WHILE })) {
+        return parseWhileStatement();
+    }
+
+    return parseExpressionStatement();
+}
+
+std::unique_ptr<Statement> Parser::parseWhileStatement() {
+    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
+    auto condition = parseExpression();
+    consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
+
+    auto body = parseStatement();
+    return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
+}
+
+std::unique_ptr<Statement> Parser::parseConditionalStatement() {
+    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
+    auto condition = parseExpression();
+    consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
+
+    auto thenBranch = parseStatement();
+    std::unique_ptr<Statement> elseBranch = nullptr;
+    if (match({ TokenKind::ELSE })) {
+        elseBranch = parseStatement();
+    }
+
+    return std::make_unique<ConditionalStatement>(
+        std::move(condition),
+        std::move(thenBranch),
+        std::move(elseBranch)
+    );
+}
+
 std::unique_ptr<Statement> Parser::parseBlockStatement() {
     auto parseStatements = [this]() {
         std::vector<std::unique_ptr<Statement>> statements;
@@ -44,40 +91,6 @@ std::unique_ptr<Statement> Parser::parsePrintStatement() {
     consume(TokenKind::RIGHT_PAREN, "expected `)` at end of print statement");
     consume(TokenKind::SEMICOLON, "expected `;` at end of print statement");
     return std::make_unique<PrintStatement>(std::move(expression));
-}
-
-std::unique_ptr<Statement> Parser::parseConditionalStatement() {
-    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
-    auto condition = parseExpression();
-    consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
-
-    auto thenBranch = parseStatement();
-    std::unique_ptr<Statement> elseBranch = nullptr;
-    if (match({ TokenKind::ELSE })) {
-        elseBranch = parseStatement();
-    }
-
-    return std::make_unique<ConditionalStatement>(
-        std::move(condition),
-        std::move(thenBranch),
-        std::move(elseBranch)
-    );
-}
-
-std::unique_ptr<Statement> Parser::parseStatement() {
-    if (match({ TokenKind::LEFT_BRACE })) {
-        return parseBlockStatement();
-    }
-
-    if (match({ TokenKind::PRINT })) {
-        return parsePrintStatement();
-    }
-
-    if (match({ TokenKind::IF })) {
-        return parseConditionalStatement();
-    }
-
-    return parseExpressionStatement();
 }
 
 std::unique_ptr<Statement> Parser::parseExpressionStatement() {

@@ -37,6 +37,14 @@ struct BlockStatement : Statement {
         : statements(std::move(statements)) {  }
 };
 
+struct WhileStatement : Statement {
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Statement> body;
+
+    explicit WhileStatement(std::unique_ptr<Expression> condition, std::unique_ptr<Statement> body)
+        : condition(std::move(condition)), body(std::move(body)) {  }
+};
+
 struct ConditionalStatement : Statement {
     std::unique_ptr<Expression> condition;
     std::unique_ptr<Statement> thenStatement;
