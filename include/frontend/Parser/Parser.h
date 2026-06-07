@@ -19,6 +19,7 @@ private:
     std::unique_ptr<Statement> parseStatement();
     std::unique_ptr<Statement> parseForStatement();
     std::unique_ptr<Statement> parseWhileStatement();
+    std::unique_ptr<Statement> parseDoWhileStatement();
     std::unique_ptr<Statement> parseConditionalStatement();
     std::unique_ptr<Statement> parseBlockStatement();
     std::unique_ptr<Statement> parsePrintStatement();

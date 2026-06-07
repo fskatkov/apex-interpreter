@@ -24,24 +24,28 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
 }
 
 std::unique_ptr<Statement> Parser::parseStatement() {
-    if (match({ TokenKind::LEFT_BRACE })) {
-        return parseBlockStatement();
-    }
-
-    if (match({ TokenKind::PRINT })) {
-        return parsePrintStatement();
-    }
-
-    if (match({ TokenKind::IF })) {
-        return parseConditionalStatement();
+    if (match({ TokenKind::FOR })) {
+        return parseForStatement();
     }
 
     if (match({ TokenKind::WHILE })) {
         return parseWhileStatement();
     }
 
-    if (match({ TokenKind::FOR })) {
-        return parseForStatement();
+    if (match({ TokenKind::DO })) {
+        return parseDoWhileStatement();
+    }
+
+    if (match({ TokenKind::IF })) {
+        return parseConditionalStatement();
+    }
+
+    if (match({ TokenKind::LEFT_BRACE })) {
+        return parseBlockStatement();
+    }
+
+    if (match({ TokenKind::PRINT })) {
+        return parsePrintStatement();
     }
 
     return parseExpressionStatement();
@@ -87,6 +91,20 @@ std::unique_ptr<Statement> Parser::parseWhileStatement() {
 
     auto body = parseStatement();
     return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
+}
+
+std::unique_ptr<Statement> Parser::parseDoWhileStatement() {
+    auto body = parseStatement();
+
+    consume(TokenKind::WHILE, "expected `while` statement after `do` body");
+    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
+
+    auto condition = parseExpression();
+
+    consume(TokenKind::RIGHT_PAREN, "expected `(` in expression list");
+    consume(TokenKind::SEMICOLON, "expected `;` at end of `do-while`");
+
+    return std::make_unique<DoWhileStatement>(std::move(condition), std::move(body));
 }
 
 std::unique_ptr<Statement> Parser::parseConditionalStatement() {

@@ -25,6 +25,8 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
         compileForStatement(forStatement);
     } else if (const auto *whileStatement = dynamic_cast<WhileStatement *>(statement)) {
         compileWhileStatement(whileStatement);
+    } else if (const auto *doWhileStatement = dynamic_cast<DoWhileStatement *>(statement)) {
+        compileDoWhileStatement(doWhileStatement);
     } else if (const auto *conditionalStatement = dynamic_cast<ConditionalStatement *>(statement)) {
         compileConditionalStatement(conditionalStatement);
     } else if (const auto *blockStatement = dynamic_cast<BlockStatement*>(statement)) {
@@ -82,6 +84,20 @@ void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
 
     compileStatement(statement->body.get());
+    emitLoop(startingPoint);
+
+    patchJump(exitJump);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+}
+
+void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement* statement) {
+    auto startingPoint = static_cast<int>(buffer->code.size());
+
+    compileStatement(statement->body.get());
+    compileExpression(statement->condition.get());
+
+    const auto exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
     emitLoop(startingPoint);
 
     patchJump(exitJump);

@@ -31,6 +31,7 @@ private:
     void compileStatement(Statement* statement);
     void compileForStatement(const ForStatement* statement);
     void compileWhileStatement(const WhileStatement* statement);
+    void compileDoWhileStatement(const DoWhileStatement* statement);
     void compileConditionalStatement(const ConditionalStatement* statement);
     void compileBlockStatement(const BlockStatement* statement);
     void compileVariableStatement(VariableStatement* statement);
