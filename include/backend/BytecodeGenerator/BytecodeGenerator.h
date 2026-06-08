@@ -6,12 +6,19 @@
 #include "structures/Token/Token.h"
 #include "diagnostics/DiagnosticEngine.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
-#include "structures/LoopContext/LoopContext.h"
 
 struct Local {
     Token name;
     int depth = 0;
 };
+
+struct LoopContext {
+    int continueTarget;
+    int loopScopeDepth;
+    std::vector<int> breakJumps;
+    std::vector<int> continueJumps;
+};
+
 
 class BytecodeGenerator {
 public:

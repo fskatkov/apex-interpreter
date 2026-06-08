@@ -101,13 +101,15 @@ std::unique_ptr<Statement> Parser::parseSwitchStatement() {
 }
 
 std::unique_ptr<Statement> Parser::parseBreakStatement() {
+    auto keyword = previous();
     consume(TokenKind::SEMICOLON, "expected `;` at end of `break` statement");
-    return std::make_unique<BreakStatement>();
+    return std::make_unique<BreakStatement>(keyword);
 }
 
 std::unique_ptr<Statement> Parser::parseContinueStatement() {
+    auto keyword = previous();
     consume(TokenKind::SEMICOLON, "expected `;` at end of `continue` statement");
-    return std::make_unique<ContinueStatement>();
+    return std::make_unique<ContinueStatement>(keyword);
 }
 
 std::unique_ptr<Statement> Parser::parseForStatement() {

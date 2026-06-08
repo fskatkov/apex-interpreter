@@ -28,11 +28,17 @@ struct SwitchStatement : Statement {
 };
 
 struct BreakStatement : Statement {
-    explicit BreakStatement() = default;
+    Token keyword;
+
+    explicit BreakStatement(Token keyword)
+        : keyword(std::move(keyword)) {  }
 };
 
 struct ContinueStatement : Statement {
-    explicit ContinueStatement() = default;
+    Token keyword;
+
+    explicit ContinueStatement(Token keyword)
+        : keyword(std::move(keyword)) {  }
 };
 
 struct ForStatement : Statement {

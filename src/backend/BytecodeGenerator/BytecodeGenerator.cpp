@@ -78,9 +78,10 @@ void BytecodeGenerator::compileBreakStatement(const BreakStatement* statement) {
     if (loops.empty()) {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
-            0,
+            statement->keyword.sourceLocation,
             "cannot use `break` in this context"
         );
+
         return;
     }
 
@@ -93,14 +94,24 @@ void BytecodeGenerator::compileContinueStatement(const ContinueStatement* statem
     if (loops.empty()) {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
-            0,
+            statement->keyword.sourceLocation,
             "cannot use `continue` in this context"
         );
+
         return;
     }
 
-    const auto& currentLoop = loops.back();
-    emitLoop(currentLoop.continueTarget);
+    auto& currentLoop = loops.back();
+
+    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > currentLoop.loopScopeDepth; --i) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    }
+
+    if (currentLoop.continueTarget == -1) {
+        currentLoop.continueJumps.push_back(emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP)));
+    } else {
+        emitLoop(currentLoop.continueTarget);
+    }
 }
 
 void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
@@ -182,12 +193,18 @@ void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement* statemen
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
     loops.push_back(LoopContext{
-        .continueTarget = startingPoint,
+        .continueTarget = -1,
         .loopScopeDepth = scopeDepth,
-        .breakJumps = {  }
+        .breakJumps = {  },
+        .continueJumps = {  }
     });
 
     compileStatement(statement->body.get());
+
+    for (const auto& continueJump : loops.back().continueJumps) {
+        patchJump(continueJump);
+    }
+
     compileExpression(statement->condition.get());
 
     const auto exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
