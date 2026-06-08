@@ -27,6 +27,14 @@ struct SwitchStatement : Statement {
     }
 };
 
+struct BreakStatement : Statement {
+    explicit BreakStatement() = default;
+};
+
+struct ContinueStatement : Statement {
+    explicit ContinueStatement() = default;
+};
+
 struct ForStatement : Statement {
     std::unique_ptr<Statement> initializer;
     std::unique_ptr<Expression> condition;

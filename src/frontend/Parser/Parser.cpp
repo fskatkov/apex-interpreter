@@ -28,6 +28,14 @@ std::unique_ptr<Statement> Parser::parseStatement() {
         return parseSwitchStatement();
     }
 
+    if (match({ TokenKind::BREAK })) {
+
+    }
+
+    if (match({ TokenKind::CONTINUE })) {
+
+    }
+
     if (match({ TokenKind::FOR })) {
         return parseForStatement();
     }
@@ -90,6 +98,16 @@ std::unique_ptr<Statement> Parser::parseSwitchStatement() {
         std::move(cases),
         std::move(defaultCase)
     );
+}
+
+std::unique_ptr<Statement> Parser::parseBreakStatement() {
+    consume(TokenKind::SEMICOLON, "expected `;` at end of `break` statement");
+    return std::make_unique<BreakStatement>();
+}
+
+std::unique_ptr<Statement> Parser::parseContinueStatement() {
+    consume(TokenKind::SEMICOLON, "expected `;` at end of `continue` statement");
+    return std::make_unique<ContinueStatement>();
 }
 
 std::unique_ptr<Statement> Parser::parseForStatement() {

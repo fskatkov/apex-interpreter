@@ -6,6 +6,7 @@
 #include "structures/Token/Token.h"
 #include "diagnostics/DiagnosticEngine.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
+#include "structures/LoopContext/LoopContext.h"
 
 struct Local {
     Token name;
@@ -26,10 +27,13 @@ private:
     std::vector<std::unique_ptr<Statement>> statements;
     std::unique_ptr<Expression> expression;
     std::vector<Local> locals;
+    std::vector<LoopContext> loops;
     int scopeDepth = 0;
 
     void compileStatement(Statement* statement);
     void compileSwitchStatement(const SwitchStatement* statement);
+    void compileBreakStatement(const BreakStatement* statement);
+    void compileContinueStatement(const ContinueStatement* statement);
     void compileForStatement(const ForStatement* statement);
     void compileWhileStatement(const WhileStatement* statement);
     void compileDoWhileStatement(const DoWhileStatement* statement);

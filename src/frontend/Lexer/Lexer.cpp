@@ -385,7 +385,7 @@ TokenKind Lexer::checkIdentifierType() const {
                         return check(2, 1, "r", TokenKind::FOR);
                     }
                     case 'u': {
-                        return check(2, 6, "nction", TokenKind::FUNCTION);
+                        return check(2, 2, "nc", TokenKind::FUNCTION);
                     }
                     default: {
                         return TokenKind::IDENTIFIER;
