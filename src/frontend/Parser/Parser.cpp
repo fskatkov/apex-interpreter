@@ -24,6 +24,10 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
 }
 
 std::unique_ptr<Statement> Parser::parseStatement() {
+    if (match({ TokenKind::SWITCH })) {
+        return parseSwitchStatement();
+    }
+
     if (match({ TokenKind::FOR })) {
         return parseForStatement();
     }
@@ -49,6 +53,43 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     }
 
     return parseExpressionStatement();
+}
+
+std::unique_ptr<Statement> Parser::parseSwitchStatement() {
+    consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
+
+    auto condition = parseExpression();
+
+    consume(TokenKind::RIGHT_PAREN, "expected `(` in expression list");
+    consume(TokenKind::LEFT_BRACE, "expected `{` before `switch` body");
+
+    std::vector<std::unique_ptr<CaseStatement>> cases;
+    while (match({ TokenKind::CASE })) {
+        auto caseExpression = parseExpression();
+
+        consume(TokenKind::COLON, "expected `:` at end of `case` condition");
+
+        auto caseBody = parseStatement();
+
+        auto caseStatement = std::make_unique<CaseStatement>(
+            std::move(caseExpression),
+            std::move(caseBody)
+        );
+        cases.push_back(std::move(caseStatement));
+    }
+
+    consume(TokenKind::DEFAULT, "expected `default` case in `switch` body");
+    consume(TokenKind::COLON, "expected `:` at end of `default` clause");
+
+    auto defaultCase = parseStatement();
+
+    consume(TokenKind::RIGHT_BRACE, "expected `}` at end of `switch` body");
+
+    return std::make_unique<SwitchStatement>(
+        std::move(condition),
+        std::move(cases),
+        std::move(defaultCase)
+    );
 }
 
 std::unique_ptr<Statement> Parser::parseForStatement() {

@@ -36,6 +36,7 @@ enum class InstructionType {
     OP_JUMP_IF_FALSE,
     OP_JUMP,
     OP_LOOP,
+    OP_DUPLICATE,
 
     OP_PRINT,
     OP_POP,

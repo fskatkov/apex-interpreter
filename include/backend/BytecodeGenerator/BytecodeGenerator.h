@@ -29,6 +29,7 @@ private:
     int scopeDepth = 0;
 
     void compileStatement(Statement* statement);
+    void compileSwitchStatement(const SwitchStatement* statement);
     void compileForStatement(const ForStatement* statement);
     void compileWhileStatement(const WhileStatement* statement);
     void compileDoWhileStatement(const DoWhileStatement* statement);

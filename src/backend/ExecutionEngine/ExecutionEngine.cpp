@@ -333,7 +333,7 @@ ExecutionResult ExecutionEngine::execute() {
                 break;
             }
             case static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE): {
-                auto offset = static_cast<std::uint16_t>(readByte()) << 8 | readByte();
+                auto offset = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
 
                 auto condition = peek(0);
                 bool isFalse = false;
@@ -350,7 +350,7 @@ ExecutionResult ExecutionEngine::execute() {
                 break;
             }
             case static_cast<std::uint8_t>(InstructionType::OP_JUMP): {
-                address += static_cast<std::uint16_t>(readByte()) << 8 | readByte();
+                address += (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
                 break;
             }
             case static_cast<std::uint8_t>(InstructionType::OP_PRINT): {
@@ -372,7 +372,11 @@ ExecutionResult ExecutionEngine::execute() {
                 break;
             }
             case static_cast<std::uint8_t>(InstructionType::OP_LOOP): {
-                address -= static_cast<std::uint16_t>(readByte()) << 8 | readByte();
+                address -= (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE): {
+                push(peek(0));
                 break;
             }
             case static_cast<std::uint8_t>(InstructionType::OP_RETURN): {

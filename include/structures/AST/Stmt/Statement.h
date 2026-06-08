@@ -7,37 +7,23 @@ struct Statement {
     virtual ~Statement() = default;
 };
 
-struct ExpressionStatement : Statement {
-    std::unique_ptr<Expression> expression;
+struct CaseStatement : Statement {
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Statement> body;
 
-    explicit ExpressionStatement(std::unique_ptr<Expression> expression)
-        : expression(std::move(expression)) {
+    explicit CaseStatement(std::unique_ptr<Expression> condition, std::unique_ptr<Statement> body)
+        : condition(std::move(condition)), body(std::move(body)) {
     }
 };
 
-struct PrintStatement : Statement {
-    std::unique_ptr<Expression> expression;
+struct SwitchStatement : Statement {
+    std::unique_ptr<Expression> condition;
+    std::vector<std::unique_ptr<CaseStatement>> cases;
+    std::unique_ptr<Statement> defaultCase;
 
-    explicit PrintStatement(std::unique_ptr<Expression> expression)
-        : expression(std::move(expression)) {
-    }
-};
-
-struct VariableStatement : Statement {
-    Token name;
-    std::unique_ptr<Expression> initializer;
-    bool isConst;
-
-    explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer, const bool isConst = false)
-        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) {
-    }
-};
-
-struct BlockStatement : Statement {
-    std::vector<std::unique_ptr<Statement> > statements;
-
-    explicit BlockStatement(std::vector<std::unique_ptr<Statement> > statements)
-        : statements(std::move(statements)) {
+    explicit SwitchStatement(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<CaseStatement> > cases,
+                             std::unique_ptr<Statement> defaultCase)
+        : condition(std::move(condition)), cases(std::move(cases)), defaultCase(std::move(defaultCase)) {
     }
 };
 
@@ -68,7 +54,8 @@ struct DoWhileStatement : Statement {
     std::unique_ptr<Statement> body;
 
     explicit DoWhileStatement(std::unique_ptr<Expression> condition, std::unique_ptr<Statement> body)
-        : condition(std::move(condition)), body(std::move(body)) {  }
+        : condition(std::move(condition)), body(std::move(body)) {
+    }
 };
 
 struct ConditionalStatement : Statement {
@@ -80,5 +67,39 @@ struct ConditionalStatement : Statement {
                                   std::unique_ptr<Statement> elseStatement)
         : condition(std::move(condition)), thenStatement(std::move(thenStatement)),
           elseStatement(std::move(elseStatement)) {
+    }
+};
+
+struct BlockStatement : Statement {
+    std::vector<std::unique_ptr<Statement> > statements;
+
+    explicit BlockStatement(std::vector<std::unique_ptr<Statement> > statements)
+        : statements(std::move(statements)) {
+    }
+};
+
+struct VariableStatement : Statement {
+    Token name;
+    std::unique_ptr<Expression> initializer;
+    bool isConst;
+
+    explicit VariableStatement(Token name, std::unique_ptr<Expression> initializer, const bool isConst = false)
+        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) {
+    }
+};
+
+struct PrintStatement : Statement {
+    std::unique_ptr<Expression> expression;
+
+    explicit PrintStatement(std::unique_ptr<Expression> expression)
+        : expression(std::move(expression)) {
+    }
+};
+
+struct ExpressionStatement : Statement {
+    std::unique_ptr<Expression> expression;
+
+    explicit ExpressionStatement(std::unique_ptr<Expression> expression)
+        : expression(std::move(expression)) {
     }
 };

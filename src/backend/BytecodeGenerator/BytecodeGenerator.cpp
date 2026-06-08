@@ -21,7 +21,9 @@ void BytecodeGenerator::generate(std::string &source) {
 }
 
 void BytecodeGenerator::compileStatement(Statement *statement) {
-    if (const auto *forStatement = dynamic_cast<ForStatement *>(statement)) {
+    if (const auto *switchStatement = dynamic_cast<SwitchStatement *>(statement)) {
+        compileSwitchStatement(switchStatement);
+    } else if (const auto *forStatement = dynamic_cast<ForStatement *>(statement)) {
         compileForStatement(forStatement);
     } else if (const auto *whileStatement = dynamic_cast<WhileStatement *>(statement)) {
         compileWhileStatement(whileStatement);
@@ -37,6 +39,34 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
         compileExpressionStatement(expressionStatement);
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
         compilePrintStatement(printStatement);
+    }
+}
+
+void BytecodeGenerator::compileSwitchStatement(const SwitchStatement* statement) {
+    compileExpression(statement->condition.get());
+
+    std::vector<int> endJumps;
+    for (const auto& switchStatementCase : statement->cases) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE), 0);
+        compileExpression(switchStatementCase->condition.get());
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS), 0);
+
+        const auto nextCaseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+
+        compileStatement(switchStatementCase->body.get());
+        endJumps.push_back(emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP)));
+
+        patchJump(nextCaseJump);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    }
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    compileStatement(statement->defaultCase.get());
+
+    for (const auto& endJump : endJumps) {
+        patchJump(endJump);
     }
 }
 

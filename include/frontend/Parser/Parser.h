@@ -17,6 +17,7 @@ private:
 
     std::unique_ptr<Statement> parseDeclarationStatement();
     std::unique_ptr<Statement> parseStatement();
+    std::unique_ptr<Statement> parseSwitchStatement();
     std::unique_ptr<Statement> parseForStatement();
     std::unique_ptr<Statement> parseWhileStatement();
     std::unique_ptr<Statement> parseDoWhileStatement();
