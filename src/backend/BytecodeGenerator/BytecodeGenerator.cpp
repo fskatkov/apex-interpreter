@@ -1,5 +1,7 @@
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
 
+#include <ranges>
+
 BytecodeGenerator::BytecodeGenerator(DiagnosticEngine &diagnosticEngine)
     : buffer(nullptr), diagnosticEngine(diagnosticEngine), lexer(nullptr), parser(nullptr) {  }
 
@@ -49,6 +51,14 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
 void BytecodeGenerator::compileSwitchStatement(const SwitchStatement* statement) {
     compileExpression(statement->condition.get());
 
+    contexts.push_back(ControlFlowContext{
+        false,
+        -1,
+        scopeDepth,
+        {  },
+        {  },
+    });
+
     std::vector<int> endJumps;
     for (const auto& switchStatementCase : statement->cases) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE), 0);
@@ -72,10 +82,16 @@ void BytecodeGenerator::compileSwitchStatement(const SwitchStatement* statement)
     for (const auto& endJump : endJumps) {
         patchJump(endJump);
     }
+
+    for (const auto& breakJump : contexts.back().breakJumps) {
+        patchJump(breakJump);
+    }
+
+    contexts.pop_back();
 }
 
 void BytecodeGenerator::compileBreakStatement(const BreakStatement* statement) {
-    if (loops.empty()) {
+    if (contexts.empty()) {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
             statement->keyword.sourceLocation,
@@ -85,13 +101,27 @@ void BytecodeGenerator::compileBreakStatement(const BreakStatement* statement) {
         return;
     }
 
-    auto& currentLoop = loops.back();
+    auto& currentContext = contexts.back();
+
+    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > currentContext.loopScopeDepth; --i) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    }
+
     const auto breakJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
-    currentLoop.breakJumps.push_back(breakJump);
+    currentContext.breakJumps.push_back(breakJump);
 }
 
 void BytecodeGenerator::compileContinueStatement(const ContinueStatement* statement) {
-    if (loops.empty()) {
+    ControlFlowContext* innermostContext = nullptr;
+
+    for (auto &context : std::views::reverse(contexts)) {
+        if (context.isLoop) {
+            innermostContext = &context;
+            break;
+        }
+    }
+
+    if (!innermostContext) {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
             statement->keyword.sourceLocation,
@@ -101,16 +131,14 @@ void BytecodeGenerator::compileContinueStatement(const ContinueStatement* statem
         return;
     }
 
-    auto& currentLoop = loops.back();
-
-    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > currentLoop.loopScopeDepth; --i) {
+    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > innermostContext->loopScopeDepth; --i) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
     }
 
-    if (currentLoop.continueTarget == -1) {
-        currentLoop.continueJumps.push_back(emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP)));
+    if (innermostContext->continueTarget == -1) {
+        innermostContext->continueJumps.push_back(emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP)));
     } else {
-        emitLoop(currentLoop.continueTarget);
+        emitLoop(innermostContext->continueTarget);
     }
 }
 
@@ -139,10 +167,12 @@ void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
         patchJump(bodyJump);
     }
 
-    loops.push_back(LoopContext{
-        .continueTarget = startingPoint,
-        .loopScopeDepth = scopeDepth,
-        .breakJumps = {  }
+    contexts.push_back(ControlFlowContext{
+        true,
+        startingPoint,
+        scopeDepth,
+        {  },
+        {  }
     });
 
     compileStatement(statement->body.get());
@@ -153,11 +183,11 @@ void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
     }
 
-    for (const auto& breakJump : loops.back().breakJumps) {
+    for (const auto& breakJump : contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
-    loops.pop_back();
+    contexts.pop_back();
 
     endScope();
 }
@@ -165,10 +195,12 @@ void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
 void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
-    loops.push_back(LoopContext{
-        .continueTarget = startingPoint,
-        .loopScopeDepth = scopeDepth,
-        .breakJumps = {}
+    contexts.push_back(ControlFlowContext{
+        true,
+        startingPoint,
+        scopeDepth,
+        {  },
+        {  }
     });
 
     compileExpression(statement->condition.get());
@@ -182,26 +214,27 @@ void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
     patchJump(exitJump);
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
 
-    for (const auto& breakJump : loops.back().breakJumps) {
+    for (const auto& breakJump : contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
-    loops.pop_back();
+    contexts.pop_back();
 }
 
 void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement* statement) {
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
-    loops.push_back(LoopContext{
-        .continueTarget = -1,
-        .loopScopeDepth = scopeDepth,
-        .breakJumps = {  },
-        .continueJumps = {  }
+    contexts.push_back(ControlFlowContext{
+        true,
+        -1,
+        scopeDepth,
+        {  },
+        {  }
     });
 
     compileStatement(statement->body.get());
 
-    for (const auto& continueJump : loops.back().continueJumps) {
+    for (const auto& continueJump : contexts.back().continueJumps) {
         patchJump(continueJump);
     }
 
@@ -214,11 +247,11 @@ void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement* statemen
     patchJump(exitJump);
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
 
-    for (const auto& breakJump : loops.back().breakJumps) {
+    for (const auto& breakJump : contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
-    loops.pop_back();
+    contexts.pop_back();
 }
 
 void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement* statement) {

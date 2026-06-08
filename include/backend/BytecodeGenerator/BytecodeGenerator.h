@@ -12,7 +12,8 @@ struct Local {
     int depth = 0;
 };
 
-struct LoopContext {
+struct ControlFlowContext {
+    bool isLoop;
     int continueTarget;
     int loopScopeDepth;
     std::vector<int> breakJumps;
@@ -34,7 +35,7 @@ private:
     std::vector<std::unique_ptr<Statement>> statements;
     std::unique_ptr<Expression> expression;
     std::vector<Local> locals;
-    std::vector<LoopContext> loops;
+    std::vector<ControlFlowContext> contexts;
     int scopeDepth = 0;
 
     void compileStatement(Statement* statement);
