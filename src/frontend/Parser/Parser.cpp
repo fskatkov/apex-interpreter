@@ -29,11 +29,11 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     }
 
     if (match({ TokenKind::BREAK })) {
-
+        return parseBreakStatement();
     }
 
     if (match({ TokenKind::CONTINUE })) {
-
+        return parseContinueStatement();
     }
 
     if (match({ TokenKind::FOR })) {
