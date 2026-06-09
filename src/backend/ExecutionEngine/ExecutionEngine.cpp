@@ -419,6 +419,15 @@ inline ExecutionResult ExecutionEngine::executeBuildArray() {
 
 inline ExecutionResult ExecutionEngine::executeBuildSet() {
     const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
+
+    Set set;
+    set.reserve(count);
+
+    for (int i = 0; i < count; ++i) {
+        set.insert(pop());
+    }
+
+    push(std::make_shared<Set>(std::move(set)));
     return ExecutionResult::OK;
 }
 

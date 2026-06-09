@@ -10,11 +10,26 @@ struct NIL {
     auto operator<=>(const NIL&) const = default;
 };
 
+namespace std {
+    template<>
+    struct hash<NIL> {
+        std::size_t operator()(const NIL&) const noexcept {
+            return 0;
+        }
+    };
+}
+
 struct Value;
+
+struct ValueHasher {
+    std::size_t operator()(const Value& v) const noexcept;
+};
+
 using Array = std::vector<Value>;
+using Set = std::unordered_set<Value, ValueHasher>;
 
 struct Value {
-    using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>>;
+    using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>, std::shared_ptr<Set>>;
     Type as;
 
     explicit Value()                  : as(NIL{  }) {  }
@@ -25,6 +40,7 @@ struct Value {
     Value(std::string val)            : as(std::move(val)) {  }
     Value(NIL val)                    : as(val) {  }
     Value(std::shared_ptr<Array> val) : as(std::move(val)) {  }
+    Value(std::shared_ptr<Set> val)   : as(std::move(val)) {  }
 
     template<typename T>
     [[nodiscard]] bool is() const {
@@ -81,23 +97,31 @@ struct Value {
 
                 result += "]";
                 return result;
+            },
+            [](const std::shared_ptr<Set> &val) -> std::string {
+                if (!val) {
+                    return "{}";
+                }
+
+                std::string result = "{";
+
+                bool isFirst = true;
+                for (const auto& elem : *val) {
+                    if (!isFirst) {
+                        result += ", ";
+                    }
+
+                    result += elem.str();
+                    isFirst = false;
+                }
+
+                result += "}";
+                return result;
             }
         }, as);
     }
 };
 
-namespace std {
-    template<>
-    struct hash<NIL> {
-        std::size_t operator()(const NIL&) const noexcept {
-            return 0;
-        }
-    };
-
-    template<>
-    struct hash<Value> {
-        std::size_t operator()(const Value &value) const noexcept {
-            return std::hash<Value::Type>{}(value.as);
-        }
-    };
+inline std::size_t ValueHasher::operator()(const Value& v) const noexcept {
+    return std::hash<Value::Type>{}(v.as);
 }
