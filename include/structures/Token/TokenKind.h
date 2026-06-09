@@ -27,6 +27,7 @@ enum class TokenKind {
     SEMICOLON,
     COLON,
     DOT,
+    COMMA,
 
     EQUALS,
     EQUALS_EQUALS,

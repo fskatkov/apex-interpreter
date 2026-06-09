@@ -136,6 +136,10 @@ void Lexer::scanToken() {
             add(TokenKind::DOT);
             break;
         }
+        case ',': {
+            add(TokenKind::COMMA);
+            break;
+        }
         case '=':
             add(match('=') ? TokenKind::EQUALS_EQUALS : TokenKind::EQUALS);
             break;

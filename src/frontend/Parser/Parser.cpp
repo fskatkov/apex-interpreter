@@ -245,10 +245,19 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
         const auto operatorSymbol = previous();
         auto rhs = parseAssignmentExpression();
 
-        if (const auto* variableExpression = dynamic_cast<VariableExpression*>(expression.get())) {
-            const auto name = variableExpression->name;
-            return std::make_unique<AssignmentExpression>(name, std::move(rhs));
+        if (dynamic_cast<VariableExpression *>(expression.get()) || dynamic_cast<IndexExpression *>(expression.get())) {
+            return std::make_unique<AssignmentExpression>(
+                std::move(expression),
+                operatorSymbol,
+                std::move(rhs)
+            );
         }
+
+        diagnosticEngine.report(
+            Diagnostic::DiagnosticKind::Error,
+            operatorSymbol.sourceLocation,
+            "invalid assignment target"
+        );
     }
 
     const std::initializer_list<TokenKind> compoundOperators{
@@ -260,10 +269,19 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
     if (match(compoundOperators)) {
         const auto operatorSymbol = previous();
         auto rhs = parseLogicalOrExpression();
-        return std::make_unique<CompoundAssignmentExpression>(
+
+        if (dynamic_cast<VariableExpression *>(expression.get()) || dynamic_cast<IndexExpression *>(expression.get())) {
+            return std::make_unique<CompoundAssignmentExpression>(
             std::move(expression),
-            operatorSymbol,
-            std::move(rhs)
+                operatorSymbol,
+                std::move(rhs)
+            );
+        }
+
+        diagnosticEngine.report(
+            Diagnostic::DiagnosticKind::Error,
+            operatorSymbol.sourceLocation,
+            "invalid assignment target"
         );
     }
 
@@ -462,12 +480,26 @@ std::unique_ptr<Expression> Parser::parseUnaryExpression() {
 std::unique_ptr<Expression> Parser::parsePostfixExpression() {
     auto expression = parsePrimaryExpression();
 
-    if (match({ TokenKind::INCREMENT, TokenKind::DECREMENT })) {
-        const auto operatorSymbol = previous();
-        return std::make_unique<UpdateExpression>(
-            operatorSymbol,
-            std::move(expression)
-        );
+    while (true) {
+        if (match({ TokenKind::LEFT_BRACKET })) {
+            const auto bracket = previous();
+            auto index = parseExpression();
+            consume(TokenKind::RIGHT_BRACKET, "expected `]` after array index");
+
+            expression = std::make_unique<IndexExpression>(
+                std::move(expression),
+                bracket,
+                std::move(index)
+            );
+        } else if (match({ TokenKind::INCREMENT, TokenKind::DECREMENT })) {
+            const auto operatorSymbol = previous();
+            return std::make_unique<UpdateExpression>(
+                operatorSymbol,
+                std::move(expression)
+            );
+        } else {
+            break;
+        }
     }
 
     return expression;
@@ -488,6 +520,19 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
 
     if (match({ TokenKind::NUMBER, TokenKind::STRING, TokenKind::CHARACTER })) {
         return std::make_unique<LiteralExpression>(previous().literal);
+    }
+
+    if (match({ TokenKind::LEFT_BRACKET })) {
+        std::vector<std::unique_ptr<Expression>> elements;
+
+        if (!match({ TokenKind::RIGHT_BRACKET })) {
+            do {
+                elements.push_back(parseExpression());
+            } while (match({ TokenKind::COMMA }));
+        }
+
+        consume(TokenKind::RIGHT_BRACKET, "expected `]` in container literal expression");
+        return std::make_unique<ArrayLiteralExpression>(std::move(elements));
     }
 
     if (match({ TokenKind::IDENTIFIER })) {
