@@ -26,7 +26,7 @@ void REPL::run() {
     }
 }
 
-void REPL::run(const char* path) {
+void REPL::run(const char *path) {
     const std::string strPath = path;
     std::ifstream file(strPath);
     if (!file.is_open()) {
@@ -43,9 +43,9 @@ void REPL::run(const char* path) {
     engine.run();
 }
 
-bool REPL::isIncompleteCommand(const std::string& buffer) {
+bool REPL::isIncompleteCommand(const std::string &buffer) {
     int balance = 0;
-    for (const auto& symbol : buffer) {
+    for (const auto &symbol: buffer) {
         if (symbol == '{' || symbol == '(') {
             balance++;
         } else if (symbol == '}' || symbol == ')') {

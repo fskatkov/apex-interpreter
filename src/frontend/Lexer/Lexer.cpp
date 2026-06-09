@@ -1,8 +1,9 @@
 #include "frontend/Lexer/Lexer.h"
 
-Lexer::Lexer(std::string& source, DiagnosticEngine& diagnosticEngine)
+Lexer::Lexer(std::string &source, DiagnosticEngine &diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), source(std::move(source)), startPosition(0), currentPosition(0),
-      line(1), startLine(1), column(1), startColumn(1), encounteredError(false) {  }
+      line(1), startLine(1), column(1), startColumn(1), encounteredError(false) {
+}
 
 std::vector<Token> Lexer::scan() {
     while (!isReachedEnd()) {
@@ -16,13 +17,13 @@ std::vector<Token> Lexer::scan() {
         TokenKind::END_OF_FILE,
         "",
         "",
-        SourceLocation{ line, column, currentPosition, 0 }
+        SourceLocation{line, column, currentPosition, 0}
     );
 
     return tokens;
 }
 
-const std::vector<Token>& Lexer::getTokens() const {
+const std::vector<Token> &Lexer::getTokens() const {
     return tokens;
 }
 
@@ -225,7 +226,7 @@ char Lexer::peekNext() const {
     return source[currentPosition + 1];
 }
 
-bool Lexer::match(const char& expected) {
+bool Lexer::match(const char &expected) {
     if (isReachedEnd() || source[currentPosition] != expected)
         return false;
     currentPosition++;
@@ -233,7 +234,7 @@ bool Lexer::match(const char& expected) {
     return true;
 }
 
-TokenKind Lexer::check(std::size_t starting, std::size_t ending, const std::string& rest, TokenKind kind) const {
+TokenKind Lexer::check(std::size_t starting, std::size_t ending, const std::string &rest, TokenKind kind) const {
     if (currentPosition - startPosition == starting + ending) {
         if (const std::string_view text(source.data() + startPosition + starting, ending); text == rest) {
             return kind;
@@ -243,14 +244,14 @@ TokenKind Lexer::check(std::size_t starting, std::size_t ending, const std::stri
     return TokenKind::IDENTIFIER;
 }
 
-void Lexer::add(const TokenKind& kind, const std::any& literal) {
+void Lexer::add(const TokenKind &kind, const std::any &literal) {
     const auto length = currentPosition - startPosition;
 
     tokens.emplace_back(
         kind,
         source.substr(startPosition, length),
         literal,
-        SourceLocation{ startLine, startColumn, startPosition, length }
+        SourceLocation{startLine, startColumn, startPosition, length}
     );
 }
 
@@ -486,7 +487,7 @@ TokenKind Lexer::checkIdentifierType() const {
     }
 }
 
-void Lexer::reportError(const std::string& message) const {
+void Lexer::reportError(const std::string &message) const {
     SourceLocation sourceLocation{
         startLine,
         startColumn,

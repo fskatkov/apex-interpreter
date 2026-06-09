@@ -3,7 +3,8 @@
 #include <ranges>
 
 BytecodeGenerator::BytecodeGenerator(DiagnosticEngine &diagnosticEngine)
-    : buffer(nullptr), diagnosticEngine(diagnosticEngine), lexer(nullptr), parser(nullptr) {  }
+    : buffer(nullptr), diagnosticEngine(diagnosticEngine), lexer(nullptr), parser(nullptr) {
+}
 
 void BytecodeGenerator::generate(std::string &source) {
     lexer = std::make_shared<Lexer>(source, diagnosticEngine);
@@ -37,7 +38,7 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
         compileDoWhileStatement(doWhileStatement);
     } else if (const auto *conditionalStatement = dynamic_cast<ConditionalStatement *>(statement)) {
         compileConditionalStatement(conditionalStatement);
-    } else if (const auto *blockStatement = dynamic_cast<BlockStatement*>(statement)) {
+    } else if (const auto *blockStatement = dynamic_cast<BlockStatement *>(statement)) {
         compileBlockStatement(blockStatement);
     } else if (auto *variableStatement = dynamic_cast<VariableStatement *>(statement)) {
         compileVariableStatement(variableStatement);
@@ -48,19 +49,19 @@ void BytecodeGenerator::compileStatement(Statement *statement) {
     }
 }
 
-void BytecodeGenerator::compileSwitchStatement(const SwitchStatement* statement) {
+void BytecodeGenerator::compileSwitchStatement(const SwitchStatement *statement) {
     compileExpression(statement->condition.get());
 
     contexts.push_back(ControlFlowContext{
         false,
         -1,
         scopeDepth,
-        {  },
-        {  },
+        {},
+        {},
     });
 
     std::vector<int> endJumps;
-    for (const auto& switchStatementCase : statement->cases) {
+    for (const auto &switchStatementCase: statement->cases) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE), 0);
         compileExpression(switchStatementCase->condition.get());
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS), 0);
@@ -79,18 +80,18 @@ void BytecodeGenerator::compileSwitchStatement(const SwitchStatement* statement)
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
     compileStatement(statement->defaultCase.get());
 
-    for (const auto& endJump : endJumps) {
+    for (const auto &endJump: endJumps) {
         patchJump(endJump);
     }
 
-    for (const auto& breakJump : contexts.back().breakJumps) {
+    for (const auto &breakJump: contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
     contexts.pop_back();
 }
 
-void BytecodeGenerator::compileBreakStatement(const BreakStatement* statement) {
+void BytecodeGenerator::compileBreakStatement(const BreakStatement *statement) {
     if (contexts.empty()) {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
@@ -101,7 +102,7 @@ void BytecodeGenerator::compileBreakStatement(const BreakStatement* statement) {
         return;
     }
 
-    auto& currentContext = contexts.back();
+    auto &currentContext = contexts.back();
 
     for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > currentContext.loopScopeDepth; --i) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
@@ -111,10 +112,10 @@ void BytecodeGenerator::compileBreakStatement(const BreakStatement* statement) {
     currentContext.breakJumps.push_back(breakJump);
 }
 
-void BytecodeGenerator::compileContinueStatement(const ContinueStatement* statement) {
-    ControlFlowContext* innermostContext = nullptr;
+void BytecodeGenerator::compileContinueStatement(const ContinueStatement *statement) {
+    ControlFlowContext *innermostContext = nullptr;
 
-    for (auto &context : std::views::reverse(contexts)) {
+    for (auto &context: std::views::reverse(contexts)) {
         if (context.isLoop) {
             innermostContext = &context;
             break;
@@ -131,7 +132,8 @@ void BytecodeGenerator::compileContinueStatement(const ContinueStatement* statem
         return;
     }
 
-    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > innermostContext->loopScopeDepth; --i) {
+    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > innermostContext->loopScopeDepth; --
+         i) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
     }
 
@@ -142,7 +144,7 @@ void BytecodeGenerator::compileContinueStatement(const ContinueStatement* statem
     }
 }
 
-void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
+void BytecodeGenerator::compileForStatement(const ForStatement *statement) {
     beginScope();
     compileStatement(statement->initializer.get());
 
@@ -171,8 +173,8 @@ void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
         true,
         startingPoint,
         scopeDepth,
-        {  },
-        {  }
+        {},
+        {}
     });
 
     compileStatement(statement->body.get());
@@ -183,7 +185,7 @@ void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
     }
 
-    for (const auto& breakJump : contexts.back().breakJumps) {
+    for (const auto &breakJump: contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
@@ -192,15 +194,15 @@ void BytecodeGenerator::compileForStatement(const ForStatement* statement) {
     endScope();
 }
 
-void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
+void BytecodeGenerator::compileWhileStatement(const WhileStatement *statement) {
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
     contexts.push_back(ControlFlowContext{
         true,
         startingPoint,
         scopeDepth,
-        {  },
-        {  }
+        {},
+        {}
     });
 
     compileExpression(statement->condition.get());
@@ -214,27 +216,27 @@ void BytecodeGenerator::compileWhileStatement(const WhileStatement* statement) {
     patchJump(exitJump);
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
 
-    for (const auto& breakJump : contexts.back().breakJumps) {
+    for (const auto &breakJump: contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
     contexts.pop_back();
 }
 
-void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement* statement) {
+void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement *statement) {
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
     contexts.push_back(ControlFlowContext{
         true,
         -1,
         scopeDepth,
-        {  },
-        {  }
+        {},
+        {}
     });
 
     compileStatement(statement->body.get());
 
-    for (const auto& continueJump : contexts.back().continueJumps) {
+    for (const auto &continueJump: contexts.back().continueJumps) {
         patchJump(continueJump);
     }
 
@@ -247,14 +249,14 @@ void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement* statemen
     patchJump(exitJump);
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
 
-    for (const auto& breakJump : contexts.back().breakJumps) {
+    for (const auto &breakJump: contexts.back().breakJumps) {
         patchJump(breakJump);
     }
 
     contexts.pop_back();
 }
 
-void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement* statement) {
+void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement *statement) {
     compileExpression(statement->condition.get());
 
     const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
@@ -273,9 +275,9 @@ void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement* 
     patchJump(elseJump);
 }
 
-void BytecodeGenerator::compileBlockStatement(const BlockStatement* statement) {
+void BytecodeGenerator::compileBlockStatement(const BlockStatement *statement) {
     beginScope();
-    for (const auto& stmt : statement->statements) {
+    for (const auto &stmt: statement->statements) {
         compileStatement(stmt.get());
     }
     endScope();
@@ -285,7 +287,7 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
     if (statement->initializer) {
         compileExpression(statement->initializer.get());
     } else {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NIL), statement->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), statement->name.sourceLocation.line);
     }
 
     if (scopeDepth > 0) {
@@ -295,7 +297,9 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
 
     buffer->values.emplace_back(statement->name.lexeme);
     emitByte(
-        static_cast<std::uint8_t>(statement->isConst ? InstructionType::OP_DEFINE_CONST : InstructionType::OP_DEFINE_GLOBAL),
+        static_cast<std::uint8_t>(statement->isConst
+                                      ? InstructionType::OP_DEFINE_CONST
+                                      : InstructionType::OP_DEFINE_GLOBAL),
         statement->name.sourceLocation.line
     );
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
@@ -318,9 +322,10 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
         compileAssignmentExpression(assignmentExpression);
     } else if (const auto *logicalExpression = dynamic_cast<LogicalExpression *>(originalExpression)) {
         compileLogicalExpression(logicalExpression);
-    }  else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(originalExpression)) {
+    } else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(
+        originalExpression)) {
         compileCompoundAssignmentExpression(compoundAssignmentExpression);
-    }else if (const auto *updateExpression = dynamic_cast<UpdateExpression *>(originalExpression)) {
+    } else if (const auto *updateExpression = dynamic_cast<UpdateExpression *>(originalExpression)) {
         compileUpdateExpression(updateExpression);
     } else if (const auto *groupingExpression = dynamic_cast<GroupingExpression *>(originalExpression)) {
         compileGroupingExpression(groupingExpression);
@@ -342,22 +347,26 @@ void BytecodeGenerator::compileAssignmentExpression(const AssignmentExpression *
         compileExpression(originalExpression->rhs.get());
 
         if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), variableExpression->name.sourceLocation.line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL),
+                     variableExpression->name.sourceLocation.line);
             emitByte(static_cast<std::uint8_t>(arg), variableExpression->name.sourceLocation.line);
         } else {
             buffer->values.emplace_back(variableExpression->name.lexeme);
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), variableExpression->name.sourceLocation.line);
-            emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), variableExpression->name.sourceLocation.line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL),
+                     variableExpression->name.sourceLocation.line);
+            emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1),
+                     variableExpression->name.sourceLocation.line);
         }
     } else if (auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression->lhs.get())) {
         compileExpression(indexExpression->target.get());
         compileExpression(indexExpression->index.get());
         compileExpression(originalExpression->rhs.get());
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET), originalExpression->equalsToken.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET),
+                 originalExpression->equalsToken.sourceLocation.line);
     }
 }
 
-void BytecodeGenerator::compileLogicalExpression(const LogicalExpression* originalExpression) {
+void BytecodeGenerator::compileLogicalExpression(const LogicalExpression *originalExpression) {
     compileExpression(originalExpression->lhs.get());
 
     if (originalExpression->operatorSymbol.kind == TokenKind::AND) {
@@ -377,7 +386,7 @@ void BytecodeGenerator::compileLogicalExpression(const LogicalExpression* origin
     }
 }
 
-void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression) {
+void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssignmentExpression *originalExpression) {
     auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->lhs.get());
     if (!variableExpression) {
         diagnosticEngine.report(
@@ -400,19 +409,19 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
             break;
         }
         case TokenKind::MINUS_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MINUS), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
             break;
         }
         case TokenKind::STAR_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_STAR), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
             break;
         }
         case TokenKind::SLASH_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SLASH), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
             break;
         }
         case TokenKind::MODULO_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MODULO), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
             break;
         }
         case TokenKind::BITWISE_AND_EQUALS: {
@@ -449,7 +458,7 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
     }
 }
 
-void BytecodeGenerator::compileUpdateExpression(const UpdateExpression* originalExpression) const {
+void BytecodeGenerator::compileUpdateExpression(const UpdateExpression *originalExpression) const {
     auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->expression.get());
     if (!variableExpression) {
         diagnosticEngine.report(
@@ -468,7 +477,7 @@ void BytecodeGenerator::compileUpdateExpression(const UpdateExpression* original
     buffer->values.emplace_back(1.0);
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
-    emitByte(static_cast<std::uint8_t>(isIncrement ? InstructionType::OP_ADD : InstructionType::OP_MINUS), line);
+    emitByte(static_cast<std::uint8_t>(isIncrement ? InstructionType::OP_ADD : InstructionType::OP_SUB), line);
 
     if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
@@ -482,11 +491,13 @@ void BytecodeGenerator::compileUpdateExpression(const UpdateExpression* original
 
 void BytecodeGenerator::compileVariableExpression(VariableExpression *originalExpression) const {
     if (const auto arg = resolveLocal(originalExpression->name); arg != -1) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL), originalExpression->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL),
+                 originalExpression->name.sourceLocation.line);
         emitByte(static_cast<std::uint8_t>(arg), originalExpression->name.sourceLocation.line);
     } else {
         buffer->values.emplace_back(originalExpression->name.lexeme);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL), originalExpression->name.sourceLocation.line);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL),
+                 originalExpression->name.sourceLocation.line);
         emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
     }
 }
@@ -506,23 +517,23 @@ void BytecodeGenerator::compileBinaryExpression(const BinaryExpression *original
             break;
         }
         case TokenKind::MINUS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MINUS), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
             break;
         }
         case TokenKind::STAR: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_STAR), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
             break;
         }
         case TokenKind::SLASH: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SLASH), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
             break;
         }
         case TokenKind::MODULO: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MODULO), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
             break;
         }
         case TokenKind::POWER: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_POWER), line);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_POW), line);
             break;
         }
         case TokenKind::BITWISE_AND: {
@@ -587,8 +598,8 @@ void BytecodeGenerator::compileLiteralExpression(const LiteralExpression *origin
     buffer->insert(originalExpression->value, 1);
 }
 
-void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression) {
-    for (const auto& element : originalExpression->elements) {
+void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpression *originalExpression) {
+    for (const auto &element: originalExpression->elements) {
         compileExpression(element.get());
     }
 
@@ -599,7 +610,7 @@ void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpressi
     emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
 }
 
-void BytecodeGenerator::compileIndexExpression(const IndexExpression* originalExpression) {
+void BytecodeGenerator::compileIndexExpression(const IndexExpression *originalExpression) {
     compileExpression(originalExpression->target.get());
     compileExpression(originalExpression->index.get());
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET), originalExpression->bracket.sourceLocation.line);
@@ -609,21 +620,21 @@ void BytecodeGenerator::emitByte(const std::uint8_t &byte, const std::size_t &li
     buffer->update(byte, line);
 }
 
-int BytecodeGenerator::emitJump(const std::uint8_t& instruction) const {
+int BytecodeGenerator::emitJump(const std::uint8_t &instruction) const {
     emitByte(instruction, 0);
     emitByte(0xff, 0);
     emitByte(0xff, 0);
     return static_cast<int>(buffer->code.size() - 2);
 }
 
-void BytecodeGenerator::emitLoop(const int& startingPoint) const {
+void BytecodeGenerator::emitLoop(const int &startingPoint) const {
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_LOOP), 0);
     const auto offset = static_cast<int>(buffer->code.size()) - startingPoint + 2;
     emitByte(offset >> 8 & 0xff, 0);
     emitByte(offset & 0xff, 0);
 }
 
-void BytecodeGenerator::patchJump(const int& offset) const {
+void BytecodeGenerator::patchJump(const int &offset) const {
     const auto jump = static_cast<int>(buffer->code.size()) - offset - 2;
     buffer->code[offset] = jump >> 8 & 0xff;
     buffer->code[offset + 1] = jump & 0xff;
@@ -642,7 +653,7 @@ void BytecodeGenerator::endScope() {
     }
 }
 
-int BytecodeGenerator::resolveLocal(const Token& name) const {
+int BytecodeGenerator::resolveLocal(const Token &name) const {
     for (int i = static_cast<int>(locals.size() - 1); i >= 0; --i) {
         if (locals[i].name.lexeme == name.lexeme) {
             return i;

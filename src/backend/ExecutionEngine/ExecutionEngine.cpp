@@ -1,6 +1,6 @@
 #include "backend/ExecutionEngine/ExecutionEngine.h"
 
-ExecutionEngine::ExecutionEngine(std::string& source, DiagnosticEngine& diagnosticEngine)
+ExecutionEngine::ExecutionEngine(std::string &source, DiagnosticEngine &diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), source(source), buffer(nullptr), address(nullptr) {
     stack.reserve(256);
 }
@@ -27,31 +27,35 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_CONSTANT)] = &ExecutionEngine::executeConstant;
     table[static_cast<std::uint8_t>(InstructionType::OP_TRUE)] = &ExecutionEngine::executeTrueLiteral;
     table[static_cast<std::uint8_t>(InstructionType::OP_FALSE)] = &ExecutionEngine::executeFalseLiteral;
-    table[static_cast<std::uint8_t>(InstructionType::OP_NIL)] = &ExecutionEngine::executeNullLiteral;
+    table[static_cast<std::uint8_t>(InstructionType::OP_NULL)] = &ExecutionEngine::executeNullLiteral;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_ADD)] = &ExecutionEngine::executeAddition;
-    table[static_cast<std::uint8_t>(InstructionType::OP_MINUS)] = &ExecutionEngine::executeSubtraction;
-    table[static_cast<std::uint8_t>(InstructionType::OP_STAR)] = &ExecutionEngine::executeMultiplication;
-    table[static_cast<std::uint8_t>(InstructionType::OP_SLASH)] = &ExecutionEngine::executeDivision;
-    table[static_cast<std::uint8_t>(InstructionType::OP_MODULO)] = &ExecutionEngine::executeModuloDivision;
-    table[static_cast<std::uint8_t>(InstructionType::OP_POWER)] = &ExecutionEngine::executePower;
+    table[static_cast<std::uint8_t>(InstructionType::OP_SUB)] = &ExecutionEngine::executeSubtraction;
+    table[static_cast<std::uint8_t>(InstructionType::OP_MUL)] = &ExecutionEngine::executeMultiplication;
+    table[static_cast<std::uint8_t>(InstructionType::OP_DIV)] = &ExecutionEngine::executeDivision;
+    table[static_cast<std::uint8_t>(InstructionType::OP_MOD)] = &ExecutionEngine::executeModuloDivision;
+    table[static_cast<std::uint8_t>(InstructionType::OP_POW)] = &ExecutionEngine::executePower;
     table[static_cast<std::uint8_t>(InstructionType::OP_NOT)] = &ExecutionEngine::executeNotOperation;
     table[static_cast<std::uint8_t>(InstructionType::OP_NEGATE)] = &ExecutionEngine::executeNegation;
     table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND)] = &ExecutionEngine::executeBitwiseAnd;
     table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR)] = &ExecutionEngine::executeBitwiseOr;
     table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR)] = &ExecutionEngine::executeBitwiseXor;
     table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT)] = &ExecutionEngine::executeBitwiseNot;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT)] = &ExecutionEngine::executeBitwiseLeftShift;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT)] = &ExecutionEngine::executeBitwiseRightShift;
+    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT)] = &
+            ExecutionEngine::executeBitwiseLeftShift;
+    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT)] = &
+            ExecutionEngine::executeBitwiseRightShift;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS)] = &ExecutionEngine::executeEquality;
     table[static_cast<std::uint8_t>(InstructionType::OP_GREATER)] = &ExecutionEngine::executeGreaterOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_GREATER_EQUALS)] = &ExecutionEngine::executeGreaterThanOperation;
+    table[static_cast<std::uint8_t>(InstructionType::OP_GREATER_EQUALS)] = &
+            ExecutionEngine::executeGreaterThanOperation;
     table[static_cast<std::uint8_t>(InstructionType::OP_LESS)] = &ExecutionEngine::executeLessOperation;
     table[static_cast<std::uint8_t>(InstructionType::OP_LESS_EQUALS)] = &ExecutionEngine::executeLessThanOperation;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL)] = &ExecutionEngine::executeDefineGlobalVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_DEFINE_CONST)] = &ExecutionEngine::executeDefineConstantVariable;
+    table[static_cast<std::uint8_t>(InstructionType::OP_DEFINE_CONST)] = &
+            ExecutionEngine::executeDefineConstantVariable;
     table[static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL)] = &ExecutionEngine::executeGetGlobalVariable;
     table[static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL)] = &ExecutionEngine::executeSetGlobalVariable;
     table[static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL)] = &ExecutionEngine::executeGetLocalVariable;
@@ -113,7 +117,7 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
     } else if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
         executeBinaryOperation<double>(std::plus<double>{});
     } else {
-        auto getType = [](const std::any& value) {
+        auto getType = [](const std::any &value) {
             if (value.type() == typeid(double)) {
                 return "Number";
             }
@@ -141,7 +145,7 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
         const std::string rhsType = getType(pop());
         const std::string lhsType = getType(pop());
         const auto errorMessage = "unsupported operand types [" + lhsType + "] and [" + rhsType
-                                        + "] for '+': expected either two numbers or two strings.";
+                                  + "] for '+': expected either two numbers or two strings.";
         reportRuntimeError(errorMessage);
         return ExecutionResult::RUNTIME_ERROR;
     }
@@ -184,7 +188,7 @@ inline ExecutionResult ExecutionEngine::executeDivision() {
 
 inline ExecutionResult ExecutionEngine::executeModuloDivision() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([](const double& lhs, const double& rhs) {
+        executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
             return std::fmod(lhs, rhs);
         });
     } else {
@@ -197,7 +201,7 @@ inline ExecutionResult ExecutionEngine::executeModuloDivision() {
 
 inline ExecutionResult ExecutionEngine::executePower() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([](const double& lhs, const double& rhs) {
+        executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
             return std::pow(lhs, rhs);
         });
     } else {
@@ -232,7 +236,7 @@ inline ExecutionResult ExecutionEngine::executeNegation() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
+        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::int64_t>{});
         });
     } else {
@@ -245,7 +249,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
+        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::int64_t>{});
         });
     } else {
@@ -258,7 +262,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseXor() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
+        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::int64_t>{});
         });
     } else {
@@ -283,8 +287,8 @@ inline ExecutionResult ExecutionEngine::executeBitwiseNot() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseLeftShift() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t& value, const std::int64_t& shift) {
+        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
+            return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t &value, const std::int64_t &shift) {
                 return value << (shift % 64);
             });
         });
@@ -298,8 +302,8 @@ inline ExecutionResult ExecutionEngine::executeBitwiseLeftShift() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseRightShift() {
     if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
-        executeBinaryOperation<double>([this](const double& lhs, const double& rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t& value, const std::int64_t& shift) {
+        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
+            return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t &value, const std::int64_t &shift) {
                 return value >> (shift % 64);
             });
         });
@@ -442,7 +446,7 @@ inline ExecutionResult ExecutionEngine::executeBuildArray() {
         array[i] = pop();
     }
 
-    push(std::make_shared<std::vector<std::any>>(std::move(array)));
+    push(std::make_shared<std::vector<std::any> >(std::move(array)));
     return ExecutionResult::OK;
 }
 
@@ -450,7 +454,7 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
     const auto index = pop();
     const auto array = pop();
 
-    if (array.type() != typeid(std::shared_ptr<std::vector<std::any>>)) {
+    if (array.type() != typeid(std::shared_ptr<std::vector<std::any> >)) {
         reportRuntimeError("target is not an array");
         return ExecutionResult::RUNTIME_ERROR;
     }
@@ -460,7 +464,7 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(array);
+    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(array);
     const auto idx = static_cast<int>(std::any_cast<double>(index));
 
     if (idx < 0 || idx >= arrayPtr->size()) {
@@ -477,7 +481,7 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
     const auto index = pop();
     const auto array = pop();
 
-    if (array.type() != typeid(std::shared_ptr<std::vector<std::any>>)) {
+    if (array.type() != typeid(std::shared_ptr<std::vector<std::any> >)) {
         reportRuntimeError("target is not an array");
         return ExecutionResult::RUNTIME_ERROR;
     }
@@ -487,7 +491,7 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(array);
+    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(array);
     const auto idx = static_cast<int>(std::any_cast<double>(index));
 
     if (idx < 0 || idx >= arrayPtr->size()) {
@@ -549,10 +553,10 @@ inline ExecutionResult ExecutionEngine::executePrint() {
         std::cout << (booleanResult ? "True" : "False") << "\n";
     } else if (result.type() == typeid(NULL) || !result.has_value()) {
         std::cout << "null\n";
-    } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
-        const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(result);
+    } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any> >)) {
+        const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(result);
 
-        auto printArrayElement = [](const std::any& elem) {
+        auto printArrayElement = [](const std::any &elem) {
             if (elem.type() == typeid(double)) {
                 std::cout << std::any_cast<double>(elem) << ", ";
             } else if (elem.type() == typeid(std::string)) {
@@ -565,7 +569,7 @@ inline ExecutionResult ExecutionEngine::executePrint() {
             }
         };
 
-        for (const auto& element : *arrayPtr) {
+        for (const auto &element: *arrayPtr) {
             printArrayElement(element);
         }
         std::cout << "\n";
@@ -585,10 +589,10 @@ inline ExecutionResult ExecutionEngine::executeReturn() {
             std::cout << (booleanResult ? "True" : "False") << "\n";
         } else if (result.type() == typeid(NULL) || !result.has_value()) {
             std::cout << "null\n";
-        } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
-            const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(result);
+        } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any> >)) {
+            const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(result);
 
-            auto printArrayElement = [](const std::any& elem) {
+            auto printArrayElement = [](const std::any &elem) {
                 if (elem.type() == typeid(double)) {
                     std::cout << std::any_cast<double>(elem) << ", ";
                 } else if (elem.type() == typeid(std::string)) {
@@ -601,7 +605,7 @@ inline ExecutionResult ExecutionEngine::executeReturn() {
                 }
             };
 
-            for (const auto& element : *arrayPtr) {
+            for (const auto &element: *arrayPtr) {
                 printArrayElement(element);
             }
             std::cout << "\n";
@@ -635,7 +639,8 @@ void ExecutionEngine::executeBinaryOperation(U operation) {
 }
 
 template<typename T>
-double ExecutionEngine::executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, T operation) {
+double ExecutionEngine::executeBitwiseBinaryOperation(const double &firstNumber, const double &secondNumber,
+                                                      T operation) {
     auto lhs = static_cast<std::int64_t>(firstNumber);
     auto rhs = static_cast<std::int64_t>(secondNumber);
     const std::int64_t result = operation(lhs, rhs);
@@ -646,7 +651,7 @@ void ExecutionEngine::resetStack() {
     stack.clear();
 }
 
-void ExecutionEngine::push(const std::any& value) {
+void ExecutionEngine::push(const std::any &value) {
     stack.push_back(value);
 }
 
@@ -656,15 +661,15 @@ std::any ExecutionEngine::pop() {
     return value;
 }
 
-std::any ExecutionEngine::peek(const int& distance) const {
+std::any ExecutionEngine::peek(const int &distance) const {
     return stack[stack.size() - distance - 1];
 }
 
-void ExecutionEngine::reportRuntimeError(const std::string& message) {
+void ExecutionEngine::reportRuntimeError(const std::string &message) {
     const auto line = buffer->at(address - buffer->code.data() - 1);
     diagnosticEngine.report(
         Diagnostic::DiagnosticKind::Fatal,
-        SourceLocation{ line, 1, 0, 0 },
+        SourceLocation{line, 1, 0, 0},
         message
     );
     diagnosticEngine.raise();

@@ -2,16 +2,16 @@
 
 enum class InstructionType {
     OP_CONSTANT,
-    OP_NIL,
+    OP_NULL,
     OP_TRUE,
     OP_FALSE,
 
     OP_ADD,
-    OP_MINUS,
-    OP_STAR,
-    OP_SLASH,
-    OP_MODULO,
-    OP_POWER,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+    OP_MOD,
+    OP_POW,
     OP_BITWISE_AND,
     OP_BITWISE_OR,
     OP_BITWISE_XOR,
