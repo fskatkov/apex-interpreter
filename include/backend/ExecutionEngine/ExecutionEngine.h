@@ -3,8 +3,14 @@
 #include "Common/Common.h"
 #include "diagnostics/DiagnosticEngine.h"
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
-#include "structures/ExecutionResult/ExecutionResult.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
+
+enum class ExecutionResult {
+    COMPILETIME_ERROR,
+    RUNTIME_ERROR,
+    OK,
+    HALT,
+};
 
 class ExecutionEngine {
 public:

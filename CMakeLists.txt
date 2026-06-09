@@ -22,7 +22,6 @@ add_executable(apex_interpreter main.cpp
         src/structures/BytecodeBuffer/BytecodeBuffer.cpp
         include/structures/InstructionType/InstructionType.h
         include/backend/ExecutionEngine/ExecutionEngine.h
-        include/structures/ExecutionResult/ExecutionResult.h
         src/backend/ExecutionEngine/ExecutionEngine.cpp
         include/backend/BytecodeGenerator/BytecodeGenerator.h
         src/backend/BytecodeGenerator/BytecodeGenerator.cpp

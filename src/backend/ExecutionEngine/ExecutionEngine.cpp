@@ -73,8 +73,13 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
 
 ExecutionResult ExecutionEngine::execute() {
     while (true) {
-        const auto instruction = readByte();
-        if (const auto result = (this->*dispatchTable[instruction])(); result != ExecutionResult::OK) {
+        const auto result = (this->*dispatchTable[readByte()])();
+
+        if (result == ExecutionResult::HALT) {
+            return ExecutionResult::OK;
+        }
+
+        if (result != ExecutionResult::OK) {
             return result;
         }
     }
@@ -603,7 +608,7 @@ inline ExecutionResult ExecutionEngine::executeReturn() {
         }
     }
 
-    return ExecutionResult::OK;
+    return ExecutionResult::HALT;
 }
 
 inline ExecutionResult ExecutionEngine::executeUnknown() {
