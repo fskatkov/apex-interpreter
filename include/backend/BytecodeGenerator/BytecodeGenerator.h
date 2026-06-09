@@ -62,6 +62,7 @@ private:
     void compileUnaryExpression(const UnaryExpression* originalExpression);
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
     void compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression);
+    void compileSetLiteralExpression(const SetLiteralExpression* originalExpression);
     void compileIndexExpression(const IndexExpression* originalExpression);
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;

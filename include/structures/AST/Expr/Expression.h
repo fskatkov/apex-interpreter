@@ -89,6 +89,13 @@ struct ArrayLiteralExpression : Expression {
         : elements(std::move(elements)) {  }
 };
 
+struct SetLiteralExpression : Expression {
+    std::unordered_set<std::unique_ptr<Expression>> elements;
+
+    explicit SetLiteralExpression(std::unordered_set<std::unique_ptr<Expression>> elements)
+        : elements(std::move(elements)) {  }
+};
+
 struct IndexExpression : Expression {
     std::unique_ptr<Expression> target;
     Token bracket;

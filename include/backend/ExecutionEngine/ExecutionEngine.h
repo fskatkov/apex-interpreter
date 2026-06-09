@@ -65,6 +65,7 @@ private:
     inline ExecutionResult executeGetLocalVariable();
     inline ExecutionResult executeSetLocalVariable();
     inline ExecutionResult executeBuildArray();
+    inline ExecutionResult executeBuildSet();
     inline ExecutionResult executeGetIndex();
     inline ExecutionResult executeSetIndex();
 
@@ -92,5 +93,6 @@ private:
     std::any pop();
     [[nodiscard]] std::any peek(const int& distance) const;
 
+    std::string stringify(const std::any& value, bool isNested = false) const;
     void reportRuntimeError(const std::string& message);
 };

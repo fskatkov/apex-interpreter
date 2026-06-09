@@ -537,6 +537,17 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<ArrayLiteralExpression>(std::move(elements));
     }
 
+    if (match({ TokenKind::LEFT_BRACE })) {
+        std::unordered_set<std::unique_ptr<Expression>> elements;
+
+        do {
+            elements.insert(parseExpression());
+        } while (match({ TokenKind::COMMA }));
+
+        consume(TokenKind::RIGHT_BRACE, "expected `}` in container literal expression");
+        return std::make_unique<SetLiteralExpression>(std::move(elements));
+    }
+
     if (match({TokenKind::IDENTIFIER})) {
         return std::make_unique<VariableExpression>(previous());
     }
@@ -551,7 +562,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     return nullptr;
 }
 
-bool Parser::match(std::initializer_list<TokenKind> kinds) {
+bool Parser::match(const std::initializer_list<TokenKind> kinds) {
     for (const auto &kind: kinds) {
         if (check(kind)) {
             advance();

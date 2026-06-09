@@ -337,6 +337,8 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
         compileLiteralExpression(literalExpression);
     } else if (const auto *arrayLiteralExpression = dynamic_cast<ArrayLiteralExpression *>(originalExpression)) {
         compileArrayLiteralExpression(arrayLiteralExpression);
+    } else if (const auto *setLiteralExpression = dynamic_cast<SetLiteralExpression *>(originalExpression)) {
+        compileSetLiteralExpression(setLiteralExpression);
     } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression)) {
         compileIndexExpression(indexExpression);
     }
@@ -604,6 +606,18 @@ void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpressi
     }
 
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY), 0);
+
+    const auto count = originalExpression->elements.size();
+    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
+    emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
+}
+
+void BytecodeGenerator::compileSetLiteralExpression(const SetLiteralExpression* originalExpression) {
+    for (const auto &element : originalExpression->elements) {
+        compileExpression(element.get());
+    }
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET), 0);
 
     const auto count = originalExpression->elements.size();
     emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);

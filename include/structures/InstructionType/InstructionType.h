@@ -33,6 +33,7 @@ enum class InstructionType {
     OP_GET_LOCAL,
     OP_SET_LOCAL,
     OP_BUILD_ARRAY,
+    OP_BUILD_SET,
     OP_INDEX_GET,
     OP_INDEX_SET,
 

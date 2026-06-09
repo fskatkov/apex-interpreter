@@ -61,6 +61,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL)] = &ExecutionEngine::executeGetLocalVariable;
     table[static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL)] = &ExecutionEngine::executeSetLocalVariable;
     table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY)] = &ExecutionEngine::executeBuildArray;
+    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET)] = &ExecutionEngine::executeBuildSet;
     table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET)] = &ExecutionEngine::executeGetIndex;
     table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET)] = &ExecutionEngine::executeSetIndex;
 
@@ -450,6 +451,11 @@ inline ExecutionResult ExecutionEngine::executeBuildArray() {
     return ExecutionResult::OK;
 }
 
+inline ExecutionResult ExecutionEngine::executeBuildSet() {
+    const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
+    return ExecutionResult::OK;
+}
+
 inline ExecutionResult ExecutionEngine::executeGetIndex() {
     const auto index = pop();
     const auto array = pop();
@@ -544,72 +550,13 @@ inline ExecutionResult ExecutionEngine::executeDuplicate() {
 }
 
 inline ExecutionResult ExecutionEngine::executePrint() {
-    if (const auto result = pop(); result.type() == typeid(double)) {
-        std::cout << std::any_cast<double>(result) << "\n";
-    } else if (result.type() == typeid(std::string)) {
-        std::cout << std::any_cast<std::string>(result) << "\n";
-    } else if (result.type() == typeid(bool)) {
-        const auto booleanResult = std::any_cast<bool>(result);
-        std::cout << (booleanResult ? "True" : "False") << "\n";
-    } else if (result.type() == typeid(NULL) || !result.has_value()) {
-        std::cout << "null\n";
-    } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any> >)) {
-        const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(result);
-
-        auto printArrayElement = [](const std::any &elem) {
-            if (elem.type() == typeid(double)) {
-                std::cout << std::any_cast<double>(elem) << ", ";
-            } else if (elem.type() == typeid(std::string)) {
-                std::cout << std::any_cast<std::string>(elem) << ", ";
-            } else if (elem.type() == typeid(bool)) {
-                const auto booleanResult = std::any_cast<bool>(elem);
-                std::cout << (booleanResult ? "True" : "False") << ", ";
-            } else if (elem.type() == typeid(NULL) || !elem.has_value()) {
-                std::cout << "null, ";
-            }
-        };
-
-        for (const auto &element: *arrayPtr) {
-            printArrayElement(element);
-        }
-        std::cout << "\n";
-    }
-
+    std::cout << stringify(pop()) << "\n";
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeReturn() {
     if (!stack.empty()) {
-        if (const auto result = pop(); result.type() == typeid(double)) {
-            std::cout << std::any_cast<double>(result) << "\n";
-        } else if (result.type() == typeid(std::string)) {
-            std::cout << std::any_cast<std::string>(result) << "\n";
-        } else if (result.type() == typeid(bool)) {
-            const auto booleanResult = std::any_cast<bool>(result);
-            std::cout << (booleanResult ? "True" : "False") << "\n";
-        } else if (result.type() == typeid(NULL) || !result.has_value()) {
-            std::cout << "null\n";
-        } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any> >)) {
-            const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(result);
-
-            auto printArrayElement = [](const std::any &elem) {
-                if (elem.type() == typeid(double)) {
-                    std::cout << std::any_cast<double>(elem) << ", ";
-                } else if (elem.type() == typeid(std::string)) {
-                    std::cout << std::any_cast<std::string>(elem) << ", ";
-                } else if (elem.type() == typeid(bool)) {
-                    const auto booleanResult = std::any_cast<bool>(elem);
-                    std::cout << (booleanResult ? "True" : "False") << ", ";
-                } else if (elem.type() == typeid(NULL) || !elem.has_value()) {
-                    std::cout << "null, ";
-                }
-            };
-
-            for (const auto &element: *arrayPtr) {
-                printArrayElement(element);
-            }
-            std::cout << "\n";
-        }
+        std::cout << stringify(pop()) << "\n";
     }
 
     return ExecutionResult::HALT;
@@ -663,6 +610,49 @@ std::any ExecutionEngine::pop() {
 
 std::any ExecutionEngine::peek(const int &distance) const {
     return stack[stack.size() - distance - 1];
+}
+
+std::string ExecutionEngine::stringify(const std::any& value, bool isNested) const {
+    if (value.type() == typeid(double)) {
+        std::ostringstream output;
+        output << std::any_cast<double>(value);
+        return output.str();
+    }
+
+    if (value.type() == typeid(std::string)) {
+        const auto str = std::any_cast<std::string>(value);
+        return isNested ? "\"" + str + "\"" : str;
+    }
+
+    if (value.type() == typeid(bool)) {
+        return std::any_cast<bool>(value) ? "True" : "False";
+    }
+
+    if (value.type() == typeid(NULL) || !value.has_value()) {
+        return "null";
+    }
+
+    if (value.type() == typeid(char)) {
+        const auto result = std::any_cast<std::string>(value);
+        return isNested ? "\'" + result + "\'" : result;
+    }
+
+    if (value.type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
+        const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(value);
+        std::string result = "[";
+
+        for (auto i = 0; i < arrayPtr->size(); ++i) {
+            result += stringify((*arrayPtr)[i], true);
+
+            if (i < arrayPtr->size() - 1) {
+                result += ", ";
+            }
+        }
+
+        return result + "]";
+    }
+
+    return "<unknown>";
 }
 
 void ExecutionEngine::reportRuntimeError(const std::string &message) {
