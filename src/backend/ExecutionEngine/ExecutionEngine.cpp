@@ -117,6 +117,16 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
         push(lhs + rhs);
     } else if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
         executeBinaryOperation<double>(std::plus<double>{});
+    } else if (peek(0).type() == typeid(std::shared_ptr<std::vector<std::any>>)
+        && peek(1).type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
+        const auto rhs = std::any_cast<std::shared_ptr<std::vector<std::any>>>(pop());
+        const auto lhs = std::any_cast<std::shared_ptr<std::vector<std::any>>>(pop());
+
+        std::vector<std::any> result = *lhs;
+        for (const auto& elem : *rhs) {
+            result.push_back(elem);
+        }
+        push(std::make_shared<std::vector<std::any>>(result));
     } else {
         auto getType = [](const std::any &value) {
             if (value.type() == typeid(double)) {
@@ -146,7 +156,7 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
         const std::string rhsType = getType(pop());
         const std::string lhsType = getType(pop());
         const auto errorMessage = "unsupported operand types [" + lhsType + "] and [" + rhsType
-                                  + "] for '+': expected either two numbers or two strings.";
+                                  + "] for '+': expected either numbers, or strings, or arrays";
         reportRuntimeError(errorMessage);
         return ExecutionResult::RUNTIME_ERROR;
     }
