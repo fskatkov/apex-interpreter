@@ -332,6 +332,70 @@ ExecutionResult ExecutionEngine::execute() {
                 stack[readByte()] = peek(0);
                 break;
             }
+            case static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY): {
+                const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
+                std::vector<std::any> array;
+                array.resize(count);
+
+                for (auto i = count - 1; i >= 0; --i) {
+                    array[i] = pop();
+                }
+
+                push(std::make_shared<std::vector<std::any>>(std::move(array)));
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET): {
+                const auto index = pop();
+                const auto array = pop();
+
+                if (array.type() != typeid(std::shared_ptr<std::vector<std::any>>)) {
+                    reportRuntimeError("target is not an array");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                if (index.type() != typeid(double)) {
+                    reportRuntimeError("array index must be a number");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(array);
+                const auto idx = static_cast<int>(std::any_cast<double>(index));
+
+                if (idx < 0 || idx >= arrayPtr->size()) {
+                    reportRuntimeError("array index out of bounds");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                push((*arrayPtr)[idx]);
+                break;
+            }
+            case static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET): {
+                const auto value = pop();
+                const auto index = pop();
+                const auto array = pop();
+
+                if (array.type() != typeid(std::shared_ptr<std::vector<std::any>>)) {
+                    reportRuntimeError("target is not an array");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                if (index.type() != typeid(double)) {
+                    reportRuntimeError("array index must be a number");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(array);
+                const auto idx = static_cast<int>(std::any_cast<double>(index));
+
+                if (idx < 0 || idx >= arrayPtr->size()) {
+                    reportRuntimeError("array index out of bounds");
+                    return ExecutionResult::RUNTIME_ERROR;
+                }
+
+                (*arrayPtr)[idx] = value;
+                push(value);
+                break;
+            }
             case static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE): {
                 auto offset = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
 
@@ -363,6 +427,26 @@ ExecutionResult ExecutionEngine::execute() {
                     std::cout << (booleanResult ? "True" : "False") << "\n";
                 } else if (result.type() == typeid(NULL) || !result.has_value()) {
                     std::cout << "null\n";
+                } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
+                    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(result);
+
+                    auto printArrayElement = [](const std::any& elem) {
+                        if (elem.type() == typeid(double)) {
+                            std::cout << std::any_cast<double>(elem) << ", ";
+                        } else if (elem.type() == typeid(std::string)) {
+                            std::cout << std::any_cast<std::string>(elem) << ", ";
+                        } else if (elem.type() == typeid(bool)) {
+                            const auto booleanResult = std::any_cast<bool>(elem);
+                            std::cout << (booleanResult ? "True" : "False") << ", ";
+                        } else if (elem.type() == typeid(NULL) || !elem.has_value()) {
+                            std::cout << "null, ";
+                        }
+                    };
+
+                    for (const auto& element : *arrayPtr) {
+                        printArrayElement(element);
+                    }
+                    std::cout << "\n";
                 }
 
                 break;
@@ -390,6 +474,26 @@ ExecutionResult ExecutionEngine::execute() {
                         std::cout << (booleanResult ? "True" : "False") << "\n";
                     } else if (result.type() == typeid(NULL) || !result.has_value()) {
                         std::cout << "null\n";
+                    } else if (result.type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
+                        const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(result);
+
+                        auto printArrayElement = [](const std::any& elem) {
+                            if (elem.type() == typeid(double)) {
+                                std::cout << std::any_cast<double>(elem) << ", ";
+                            } else if (elem.type() == typeid(std::string)) {
+                                std::cout << std::any_cast<std::string>(elem) << ", ";
+                            } else if (elem.type() == typeid(bool)) {
+                                const auto booleanResult = std::any_cast<bool>(elem);
+                                std::cout << (booleanResult ? "True" : "False") << ", ";
+                            } else if (elem.type() == typeid(NULL) || !elem.has_value()) {
+                                std::cout << "null, ";
+                            }
+                        };
+
+                        for (const auto& element : *arrayPtr) {
+                            printArrayElement(element);
+                        }
+                        std::cout << "\n";
                     }
                 }
 

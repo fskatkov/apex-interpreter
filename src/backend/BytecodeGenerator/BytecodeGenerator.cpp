@@ -330,19 +330,30 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
         compileUnaryExpression(unaryExpression);
     } else if (const auto *literalExpression = dynamic_cast<LiteralExpression *>(originalExpression)) {
         compileLiteralExpression(literalExpression);
+    } else if (const auto *arrayLiteralExpression = dynamic_cast<ArrayLiteralExpression *>(originalExpression)) {
+        compileArrayLiteralExpression(arrayLiteralExpression);
+    } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression)) {
+        compileIndexExpression(indexExpression);
     }
 }
 
 void BytecodeGenerator::compileAssignmentExpression(AssignmentExpression *originalExpression) {
-    compileExpression(originalExpression->value.get());
+    if (auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->lhs.get())) {
+        compileExpression(originalExpression->rhs.get());
 
-    if (const auto arg = resolveLocal(originalExpression->name); arg != -1) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), originalExpression->name.sourceLocation.line);
-        emitByte(static_cast<std::uint8_t>(arg), originalExpression->name.sourceLocation.line);
-    } else {
-        buffer->values.emplace_back(originalExpression->name.lexeme);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), originalExpression->name.sourceLocation.line);
-        emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
+        if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), variableExpression->name.sourceLocation.line);
+            emitByte(static_cast<std::uint8_t>(arg), variableExpression->name.sourceLocation.line);
+        } else {
+            buffer->values.emplace_back(variableExpression->name.lexeme);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), variableExpression->name.sourceLocation.line);
+            emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), variableExpression->name.sourceLocation.line);
+        }
+    } else if (auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression->lhs.get())) {
+        compileExpression(indexExpression->target.get());
+        compileExpression(indexExpression->index.get());
+        compileExpression(originalExpression->rhs.get());
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET), originalExpression->equalsToken.sourceLocation.line);
     }
 }
 
@@ -574,6 +585,24 @@ void BytecodeGenerator::compileUnaryExpression(const UnaryExpression *originalEx
 
 void BytecodeGenerator::compileLiteralExpression(const LiteralExpression *originalExpression) const {
     buffer->insert(originalExpression->value, 1);
+}
+
+void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression) {
+    for (const auto& element : originalExpression->elements) {
+        compileExpression(element.get());
+    }
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY), 0);
+
+    const auto count = originalExpression->elements.size();
+    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
+    emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
+}
+
+void BytecodeGenerator::compileIndexExpression(const IndexExpression* originalExpression) {
+    compileExpression(originalExpression->target.get());
+    compileExpression(originalExpression->index.get());
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET), originalExpression->bracket.sourceLocation.line);
 }
 
 void BytecodeGenerator::emitByte(const std::uint8_t &byte, const std::size_t &line) const {

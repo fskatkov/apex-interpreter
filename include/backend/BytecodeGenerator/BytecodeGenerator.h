@@ -61,6 +61,8 @@ private:
     void compileBinaryExpression(const BinaryExpression* originalExpression);
     void compileUnaryExpression(const UnaryExpression* originalExpression);
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
+    void compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression);
+    void compileIndexExpression(const IndexExpression* originalExpression);
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;
     [[nodiscard]] int emitJump(const std::uint8_t& instruction) const;
