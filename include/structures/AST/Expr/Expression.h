@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
 
@@ -76,9 +74,9 @@ struct UpdateExpression : Expression {
 };
 
 struct LiteralExpression : Expression {
-    std::any value;
+    Value value;
 
-    explicit LiteralExpression(std::any value)
+    explicit LiteralExpression(Value value)
         : value(std::move(value)) {  }
 };
 

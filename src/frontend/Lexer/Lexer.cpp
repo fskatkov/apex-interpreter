@@ -244,7 +244,7 @@ TokenKind Lexer::check(std::size_t starting, std::size_t ending, const std::stri
     return TokenKind::IDENTIFIER;
 }
 
-void Lexer::add(const TokenKind &kind, const std::any &literal) {
+void Lexer::add(const TokenKind &kind, const Value &literal) {
     const auto length = currentPosition - startPosition;
 
     tokens.emplace_back(

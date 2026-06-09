@@ -517,7 +517,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     }
 
     if (match({TokenKind::NIL})) {
-        return std::make_unique<LiteralExpression>(NULL);
+        return std::make_unique<LiteralExpression>(NIL{});
     }
 
     if (match({TokenKind::NUMBER, TokenKind::STRING, TokenKind::CHARACTER})) {
@@ -607,7 +607,12 @@ Token Parser::consume(const TokenKind &kind, const std::string &message) {
     }
 
     diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, peek().sourceLocation, message);
-    return Token{};
+    return Token{
+        TokenKind::ERROR,
+        "error",
+        NIL{},
+        SourceLocation{}
+    };
 }
 
 void Parser::synchronize() {

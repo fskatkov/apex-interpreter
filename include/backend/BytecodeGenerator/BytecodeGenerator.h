@@ -20,7 +20,6 @@ struct ControlFlowContext {
     std::vector<int> continueJumps;
 };
 
-
 class BytecodeGenerator {
 public:
     std::unique_ptr<BytecodeBuffer> buffer;

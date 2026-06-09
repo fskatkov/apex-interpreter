@@ -20,12 +20,12 @@ private:
     DiagnosticEngine& diagnosticEngine;
     std::string source;
 
-    std::unordered_map<std::string, std::any> globalVariables;
+    std::unordered_map<std::string, Value> globalVariables;
     std::unordered_set<std::string> constants;
     std::unique_ptr<BytecodeBuffer> buffer;
 
     const std::uint8_t* address;
-    std::vector<std::any> stack;
+    Array stack;
 
     using Handler = ExecutionResult (ExecutionEngine::*)();
     static const std::array<Handler, 256> dispatchTable;
@@ -77,10 +77,11 @@ private:
 
     inline ExecutionResult executePrint();
     inline ExecutionResult executeReturn();
+
     inline ExecutionResult executeUnknown();
 
     std::uint8_t readByte();
-    std::any readConstant();
+    Value readConstant();
 
     template<typename T, typename U>
     void executeBinaryOperation(U operation);
@@ -89,10 +90,10 @@ private:
     double executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, T operation);
 
     void resetStack();
-    void push(const std::any& value);
-    std::any pop();
-    [[nodiscard]] std::any peek(const int& distance) const;
+    void push(const Value& value);
+    Value pop();
+    [[nodiscard]] Value peek(const int& distance) const;
 
-    std::string stringify(const std::any& value, bool isNested = false) const;
+    [[nodiscard]] static std::string stringify(const Value& value, bool isNested = false);
     void reportRuntimeError(const std::string& message);
 };

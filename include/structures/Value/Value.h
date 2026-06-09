@@ -6,6 +6,7 @@ template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 struct NIL {
+    NIL() = default;
     auto operator<=>(const NIL&) const = default;
 };
 
@@ -16,10 +17,14 @@ struct Value {
     using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>>;
     Type as;
 
-    explicit Value() : as(NIL{  }) {  }
-
-    template<typename T>
-    explicit Value(T&& value) : as(std::forward<T>(value)) {  }
+    explicit Value()                  : as(NIL{  }) {  }
+    Value(double val)                 : as(val) {  }
+    Value(bool val)                   : as(val) {  }
+    Value(char val)                   : as(val) {  }
+    Value(const char* val)            : as(std::string(val)) {  }
+    Value(std::string val)            : as(std::move(val)) {  }
+    Value(NIL val)                    : as(val) {  }
+    Value(std::shared_ptr<Array> val) : as(std::move(val)) {  }
 
     template<typename T>
     [[nodiscard]] bool is() const {

@@ -106,55 +106,20 @@ inline ExecutionResult ExecutionEngine::executeFalseLiteral() {
 }
 
 inline ExecutionResult ExecutionEngine::executeNullLiteral() {
-    push(NULL);
+    push(NIL{});
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeAddition() {
-    if (peek(0).type() == typeid(std::string) && peek(1).type() == typeid(std::string)) {
-        const auto rhs = std::any_cast<std::string>(pop());
-        const auto lhs = std::any_cast<std::string>(pop());
+    if (peek(0).is<std::string>() && peek(1).is<std::string>()) {
+        const auto rhs = pop().get<std::string>();
+        const auto lhs = pop().get<std::string>();
         push(lhs + rhs);
-    } else if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    } else if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::plus<double>{});
-    } else if (peek(0).type() == typeid(std::shared_ptr<std::vector<std::any>>)
-        && peek(1).type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
-        const auto rhs = std::any_cast<std::shared_ptr<std::vector<std::any>>>(pop());
-        const auto lhs = std::any_cast<std::shared_ptr<std::vector<std::any>>>(pop());
-
-        std::vector<std::any> result = *lhs;
-        for (const auto& elem : *rhs) {
-            result.push_back(elem);
-        }
-        push(std::make_shared<std::vector<std::any>>(result));
     } else {
-        auto getType = [](const std::any &value) {
-            if (value.type() == typeid(double)) {
-                return "Number";
-            }
-
-            if (value.type() == typeid(std::string)) {
-                return "String";
-            }
-
-            if (value.type() == typeid(bool)) {
-                return "Boolean";
-            }
-
-            if (value.type() == typeid(NULL) || !value.has_value()) {
-                return "Null";
-            }
-
-            if (value.type() == typeid(char)) {
-                return "Character";
-            }
-
-            return "Unknown";
-        };
-
-
-        const std::string rhsType = getType(pop());
-        const std::string lhsType = getType(pop());
+        const std::string rhsType = pop().str();
+        const std::string lhsType = pop().str();
         const auto errorMessage = "unsupported operand types [" + lhsType + "] and [" + rhsType
                                   + "] for '+': expected either numbers, or strings, or arrays";
         reportRuntimeError(errorMessage);
@@ -165,7 +130,7 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
 }
 
 inline ExecutionResult ExecutionEngine::executeSubtraction() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::minus<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `-`: expected two numbers");
@@ -176,7 +141,7 @@ inline ExecutionResult ExecutionEngine::executeSubtraction() {
 }
 
 inline ExecutionResult ExecutionEngine::executeMultiplication() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::multiplies<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `*`: expected two numbers");
@@ -187,7 +152,7 @@ inline ExecutionResult ExecutionEngine::executeMultiplication() {
 }
 
 inline ExecutionResult ExecutionEngine::executeDivision() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::divides<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `/`: expected two numbers");
@@ -198,7 +163,7 @@ inline ExecutionResult ExecutionEngine::executeDivision() {
 }
 
 inline ExecutionResult ExecutionEngine::executeModuloDivision() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
             return std::fmod(lhs, rhs);
         });
@@ -211,7 +176,7 @@ inline ExecutionResult ExecutionEngine::executeModuloDivision() {
 }
 
 inline ExecutionResult ExecutionEngine::executePower() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
             return std::pow(lhs, rhs);
         });
@@ -224,8 +189,8 @@ inline ExecutionResult ExecutionEngine::executePower() {
 }
 
 inline ExecutionResult ExecutionEngine::executeNotOperation() {
-    if (peek(0).type() == typeid(bool)) {
-        push(!std::any_cast<bool>(pop()));
+    if (peek(0).is<bool>()) {
+        push(!pop().get<bool>());
     } else {
         reportRuntimeError("invalid operand for `!`: expected a boolean");
         return ExecutionResult::RUNTIME_ERROR;
@@ -235,8 +200,8 @@ inline ExecutionResult ExecutionEngine::executeNotOperation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeNegation() {
-    if (peek(0).type() == typeid(double)) {
-        push(-std::any_cast<double>(pop()));
+    if (peek(0).is<double>()) {
+        push(-pop().get<double>());
     } else {
         reportRuntimeError("invalid operand for unary `-`: expected a number");
         return ExecutionResult::RUNTIME_ERROR;
@@ -246,7 +211,7 @@ inline ExecutionResult ExecutionEngine::executeNegation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::int64_t>{});
         });
@@ -259,7 +224,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::int64_t>{});
         });
@@ -272,7 +237,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseXor() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::int64_t>{});
         });
@@ -285,8 +250,8 @@ inline ExecutionResult ExecutionEngine::executeBitwiseXor() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseNot() {
-    if (peek(0).type() == typeid(double)) {
-        const auto value = static_cast<std::int64_t>(std::any_cast<double>(pop()));
+    if (peek(0).is<double>()) {
+        const auto value = static_cast<std::int64_t>(pop().get<double>());
         push(static_cast<double>(~value));
     } else {
         reportRuntimeError("invalid operand for unary `~`: expected a number");
@@ -297,7 +262,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseNot() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseLeftShift() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t &value, const std::int64_t &shift) {
                 return value << (shift % 64);
@@ -312,7 +277,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseLeftShift() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseRightShift() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t &value, const std::int64_t &shift) {
                 return value >> (shift % 64);
@@ -330,26 +295,17 @@ inline ExecutionResult ExecutionEngine::executeEquality() {
     const auto rhs = pop();
     const auto lhs = pop();
 
-    if (lhs.type() != rhs.type()) {
+    if (lhs != rhs) {
         reportRuntimeError("type mismatch in equality comparison: cannot compare different data types");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    bool flag = false;
-    if (lhs.type() == typeid(double)) {
-        flag = std::any_cast<double>(lhs) == std::any_cast<double>(rhs);
-    } else if (lhs.type() == typeid(bool)) {
-        flag = std::any_cast<bool>(lhs) == std::any_cast<bool>(rhs);
-    } else if (lhs.type() == typeid(std::string)) {
-        flag = std::any_cast<std::string>(lhs) == std::any_cast<std::string>(rhs);
-    }
-
-    push(flag);
+    push(lhs == rhs);
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterOperation() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<bool>(std::greater<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `>`: expected two numbers");
@@ -360,7 +316,7 @@ inline ExecutionResult ExecutionEngine::executeGreaterOperation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterThanOperation() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<bool>(std::greater_equal<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `>=`: expected two numbers");
@@ -371,7 +327,7 @@ inline ExecutionResult ExecutionEngine::executeGreaterThanOperation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeLessOperation() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<bool>(std::less<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `<`: expected two numbers");
@@ -382,7 +338,7 @@ inline ExecutionResult ExecutionEngine::executeLessOperation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeLessThanOperation() {
-    if (peek(0).type() == typeid(double) && peek(1).type() == typeid(double)) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<bool>(std::less_equal<double>{});
     } else {
         reportRuntimeError("unsupported operand types for `<=`: expected two numbers");
@@ -393,14 +349,14 @@ inline ExecutionResult ExecutionEngine::executeLessThanOperation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeDefineGlobalVariable() {
-    const auto name = std::any_cast<std::string>(readConstant());
+    const auto name = readConstant().get<std::string>();
     globalVariables[name] = peek(0);
     pop();
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeDefineConstantVariable() {
-    const auto name = std::any_cast<std::string>(readConstant());
+    const auto name = readConstant().get<std::string>();
     globalVariables[name] = peek(0);
     constants.insert(name);
     pop();
@@ -408,7 +364,7 @@ inline ExecutionResult ExecutionEngine::executeDefineConstantVariable() {
 }
 
 inline ExecutionResult ExecutionEngine::executeGetGlobalVariable() {
-    const auto name = std::any_cast<std::string>(readConstant());
+    const auto name = readConstant().get<std::string>();
 
     if (const auto it = globalVariables.find(name); it != globalVariables.end()) {
         push(it->second);
@@ -421,7 +377,7 @@ inline ExecutionResult ExecutionEngine::executeGetGlobalVariable() {
 }
 
 inline ExecutionResult ExecutionEngine::executeSetGlobalVariable() {
-    const auto name = std::any_cast<std::string>(readConstant());
+    const auto name = readConstant().get<std::string>();
 
     if (constants.contains(name)) {
         reportRuntimeError("cannot reassign constant variable `" + name + "`");
@@ -450,14 +406,14 @@ inline ExecutionResult ExecutionEngine::executeSetLocalVariable() {
 
 inline ExecutionResult ExecutionEngine::executeBuildArray() {
     const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
-    std::vector<std::any> array;
+    Array array;
     array.resize(count);
 
     for (auto i = count - 1; i >= 0; --i) {
         array[i] = pop();
     }
 
-    push(std::make_shared<std::vector<std::any> >(std::move(array)));
+    push(std::make_shared<Array>(std::move(array)));
     return ExecutionResult::OK;
 }
 
@@ -467,21 +423,21 @@ inline ExecutionResult ExecutionEngine::executeBuildSet() {
 }
 
 inline ExecutionResult ExecutionEngine::executeGetIndex() {
-    const auto index = pop();
-    const auto array = pop();
+    const auto secondValue = pop();
+    const auto firstValue = pop();
 
-    if (array.type() != typeid(std::shared_ptr<std::vector<std::any> >)) {
+    if (!firstValue.is<std::shared_ptr<Array>>()) {
         reportRuntimeError("target is not an array");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    if (index.type() != typeid(double)) {
+    if (!secondValue.is<double>()) {
         reportRuntimeError("array index must be a number");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(array);
-    const auto idx = static_cast<int>(std::any_cast<double>(index));
+    const auto &arrayPtr = firstValue.get<std::shared_ptr<Array>>();
+    const auto idx = static_cast<int>(secondValue.get<double>());
 
     if (idx < 0 || idx >= arrayPtr->size()) {
         reportRuntimeError("array index out of bounds");
@@ -494,21 +450,21 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
 
 inline ExecutionResult ExecutionEngine::executeSetIndex() {
     const auto value = pop();
-    const auto index = pop();
-    const auto array = pop();
+    const auto secondValue = pop();
+    const auto firstValue = pop();
 
-    if (array.type() != typeid(std::shared_ptr<std::vector<std::any> >)) {
+    if (!firstValue.is<std::shared_ptr<Array>>()) {
         reportRuntimeError("target is not an array");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    if (index.type() != typeid(double)) {
+    if (!secondValue.is<double>()) {
         reportRuntimeError("array index must be a number");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any> > >(array);
-    const auto idx = static_cast<int>(std::any_cast<double>(index));
+    const auto& arrayPtr = firstValue.get<std::shared_ptr<Array>>();
+    const auto idx = static_cast<int>(secondValue.get<double>());
 
     if (idx < 0 || idx >= arrayPtr->size()) {
         reportRuntimeError("array index out of bounds");
@@ -526,9 +482,9 @@ inline ExecutionResult ExecutionEngine::executeJumpIfFalseOperation() {
     const auto condition = peek(0);
     bool isFalse = false;
 
-    if (condition.type() == typeid(bool)) {
-        isFalse = !std::any_cast<bool>(condition);
-    } else if (condition.type() == typeid(NULL) || !condition.has_value()) {
+    if (condition.is<bool>()) {
+        isFalse = !condition.get<bool>();
+    } else if (condition.is<NIL>()) {
         isFalse = true;
     }
 
@@ -580,18 +536,18 @@ std::uint8_t ExecutionEngine::readByte() {
     return *address++;
 }
 
-std::any ExecutionEngine::readConstant() {
+Value ExecutionEngine::readConstant() {
     return buffer->values[readByte()];
 }
 
 template<typename T, typename U>
 void ExecutionEngine::executeBinaryOperation(U operation) {
-    if (peek(0).type() != typeid(double) || peek(1).type() != typeid(double)) {
+    if (!peek(0).is<double>() || !peek(1).is<double>()) {
         return;
     }
 
-    const auto rhs = std::any_cast<double>(pop());
-    const auto lhs = std::any_cast<double>(pop());
+    const auto rhs = pop().get<double>();
+    const auto lhs = pop().get<double>();
     push(static_cast<T>(operation(lhs, rhs)));
 }
 
@@ -608,65 +564,27 @@ void ExecutionEngine::resetStack() {
     stack.clear();
 }
 
-void ExecutionEngine::push(const std::any &value) {
+void ExecutionEngine::push(const Value &value) {
     stack.push_back(value);
 }
 
-std::any ExecutionEngine::pop() {
-    const auto value = stack.back();
+Value ExecutionEngine::pop() {
+    auto value = stack.back();
     stack.pop_back();
     return value;
 }
 
-std::any ExecutionEngine::peek(const int &distance) const {
+Value ExecutionEngine::peek(const int &distance) const {
     return stack[stack.size() - distance - 1];
 }
 
-std::string ExecutionEngine::stringify(const std::any& value, bool isNested) const {
-    if (value.type() == typeid(double)) {
-        std::ostringstream output;
-        output << std::any_cast<double>(value);
-        return output.str();
-    }
-
-    if (value.type() == typeid(std::string)) {
-        const auto str = std::any_cast<std::string>(value);
-        return isNested ? "\"" + str + "\"" : str;
-    }
-
-    if (value.type() == typeid(bool)) {
-        return std::any_cast<bool>(value) ? "True" : "False";
-    }
-
-    if (value.type() == typeid(NULL) || !value.has_value()) {
-        return "null";
-    }
-
-    if (value.type() == typeid(char)) {
-        const auto result = std::any_cast<std::string>(value);
-        return isNested ? "\'" + result + "\'" : result;
-    }
-
-    if (value.type() == typeid(std::shared_ptr<std::vector<std::any>>)) {
-        const auto arrayPtr = std::any_cast<std::shared_ptr<std::vector<std::any>>>(value);
-        std::string result = "[";
-
-        for (auto i = 0; i < arrayPtr->size(); ++i) {
-            result += stringify((*arrayPtr)[i], true);
-
-            if (i < arrayPtr->size() - 1) {
-                result += ", ";
-            }
-        }
-
-        return result + "]";
-    }
-
-    return "<unknown>";
+std::string ExecutionEngine::stringify(const Value& value, bool isNested) {
+    return value.str();
 }
 
 void ExecutionEngine::reportRuntimeError(const std::string &message) {
     const auto line = buffer->at(address - buffer->code.data() - 1);
+
     diagnosticEngine.report(
         Diagnostic::DiagnosticKind::Fatal,
         SourceLocation{line, 1, 0, 0},
