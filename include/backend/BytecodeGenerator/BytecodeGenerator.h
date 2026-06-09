@@ -52,7 +52,7 @@ private:
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expression* originalExpression);
-    void compileAssignmentExpression(AssignmentExpression* originalExpression);
+    void compileAssignmentExpression(const AssignmentExpression* originalExpression);
     void compileLogicalExpression(const LogicalExpression* originalExpression);
     void compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression);
     void compileUpdateExpression(const UpdateExpression* originalExpression) const;

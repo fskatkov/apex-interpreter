@@ -314,13 +314,13 @@ void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
 void BytecodeGenerator::compileExpression(Expression *originalExpression) {
     if (auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression)) {
         compileVariableExpression(variableExpression);
-    } else if (auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
+    } else if (const auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
         compileAssignmentExpression(assignmentExpression);
-    } else if (auto *logicalExpression = dynamic_cast<LogicalExpression *>(originalExpression)) {
+    } else if (const auto *logicalExpression = dynamic_cast<LogicalExpression *>(originalExpression)) {
         compileLogicalExpression(logicalExpression);
-    }  else if (auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(originalExpression)) {
+    }  else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(originalExpression)) {
         compileCompoundAssignmentExpression(compoundAssignmentExpression);
-    }else if (auto *updateExpression = dynamic_cast<UpdateExpression *>(originalExpression)) {
+    }else if (const auto *updateExpression = dynamic_cast<UpdateExpression *>(originalExpression)) {
         compileUpdateExpression(updateExpression);
     } else if (const auto *groupingExpression = dynamic_cast<GroupingExpression *>(originalExpression)) {
         compileGroupingExpression(groupingExpression);
@@ -337,7 +337,7 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
     }
 }
 
-void BytecodeGenerator::compileAssignmentExpression(AssignmentExpression *originalExpression) {
+void BytecodeGenerator::compileAssignmentExpression(const AssignmentExpression *originalExpression) {
     if (auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->lhs.get())) {
         compileExpression(originalExpression->rhs.get());
 
