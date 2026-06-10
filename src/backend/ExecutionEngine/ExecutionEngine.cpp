@@ -62,6 +62,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL)] = &ExecutionEngine::executeSetLocalVariable;
     table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY)] = &ExecutionEngine::executeBuildArray;
     table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET)] = &ExecutionEngine::executeBuildSet;
+    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY)] = &ExecutionEngine::executeBuildDictionary;
     table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET)] = &ExecutionEngine::executeGetIndex;
     table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET)] = &ExecutionEngine::executeSetIndex;
 
@@ -512,6 +513,23 @@ inline ExecutionResult ExecutionEngine::executeBuildSet() {
     }
 
     push(std::make_shared<Set>(std::move(set)));
+    return ExecutionResult::OK;
+}
+
+inline ExecutionResult ExecutionEngine::executeBuildDictionary() {
+    const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
+
+    Dictionary dict;
+    dict.reserve(count);
+
+    for (int i = 0; i < count; ++i) {
+        const auto rhs = pop();
+        const auto lhs = pop();
+
+        dict[rhs.get<std::string>()] = lhs;
+    }
+
+    push(std::make_shared<Dictionary>(std::move(dict)));
     return ExecutionResult::OK;
 }
 

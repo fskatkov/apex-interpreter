@@ -66,6 +66,7 @@ private:
     inline ExecutionResult executeSetLocalVariable();
     inline ExecutionResult executeBuildArray();
     inline ExecutionResult executeBuildSet();
+    inline ExecutionResult executeBuildDictionary();
     inline ExecutionResult executeGetIndex();
     inline ExecutionResult executeSetIndex();
 

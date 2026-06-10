@@ -25,22 +25,25 @@ struct ValueHasher {
     std::size_t operator()(const Value& v) const noexcept;
 };
 
-using Array = std::vector<Value>;
-using Set = std::unordered_set<Value, ValueHasher>;
+using Array      = std::vector<Value>;
+using Set        = std::unordered_set<Value, ValueHasher>;
+using Dictionary = std::unordered_map<Value, Value, ValueHasher>;
 
 struct Value {
-    using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>, std::shared_ptr<Set>>;
+    using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>, std::shared_ptr<Set>,
+                              std::shared_ptr<Dictionary>>;
     Type as;
 
-    explicit Value()                  : as(NIL{  }) {  }
-    Value(double val)                 : as(val) {  }
-    Value(bool val)                   : as(val) {  }
-    Value(char val)                   : as(val) {  }
-    Value(const char* val)            : as(std::string(val)) {  }
-    Value(std::string val)            : as(std::move(val)) {  }
-    Value(NIL val)                    : as(val) {  }
-    Value(std::shared_ptr<Array> val) : as(std::move(val)) {  }
-    Value(std::shared_ptr<Set> val)   : as(std::move(val)) {  }
+    explicit Value()                         : as(NIL{  }) {  }
+    Value(double val)                        : as(val) {  }
+    Value(bool val)                          : as(val) {  }
+    Value(char val)                          : as(val) {  }
+    Value(const char* val)                   : as(std::string(val)) {  }
+    Value(std::string val)                   : as(std::move(val)) {  }
+    Value(NIL val)                           : as(val) {  }
+    Value(std::shared_ptr<Array> val)        : as(std::move(val)) {  }
+    Value(std::shared_ptr<Set> val)          : as(std::move(val)) {  }
+    Value(std::shared_ptr<Dictionary> val)   : as(std::move(val)) {  }
 
     template<typename T>
     [[nodiscard]] bool is() const {
@@ -75,7 +78,7 @@ struct Value {
                 return std::string(1, val);
             },
             [](const std::string &val) {
-                return "\"" + val + "\"";
+                return val;
             },
             [](NIL) {
                 return std::string("null");
@@ -112,6 +115,26 @@ struct Value {
                     }
 
                     result += elem.str();
+                    isFirst = false;
+                }
+
+                result += "}";
+                return result;
+            },
+            [](const std::shared_ptr<Dictionary> &val) -> std::string {
+                if (!val) {
+                    return "{}";
+                }
+
+                std::string result = "{";
+
+                bool isFirst = true;
+                for (const auto&[first, second] : *val) {
+                    if (!isFirst) {
+                        result += ", ";
+                    }
+
+                    result += first.str() + ": " + second.str();
                     isFirst = false;
                 }
 

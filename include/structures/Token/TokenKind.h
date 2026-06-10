@@ -61,6 +61,8 @@ enum class TokenKind {
     NIL,
     CHARACTER,
 
+    DICTIONARY,
+
     IF,
     ELSE,
     FOR,

@@ -26,6 +26,7 @@ private:
     std::unique_ptr<Statement> parseConditionalStatement();
     std::unique_ptr<Statement> parseBlockStatement();
     std::unique_ptr<Statement> parsePrintStatement();
+    std::unique_ptr<Statement> parseDictionaryStatement();
     std::unique_ptr<Statement> parseExpressionStatement();
     std::unique_ptr<Statement> parseVariableDeclarationStatement(bool isConst);
 

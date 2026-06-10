@@ -48,6 +48,7 @@ private:
     void compileBlockStatement(const BlockStatement* statement);
     void compileVariableStatement(VariableStatement* statement);
     void compileExpressionStatement(const ExpressionStatement* statement);
+    void compileDictionaryStatement(const DictionaryStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expression* originalExpression);
