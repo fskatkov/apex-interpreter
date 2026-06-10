@@ -523,7 +523,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<LiteralExpression>(previous().literal);
     }
 
-    if (match({TokenKind::LEFT_BRACKET})) {
+    if (match({ TokenKind::LEFT_BRACKET })) {
         std::vector<std::unique_ptr<Expression> > elements;
 
         if (!match({TokenKind::RIGHT_BRACKET})) {
@@ -536,6 +536,20 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<ArrayLiteralExpression>(std::move(elements));
     }
 
+    if (match({ TokenKind::ARRAY })) {
+        consume(TokenKind::LEFT_PAREN, "expected `(` in `array` declaration");
+        std::vector<std::unique_ptr<Expression> > elements;
+
+        if (!match({TokenKind::RIGHT_PAREN})) {
+            do {
+                elements.push_back(parseExpression());
+            } while (match({TokenKind::COMMA}));
+        }
+
+        consume(TokenKind::RIGHT_PAREN, "expected `)` in container literal expression");
+        return std::make_unique<ArrayLiteralExpression>(std::move(elements));
+    }
+
     if (match({ TokenKind::LEFT_BRACE })) {
         std::unordered_set<std::unique_ptr<Expression>> elements;
 
@@ -544,6 +558,18 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         } while (match({ TokenKind::COMMA }));
 
         consume(TokenKind::RIGHT_BRACE, "expected `}` in container literal expression");
+        return std::make_unique<SetLiteralExpression>(std::move(elements));
+    }
+
+    if (match({ TokenKind::SET })) {
+        consume(TokenKind::LEFT_PAREN, "expected `(` in `set` declaration");
+        std::unordered_set<std::unique_ptr<Expression>> elements;
+
+        do {
+            elements.insert(parseExpression());
+        } while (match({ TokenKind::COMMA }));
+
+        consume(TokenKind::RIGHT_PAREN, "expected `)` in container literal expression");
         return std::make_unique<SetLiteralExpression>(std::move(elements));
     }
 

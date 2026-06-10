@@ -328,7 +328,20 @@ void Lexer::addIdentifierToken() {
 TokenKind Lexer::checkIdentifierType() const {
     switch (source[startPosition]) {
         case 'a': {
-            return check(1, 2, "nd", TokenKind::AND);
+            if (currentPosition - startPosition > 1) {
+                switch (source[startPosition + 1]) {
+                    case 'n': {
+                        return check(2, 1, "d", TokenKind::AND);
+                    }
+                    case 'r': {
+                        return check(2, 3, "ray", TokenKind::ARRAY);
+                    }
+                    default:
+                        return TokenKind::IDENTIFIER;
+                }
+            }
+
+            return TokenKind::IDENTIFIER;
         }
         case 'c': {
             if (currentPosition - startPosition > 1) {
@@ -426,6 +439,9 @@ TokenKind Lexer::checkIdentifierType() const {
                     }
                     case 't': {
                         return check(2, 4, "ruct", TokenKind::STRUCTURE);
+                    }
+                    case 'e': {
+                        return check(2, 1, "t", TokenKind::SET);
                     }
                     default: {
                         return TokenKind::IDENTIFIER;
