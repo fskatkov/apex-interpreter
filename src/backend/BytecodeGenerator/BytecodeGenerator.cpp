@@ -627,12 +627,9 @@ void BytecodeGenerator::compileSetLiteralExpression(const SetLiteralExpression* 
 }
 
 void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiteralExpression* statement) {
-    for (const auto& pair : statement->pairs) {
-        compileExpression(pair.second.get());
-
-        if (const auto *literalExpression = dynamic_cast<LiteralExpression *>(pair.first.get())) {
-            compileLiteralExpression(literalExpression);
-        }
+    for (const auto&[first, second] : statement->pairs) {
+        compileExpression(first.get());
+        compileExpression(second.get());
     }
 
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY), 0);

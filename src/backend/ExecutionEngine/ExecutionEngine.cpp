@@ -523,10 +523,15 @@ inline ExecutionResult ExecutionEngine::executeBuildDictionary() {
     dict.reserve(count);
 
     for (int i = 0; i < count; ++i) {
-        const auto rhs = pop();
-        const auto lhs = pop();
+        const auto val = pop();
+        const auto key = pop();
 
-        dict[rhs.get<std::string>()] = lhs;
+        if (!key.is<std::string>()) {
+            reportRuntimeError("unsupported key `" + key.get<std::string>() + "`");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        dict[key.get<std::string>()] = val;
     }
 
     push(std::make_shared<Dictionary>(std::move(dict)));

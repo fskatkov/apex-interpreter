@@ -524,6 +524,10 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     }
 
     if (match({ TokenKind::LEFT_BRACKET })) {
+        if (match({ TokenKind::RIGHT_BRACKET })) {
+            return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expression>>{});
+        }
+
         std::vector<std::unique_ptr<Expression> > elements;
 
         if (!match({TokenKind::RIGHT_BRACKET})) {
@@ -536,8 +540,56 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<ArrayLiteralExpression>(std::move(elements));
     }
 
+    if (match({ TokenKind::LEFT_BRACE })) {
+        if (match({ TokenKind::RIGHT_BRACE })) {
+            return std::make_unique<DictionaryLiteralExpression>(
+                std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>>{}
+            );
+        }
+
+        auto firstElement = parseExpression();
+        if (match({ TokenKind::COLON })) {
+            std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs;
+
+            auto firstValue = parseExpression();
+            pairs.emplace_back(std::move(firstElement), std::move(firstValue));
+
+            while (match({ TokenKind::COMMA })) {
+                if (check(TokenKind::RIGHT_BRACE)) {
+                    break;
+                }
+
+                auto key = parseExpression();
+                consume(TokenKind::COLON, "missing `:` after dictionary key");
+                auto value = parseExpression();
+                pairs.emplace_back(std::move(key), std::move(value));
+            }
+
+            consume(TokenKind::RIGHT_BRACE, "expected `}` at end of container literal expression");
+            return std::make_unique<DictionaryLiteralExpression>(std::move(pairs));
+        }
+
+        std::unordered_set<std::unique_ptr<Expression>> elements;
+        elements.insert(std::move(firstElement));
+
+        while (match({ TokenKind::COMMA })) {
+            if (check(TokenKind::RIGHT_BRACE)) {
+                break;
+            }
+
+            elements.insert(parseExpression());
+        }
+
+        consume(TokenKind::RIGHT_BRACE, "expected `}` in container literal expression");
+        return std::make_unique<SetLiteralExpression>(std::move(elements));
+    }
+
     if (match({ TokenKind::ARRAY })) {
         consume(TokenKind::LEFT_PAREN, "expected `(` in `array` declaration");
+        if (match({ TokenKind::RIGHT_PAREN })) {
+            return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expression>>{});
+        }
+
         std::vector<std::unique_ptr<Expression> > elements;
 
         if (!match({TokenKind::RIGHT_PAREN})) {
@@ -550,19 +602,12 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<ArrayLiteralExpression>(std::move(elements));
     }
 
-    if (match({ TokenKind::LEFT_BRACE })) {
-        std::unordered_set<std::unique_ptr<Expression>> elements;
-
-        do {
-            elements.insert(parseExpression());
-        } while (match({ TokenKind::COMMA }));
-
-        consume(TokenKind::RIGHT_BRACE, "expected `}` in container literal expression");
-        return std::make_unique<SetLiteralExpression>(std::move(elements));
-    }
-
     if (match({ TokenKind::SET })) {
         consume(TokenKind::LEFT_PAREN, "expected `(` in `set` declaration");
+        if (match({ TokenKind::RIGHT_PAREN })) {
+            return std::make_unique<SetLiteralExpression>(std::unordered_set<std::unique_ptr<Expression>>{});
+        }
+
         std::unordered_set<std::unique_ptr<Expression>> elements;
 
         do {
@@ -575,22 +620,19 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
 
     if (match({ TokenKind::DICTIONARY })) {
         consume(TokenKind::LEFT_PAREN, "expected `(` before container literal body");
+        if (match({ TokenKind::RIGHT_PAREN })) {
+            return std::make_unique<DictionaryLiteralExpression>(
+                std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>>{}
+            );
+        }
 
         std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs;
 
         do {
             auto index = parsePrimaryExpression();
-            if (const auto *literalExpression = dynamic_cast<LiteralExpression *>(index.get()); literalExpression->value.is<std::string>()) {
-                consume(TokenKind::COLON, "missing `:` after dictionary key");
-                auto expression = parseExpression();
-                pairs.emplace_back(std::move(index), std::move(expression));
-            } else {
-                diagnosticEngine.report(
-                    Diagnostic::DiagnosticKind::Error,
-                    SourceLocation{},
-                    "dictionary indices can only be string literals"
-                );
-            }
+            consume(TokenKind::COLON, "missing `:` after dictionary key");
+            auto expression = parseExpression();
+            pairs.emplace_back(std::move(index), std::move(expression));
         } while (match({TokenKind::COMMA}));
 
         consume(TokenKind::RIGHT_PAREN, "expected `)` at end of container literal expression");
