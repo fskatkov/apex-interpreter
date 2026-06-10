@@ -465,7 +465,7 @@ TokenKind Lexer::checkIdentifierType() const {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
                     case 'i': {
-                        return check(2, 8, "ctionary", TokenKind::DICTIONARY);
+                        return check(2, 2, "ct", TokenKind::DICTIONARY);
                     }
                     case 'e': {
                         return check(2, 5, "fault", TokenKind::DEFAULT);

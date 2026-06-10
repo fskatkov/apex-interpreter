@@ -94,6 +94,15 @@ struct SetLiteralExpression : Expression {
         : elements(std::move(elements)) {  }
 };
 
+
+struct DictionaryLiteralExpression : Expression {
+    std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs;
+
+    explicit DictionaryLiteralExpression(std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs)
+        : pairs(std::move(pairs)) {  }
+};
+
+
 struct IndexExpression : Expression {
     std::unique_ptr<Expression> target;
     Token bracket;

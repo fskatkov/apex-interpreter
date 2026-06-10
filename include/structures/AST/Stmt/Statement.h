@@ -110,13 +110,6 @@ struct PrintStatement : Statement {
     }
 };
 
-struct DictionaryStatement : Statement {
-    std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs;
-
-    explicit DictionaryStatement(std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs)
-        : pairs(std::move(pairs)) {  }
-};
-
 struct ExpressionStatement : Statement {
     std::unique_ptr<Expression> expression;
 

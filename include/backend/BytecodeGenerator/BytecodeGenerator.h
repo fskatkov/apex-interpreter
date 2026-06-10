@@ -48,7 +48,6 @@ private:
     void compileBlockStatement(const BlockStatement* statement);
     void compileVariableStatement(VariableStatement* statement);
     void compileExpressionStatement(const ExpressionStatement* statement);
-    void compileDictionaryStatement(const DictionaryStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expression* originalExpression);
@@ -63,6 +62,7 @@ private:
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
     void compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression);
     void compileSetLiteralExpression(const SetLiteralExpression* originalExpression);
+    void compileDictionaryLiteralExpression(const DictionaryLiteralExpression* statement);
     void compileIndexExpression(const IndexExpression* originalExpression);
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;
