@@ -263,9 +263,8 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
 
     const std::initializer_list<TokenKind> compoundOperators{
         TokenKind::PLUS_EQUALS, TokenKind::MINUS_EQUALS, TokenKind::STAR_EQUALS, TokenKind::SLASH_EQUALS,
-        TokenKind::MODULO_EQUALS, TokenKind::BITWISE_AND_EQUALS, TokenKind::BITWISE_OR_EQUALS,
-        TokenKind::BITWISE_XOR_EQUALS,
-        TokenKind::BITWISE_LEFT_SHIFT_EQUALS, TokenKind::BITWISE_RIGHT_SHIFT_EQUALS
+        TokenKind::MODULO_EQUALS, TokenKind::AMPERSAND_EQUALS, TokenKind::PIPE_EQUALS,
+        TokenKind::CARET_EQUALS, TokenKind::LEFT_ANGLE_EQUALS, TokenKind::RIGHT_ANGLE_EQUALS
     };
 
     if (match(compoundOperators)) {
@@ -325,7 +324,7 @@ std::unique_ptr<Expression> Parser::parseLogicalAndExpression() {
 std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
     auto expression = parseBitwiseXorExpression();
 
-    while (match({TokenKind::BITWISE_OR})) {
+    while (match({TokenKind::PIPE})) {
         const auto operatorSymbol = previous();
         auto rhs = parseBitwiseXorExpression();
         expression = std::make_unique<BinaryExpression>(
@@ -341,7 +340,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
 std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
     auto expression = parseBitwiseAndExpression();
 
-    while (match({TokenKind::BITWISE_XOR})) {
+    while (match({TokenKind::CARET})) {
         const auto operatorSymbol = previous();
         auto rhs = parseBitwiseAndExpression();
         expression = std::make_unique<BinaryExpression>(
@@ -357,7 +356,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
 std::unique_ptr<Expression> Parser::parseBitwiseAndExpression() {
     auto expression = parseEqualityExpression();
 
-    while (match({TokenKind::BITWISE_AND})) {
+    while (match({TokenKind::AMPERSAND})) {
         const auto operatorSymbol = previous();
         auto rhs = parseEqualityExpression();
         expression = std::make_unique<BinaryExpression>(
@@ -405,7 +404,7 @@ std::unique_ptr<Expression> Parser::parseComparisonExpression() {
 std::unique_ptr<Expression> Parser::parseShiftExpression() {
     auto expression = parseTermExpression();
 
-    while (match({TokenKind::BITWISE_LEFT_SHIFT, TokenKind::BITWISE_RIGHT_SHIFT})) {
+    while (match({TokenKind::LEFT_ANGLE, TokenKind::RIGHT_ANGLE})) {
         const auto operatorSymbol = previous();
         auto rhs = parseTermExpression();
         expression = std::make_unique<BinaryExpression>(
@@ -467,7 +466,7 @@ std::unique_ptr<Expression> Parser::parseExponentialExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseUnaryExpression() {
-    while (match({TokenKind::BANG, TokenKind::MINUS, TokenKind::BITWISE_NOT})) {
+    while (match({TokenKind::BANG, TokenKind::MINUS, TokenKind::TILDE})) {
         const auto operatorSymbol = previous();
         auto rhs = parseUnaryExpression();
         return std::make_unique<UnaryExpression>(

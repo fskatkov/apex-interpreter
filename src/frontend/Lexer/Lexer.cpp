@@ -99,19 +99,19 @@ void Lexer::scanToken() {
             break;
         }
         case '&': {
-            add(match('=') ? TokenKind::BITWISE_AND_EQUALS : TokenKind::BITWISE_AND);
+            add(match('=') ? TokenKind::AMPERSAND_EQUALS : TokenKind::AMPERSAND);
             break;
         }
         case '|': {
-            add(match('=') ? TokenKind::BITWISE_OR_EQUALS : TokenKind::BITWISE_OR);
+            add(match('=') ? TokenKind::PIPE_EQUALS : TokenKind::PIPE);
             break;
         }
         case '^': {
-            add(match('=') ? TokenKind::BITWISE_XOR_EQUALS : TokenKind::BITWISE_XOR);
+            add(match('=') ? TokenKind::CARET_EQUALS : TokenKind::CARET);
             break;
         }
         case '~': {
-            add(match('=') ? TokenKind::BITWISE_NOT_EQUALS : TokenKind::BITWISE_NOT);
+            add(match('=') ? TokenKind::TILDE_EQUALS : TokenKind::TILDE);
             break;
         }
         case '#': {
@@ -149,9 +149,9 @@ void Lexer::scanToken() {
                 add(TokenKind::LESS_EQUALS);
             } else if (match('<')) {
                 if (match('=')) {
-                    add(TokenKind::BITWISE_LEFT_SHIFT_EQUALS);
+                    add(TokenKind::LEFT_ANGLE_EQUALS);
                 } else {
-                    add(TokenKind::BITWISE_LEFT_SHIFT);
+                    add(TokenKind::LEFT_ANGLE);
                 }
             } else {
                 add(TokenKind::LESS);
@@ -163,9 +163,9 @@ void Lexer::scanToken() {
                 add(TokenKind::GREATER_EQUALS);
             } else if (match('>')) {
                 if (match('=')) {
-                    add(TokenKind::BITWISE_RIGHT_SHIFT_EQUALS);
+                    add(TokenKind::RIGHT_ANGLE_EQUALS);
                 } else {
-                    add(TokenKind::BITWISE_RIGHT_SHIFT);
+                    add(TokenKind::RIGHT_ANGLE);
                 }
             } else {
                 add(TokenKind::GREATER);

@@ -111,12 +111,22 @@ inline ExecutionResult ExecutionEngine::executeNullLiteral() {
 }
 
 inline ExecutionResult ExecutionEngine::executeAddition() {
-    if (peek(0).is<std::string>() && peek(1).is<std::string>()) {
+    if (peek(0).is<double>() && peek(1).is<double>()) {
+        executeBinaryOperation<double>(std::plus<double>{});
+    } else if (peek(0).is<std::string>() && peek(1).is<std::string>()) {
         const auto rhs = pop().get<std::string>();
         const auto lhs = pop().get<std::string>();
         push(lhs + rhs);
-    } else if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>(std::plus<double>{});
+    } else if (peek(0).is<std::shared_ptr<Array>>() && peek(1).is<std::shared_ptr<Array>>()) {
+        const auto rhs = pop().get<std::shared_ptr<Array>>();
+        const auto lhs = pop().get<std::shared_ptr<Array>>();
+
+        Array newArray = *lhs;
+        for (const auto& elem : *rhs) {
+            newArray.push_back(elem);
+        }
+
+        push(std::make_shared<Array>(newArray));
     } else {
         const std::string rhsType = pop().str();
         const std::string lhsType = pop().str();
@@ -132,6 +142,19 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
 inline ExecutionResult ExecutionEngine::executeSubtraction() {
     if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::minus<double>{});
+    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
+        const auto rhs = pop().get<std::shared_ptr<Set>>();
+        const auto lhs = pop().get<std::shared_ptr<Set>>();
+
+        Set difference;
+
+        for (const auto& elem : *lhs) {
+            if (!rhs->contains(elem)) {
+                difference.insert(elem);
+            }
+        }
+
+        push(std::make_shared<Set>(difference));
     } else {
         reportRuntimeError("unsupported operand types for `-`: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;
@@ -143,6 +166,26 @@ inline ExecutionResult ExecutionEngine::executeSubtraction() {
 inline ExecutionResult ExecutionEngine::executeMultiplication() {
     if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::multiplies<double>{});
+    } else if (peek(0).is<double>() && peek(1).is<std::shared_ptr<Array>>()) {
+        const auto rhs = pop().get<double>();
+        const auto lhs = pop().get<std::shared_ptr<Array>>();
+
+        Array newArray = *lhs;
+        for (auto i = 1; i < rhs; ++i) {
+            newArray.insert(newArray.end(), lhs->begin(), lhs->end());
+        }
+
+        push(std::make_shared<Array>(newArray));
+    } else if (peek(0).is<std::shared_ptr<Array>>() && peek(1).is<double>()) {
+        const auto rhs = pop().get<std::shared_ptr<Array>>();
+        const auto lhs = pop().get<double>();
+
+        Array newArray = *rhs;
+        for (auto i = 1; i < lhs; ++i) {
+            newArray.insert(newArray.end(), rhs->begin(), rhs->end());
+        }
+
+        push(std::make_shared<Array>(newArray));
     } else {
         reportRuntimeError("unsupported operand types for `*`: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;
@@ -215,6 +258,21 @@ inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::int64_t>{});
         });
+    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
+        const auto rhs = pop().get<std::shared_ptr<Set>>();
+        const auto lhs = pop().get<std::shared_ptr<Set>>();
+
+        const auto& smaller = (lhs->size() < rhs->size()) ? lhs : rhs;
+        const auto& larger = (lhs->size() < rhs->size()) ? rhs : lhs;
+
+        Set intersection;
+        for (const auto& elem : *smaller) {
+            if (larger->contains(elem)) {
+                intersection.insert(elem);
+            }
+        }
+
+        push(std::make_shared<Set>(intersection));
     } else {
         reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;
@@ -228,6 +286,13 @@ inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::int64_t>{});
         });
+    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
+        const auto rhs = pop().get<std::shared_ptr<Set>>();
+        const auto lhs = pop().get<std::shared_ptr<Set>>();
+
+        Set setUnion = *lhs;
+        setUnion.insert(rhs->begin(), rhs->end());
+        push(std::make_shared<Set>(setUnion));
     } else {
         reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;
@@ -241,6 +306,25 @@ inline ExecutionResult ExecutionEngine::executeBitwiseXor() {
         executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
             return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::int64_t>{});
         });
+    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
+        const auto rhs = pop().get<std::shared_ptr<Set>>();
+        const auto lhs = pop().get<std::shared_ptr<Set>>();
+
+        Set symmetricDifference;
+
+        for (const auto& elem : *lhs) {
+            if (!rhs->contains(elem)) {
+                symmetricDifference.insert(elem);
+            }
+        }
+
+        for (const auto& elem : *rhs) {
+            if (!lhs->contains(elem)) {
+                symmetricDifference.insert(elem);
+            }
+        }
+
+        push(std::make_shared<Set>(symmetricDifference));
     } else {
         reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;

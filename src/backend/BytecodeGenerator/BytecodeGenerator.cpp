@@ -426,23 +426,23 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
             break;
         }
-        case TokenKind::BITWISE_AND_EQUALS: {
+        case TokenKind::AMPERSAND_EQUALS: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
             break;
         }
-        case TokenKind::BITWISE_OR_EQUALS: {
+        case TokenKind::PIPE_EQUALS: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
             break;
         }
-        case TokenKind::BITWISE_XOR_EQUALS: {
+        case TokenKind::CARET_EQUALS: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
             break;
         }
-        case TokenKind::BITWISE_LEFT_SHIFT_EQUALS: {
+        case TokenKind::LEFT_ANGLE_EQUALS: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
             break;
         }
-        case TokenKind::BITWISE_RIGHT_SHIFT_EQUALS: {
+        case TokenKind::RIGHT_ANGLE_EQUALS: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
             break;
         }
@@ -538,23 +538,23 @@ void BytecodeGenerator::compileBinaryExpression(const BinaryExpression *original
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_POW), line);
             break;
         }
-        case TokenKind::BITWISE_AND: {
+        case TokenKind::AMPERSAND: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
             break;
         }
-        case TokenKind::BITWISE_OR: {
+        case TokenKind::PIPE: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
             break;
         }
-        case TokenKind::BITWISE_XOR: {
+        case TokenKind::CARET: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
             break;
         }
-        case TokenKind::BITWISE_LEFT_SHIFT: {
+        case TokenKind::LEFT_ANGLE: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
             break;
         }
-        case TokenKind::BITWISE_RIGHT_SHIFT: {
+        case TokenKind::RIGHT_ANGLE: {
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
             break;
         }
@@ -591,7 +591,7 @@ void BytecodeGenerator::compileUnaryExpression(const UnaryExpression *originalEx
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_NOT), line);
     } else if (originalExpression->unaryOperator.kind == TokenKind::MINUS) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_NEGATE), line);
-    } else if (originalExpression->unaryOperator.kind == TokenKind::BITWISE_NOT) {
+    } else if (originalExpression->unaryOperator.kind == TokenKind::TILDE) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
     }
 }
