@@ -391,74 +391,126 @@ void BytecodeGenerator::compileLogicalExpression(const LogicalExpression *origin
 }
 
 void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssignmentExpression *originalExpression) {
-    auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->lhs.get());
-    if (!variableExpression) {
+    const auto line = originalExpression->operatorSymbol.sourceLocation.line;
+
+    if (auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression->lhs.get())) {
+        compileVariableExpression(variableExpression);
+        compileExpression(originalExpression->rhs.get());
+
+        switch (originalExpression->operatorSymbol.kind) {
+            case TokenKind::PLUS_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
+                break;
+            }
+            case TokenKind::MINUS_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
+                break;
+            }
+            case TokenKind::STAR_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
+                break;
+            }
+            case TokenKind::SLASH_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
+                break;
+            }
+            case TokenKind::MODULO_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
+                break;
+            }
+            case TokenKind::AMPERSAND_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+                break;
+            }
+            case TokenKind::PIPE_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+                break;
+            }
+            case TokenKind::CARET_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+                break;
+            }
+            case TokenKind::LEFT_ANGLE_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+                break;
+            }
+            case TokenKind::RIGHT_ANGLE_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+                break;
+            }
+            default:
+                break;
+        }
+
+        if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
+            emitByte(static_cast<std::uint8_t>(arg), line);
+        } else {
+            buffer->values.emplace_back(variableExpression->name.lexeme);
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), line);
+            emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
+        }
+    } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression->lhs.get())) {
+        compileExpression(indexExpression->target.get());
+        compileExpression(indexExpression->index.get());
+
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2), line);
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET), line);
+
+        compileExpression(originalExpression->rhs.get());
+
+        switch (originalExpression->operatorSymbol.kind) {
+            case TokenKind::PLUS_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
+                break;
+            }
+            case TokenKind::MINUS_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
+                break;
+            }
+            case TokenKind::STAR_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
+                break;
+            }
+            case TokenKind::SLASH_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
+                break;
+            }
+            case TokenKind::MODULO_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
+                break;
+            }
+            case TokenKind::AMPERSAND_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+                break;
+            }
+            case TokenKind::PIPE_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+                break;
+            }
+            case TokenKind::CARET_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+                break;
+            }
+            case TokenKind::LEFT_ANGLE_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+                break;
+            }
+            case TokenKind::RIGHT_ANGLE_EQUALS: {
+                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+                break;
+            }
+            default:
+                break;
+        }
+
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET), line);
+    } else {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
             originalExpression->operatorSymbol.sourceLocation,
             "invalid target for compound assignment"
         );
-
-        return;
-    }
-
-    const auto line = originalExpression->operatorSymbol.sourceLocation.line;
-
-    compileVariableExpression(variableExpression);
-    compileExpression(originalExpression->rhs.get());
-
-    switch (originalExpression->operatorSymbol.kind) {
-        case TokenKind::PLUS_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
-            break;
-        }
-        case TokenKind::MINUS_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
-            break;
-        }
-        case TokenKind::STAR_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
-            break;
-        }
-        case TokenKind::SLASH_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
-            break;
-        }
-        case TokenKind::MODULO_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
-            break;
-        }
-        case TokenKind::AMPERSAND_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
-            break;
-        }
-        case TokenKind::PIPE_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
-            break;
-        }
-        case TokenKind::CARET_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
-            break;
-        }
-        case TokenKind::LEFT_ANGLE_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
-            break;
-        }
-        case TokenKind::RIGHT_ANGLE_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
-            break;
-        }
-        default:
-            break;
-    }
-
-    if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
-        emitByte(static_cast<std::uint8_t>(arg), line);
-    } else {
-        buffer->values.emplace_back(variableExpression->name.lexeme);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), line);
-        emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
     }
 }
 

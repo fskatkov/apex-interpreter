@@ -75,6 +75,7 @@ private:
     inline ExecutionResult executePopOperation();
     inline ExecutionResult executeLoop();
     inline ExecutionResult executeDuplicate();
+    inline ExecutionResult executeDuplicate2();
 
     inline ExecutionResult executePrint();
     inline ExecutionResult executeReturn();

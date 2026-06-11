@@ -71,6 +71,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_POP)] = &ExecutionEngine::executePopOperation;
     table[static_cast<std::uint8_t>(InstructionType::OP_LOOP)] = &ExecutionEngine::executeLoop;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE)] = &ExecutionEngine::executeDuplicate;
+    table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2)] = &ExecutionEngine::executeDuplicate2;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_PRINT)] = &ExecutionEngine::executePrint;
     table[static_cast<std::uint8_t>(InstructionType::OP_RETURN)] = &ExecutionEngine::executeReturn;
@@ -526,12 +527,17 @@ inline ExecutionResult ExecutionEngine::executeBuildDictionary() {
         const auto val = pop();
         const auto key = pop();
 
-        if (!key.is<std::string>()) {
+        std::string keyStr;
+        if (key.is<std::string>()) {
+            keyStr = key.get<std::string>();
+        } else if (key.is<double>()) {
+            keyStr = stringify(key);
+        } else {
             reportRuntimeError("unsupported key `" + key.get<std::string>() + "`");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        dict[key.get<std::string>()] = val;
+        dict[keyStr] = val;
     }
 
     push(std::make_shared<Dictionary>(std::move(dict)));
@@ -540,55 +546,97 @@ inline ExecutionResult ExecutionEngine::executeBuildDictionary() {
 
 inline ExecutionResult ExecutionEngine::executeGetIndex() {
     const auto secondValue = pop();
-    const auto firstValue = pop();
 
-    if (!firstValue.is<std::shared_ptr<Array>>()) {
-        reportRuntimeError("target is not an array");
+    if (const auto firstValue = pop(); firstValue.is<std::shared_ptr<Array>>()) {
+        if (!secondValue.is<double>()) {
+            reportRuntimeError("array index must be an integer");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        const auto &arrayPtr = firstValue.get<std::shared_ptr<Array>>();
+        const auto idx = static_cast<int>(secondValue.get<double>());
+
+        if (idx < 0 || idx >= arrayPtr->size()) {
+            reportRuntimeError("array index out of bounds");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        push((*arrayPtr)[idx]);
+    } else if (firstValue.is<std::shared_ptr<Dictionary>>()) {
+        std::string key;
+
+        if (secondValue.is<std::string>()) {
+            key = secondValue.get<std::string>();
+        } else if (secondValue.is<double>()) {
+            key = stringify(secondValue.get<double>());
+        } else {
+            reportRuntimeError("dictionary key must be number or string");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        const auto &dictionaryPtr = firstValue.get<std::shared_ptr<Dictionary>>();
+
+        if (!dictionaryPtr->contains(key)) {
+            reportRuntimeError("key `" + key + "` does not exist");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        push((*dictionaryPtr)[key]);
+    } else {
+        reportRuntimeError("an incorrect target");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    if (!secondValue.is<double>()) {
-        reportRuntimeError("array index must be a number");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    const auto &arrayPtr = firstValue.get<std::shared_ptr<Array>>();
-    const auto idx = static_cast<int>(secondValue.get<double>());
-
-    if (idx < 0 || idx >= arrayPtr->size()) {
-        reportRuntimeError("array index out of bounds");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    push((*arrayPtr)[idx]);
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeSetIndex() {
     const auto value = pop();
     const auto secondValue = pop();
-    const auto firstValue = pop();
 
-    if (!firstValue.is<std::shared_ptr<Array>>()) {
-        reportRuntimeError("target is not an array");
+
+    if (const auto firstValue = pop(); firstValue.is<std::shared_ptr<Array>>()) {
+        if (!secondValue.is<double>()) {
+            reportRuntimeError("array index must be a number");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        const auto& arrayPtr = firstValue.get<std::shared_ptr<Array>>();
+        const auto idx = static_cast<int>(secondValue.get<double>());
+
+        if (idx < 0 || idx >= arrayPtr->size()) {
+            reportRuntimeError("array index out of bounds");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        (*arrayPtr)[idx] = value;
+        push(value);
+    } else if (firstValue.is<std::shared_ptr<Dictionary>>()) {
+        std::string key;
+
+        if (secondValue.is<std::string>()) {
+            key = secondValue.get<std::string>();
+        } else if (secondValue.is<double>()) {
+            key = stringify(secondValue.get<double>());
+        } else {
+            reportRuntimeError("dictionary key must be number or string");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        const auto &dictionaryPtr = firstValue.get<std::shared_ptr<Dictionary>>();
+
+        if (!dictionaryPtr->contains(key)) {
+            reportRuntimeError("key `" + key + "` does not exist");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        (*dictionaryPtr)[key] = value;
+        push(value);
+    } else {
+        reportRuntimeError("an incorrect target");
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    if (!secondValue.is<double>()) {
-        reportRuntimeError("array index must be a number");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    const auto& arrayPtr = firstValue.get<std::shared_ptr<Array>>();
-    const auto idx = static_cast<int>(secondValue.get<double>());
-
-    if (idx < 0 || idx >= arrayPtr->size()) {
-        reportRuntimeError("array index out of bounds");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    (*arrayPtr)[idx] = value;
-    push(value);
     return ExecutionResult::OK;
 }
 
@@ -628,6 +676,14 @@ inline ExecutionResult ExecutionEngine::executeLoop() {
 
 inline ExecutionResult ExecutionEngine::executeDuplicate() {
     push(peek(0));
+    return ExecutionResult::OK;
+}
+
+inline ExecutionResult ExecutionEngine::executeDuplicate2() {
+    const auto target = peek(1);
+    const auto index = peek(0);
+    push(target);
+    push(index);
     return ExecutionResult::OK;
 }
 

@@ -27,14 +27,14 @@ enum class InstructionType {
     OP_LESS_EQUALS,
 
     OP_DEFINE_GLOBAL,
+    OP_BUILD_ARRAY,
+    OP_BUILD_SET,
+    OP_BUILD_DICTIONARY,
     OP_DEFINE_CONST,
     OP_GET_GLOBAL,
     OP_SET_GLOBAL,
     OP_GET_LOCAL,
     OP_SET_LOCAL,
-    OP_BUILD_ARRAY,
-    OP_BUILD_SET,
-    OP_BUILD_DICTIONARY,
     OP_INDEX_GET,
     OP_INDEX_SET,
 
@@ -42,6 +42,7 @@ enum class InstructionType {
     OP_JUMP,
     OP_LOOP,
     OP_DUPLICATE,
+    OP_DUPLICATE2,
 
     OP_PRINT,
     OP_POP,
