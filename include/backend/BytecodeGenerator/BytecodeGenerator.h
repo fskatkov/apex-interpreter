@@ -60,6 +60,7 @@ private:
     void compileBinaryExpression(const BinaryExpression* originalExpression);
     void compileUnaryExpression(const UnaryExpression* originalExpression);
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
+    void compileInterpolatedStringLiteralExpression(const InterpolatedStringLiteralExpression* originalExpression);
     void compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression);
     void compileSetLiteralExpression(const SetLiteralExpression* originalExpression);
     void compileDictionaryLiteralExpression(const DictionaryLiteralExpression* statement);

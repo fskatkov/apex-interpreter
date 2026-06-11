@@ -523,6 +523,23 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
         return std::make_unique<LiteralExpression>(previous().literal);
     }
 
+    if (match({ TokenKind::F_STRING_START })) {
+        std::vector<std::unique_ptr<Expression>> elements;
+
+        while (!check(TokenKind::F_STRING_END) && !isReachedEnd()) {
+            if (match({ TokenKind::F_STRING_SLICE })) {
+                elements.push_back(std::make_unique<LiteralExpression>(previous().literal));
+            } else {
+                consume(TokenKind::LEFT_BRACE, "expected `{` before interpolated expression");
+                elements.push_back(parseExpression());
+                consume(TokenKind::RIGHT_BRACE, "expected `}` at end of interpolated expression");
+            }
+        }
+
+        consume(TokenKind::F_STRING_END, "unterminated string");
+        return std::make_unique<InterpolatedStringLiteralExpression>(std::move(elements));
+    }
+
     if (match({ TokenKind::LEFT_BRACKET })) {
         if (match({ TokenKind::RIGHT_BRACKET })) {
             return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expression>>{});

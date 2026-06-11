@@ -27,6 +27,7 @@ enum class InstructionType {
     OP_LESS_EQUALS,
 
     OP_DEFINE_GLOBAL,
+    OP_BUILD_STRING,
     OP_BUILD_ARRAY,
     OP_BUILD_SET,
     OP_BUILD_DICTIONARY,

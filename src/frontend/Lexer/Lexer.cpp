@@ -32,6 +32,11 @@ bool Lexer::encounteredErrors() const {
 }
 
 void Lexer::scanToken() {
+    if (!modes.empty() && modes.back() == LexerStringScanningMode::INTERPOLATED_STRING_TEXT) {
+        scanInterpolatedString();
+        return;
+    }
+
     switch (const auto c = advance(); c) {
         case '(': {
             add(TokenKind::LEFT_PAREN);
@@ -43,10 +48,26 @@ void Lexer::scanToken() {
         }
         case '{': {
             add(TokenKind::LEFT_BRACE);
+
+            if (!modes.empty() && modes.back() == LexerStringScanningMode::INTERPOLATED_STRING_EXPRESSION) {
+                braceDepth++;
+            }
+
             break;
         }
         case '}': {
             add(TokenKind::RIGHT_BRACE);
+
+            if (!modes.empty() && modes.back() == LexerStringScanningMode::INTERPOLATED_STRING_EXPRESSION) {
+                if (braceDepth > 1) {
+                    braceDepth--;
+                } else {
+                    braceDepth = 0;
+                    modes.pop_back();
+                    modes.push_back(LexerStringScanningMode::INTERPOLATED_STRING_TEXT);
+                }
+            }
+
             break;
         }
         case '[': {
@@ -185,6 +206,13 @@ void Lexer::scanToken() {
             addCharacterToken();
             break;
         default: {
+            if (c == 'f' && peek() == '"') {
+                advance();
+                add(TokenKind::F_STRING_START);
+                modes.push_back(LexerStringScanningMode::INTERPOLATED_STRING_TEXT);
+                break;
+            }
+
             if (std::isdigit(static_cast<unsigned char>(c))) {
                 addNumberToken();
             } else if (std::isalpha(static_cast<unsigned char>(c))) {
@@ -268,6 +296,32 @@ void Lexer::addStringToken() {
 
     advance();
     add(TokenKind::STRING, source.substr(startPosition + 1, currentPosition - startPosition - 2));
+}
+
+void Lexer::scanInterpolatedString() {
+    while (peek() != '{' && peek() != '"' && !isReachedEnd()) {
+        advance();
+    }
+
+    if (isReachedEnd()) {
+        reportError("unterminated string");
+        encounteredError = true;
+        return;
+    }
+
+    if (currentPosition > startPosition) {
+        add(TokenKind::F_STRING_SLICE, source.substr(startPosition, currentPosition - startPosition));
+    }
+
+    if (peek() == '{') {
+        modes.pop_back();
+        modes.push_back(LexerStringScanningMode::INTERPOLATED_STRING_EXPRESSION);
+        braceDepth = 0;
+    } else {
+        advance();
+        add(TokenKind::F_STRING_END);
+        modes.pop_back();
+    }
 }
 
 void Lexer::addNumberToken() {

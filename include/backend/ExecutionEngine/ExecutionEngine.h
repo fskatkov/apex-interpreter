@@ -36,6 +36,7 @@ private:
     inline ExecutionResult executeTrueLiteral();
     inline ExecutionResult executeFalseLiteral();
     inline ExecutionResult executeNullLiteral();
+    inline ExecutionResult executeInterpolatedStringLiteral();
 
     inline ExecutionResult executeAddition();
     inline ExecutionResult executeSubtraction();

@@ -28,6 +28,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_TRUE)] = &ExecutionEngine::executeTrueLiteral;
     table[static_cast<std::uint8_t>(InstructionType::OP_FALSE)] = &ExecutionEngine::executeFalseLiteral;
     table[static_cast<std::uint8_t>(InstructionType::OP_NULL)] = &ExecutionEngine::executeNullLiteral;
+    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_STRING)] = &ExecutionEngine::executeInterpolatedStringLiteral;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_ADD)] = &ExecutionEngine::executeAddition;
     table[static_cast<std::uint8_t>(InstructionType::OP_SUB)] = &ExecutionEngine::executeSubtraction;
@@ -112,6 +113,23 @@ inline ExecutionResult ExecutionEngine::executeFalseLiteral() {
 
 inline ExecutionResult ExecutionEngine::executeNullLiteral() {
     push(NIL{});
+    return ExecutionResult::OK;
+}
+
+inline ExecutionResult ExecutionEngine::executeInterpolatedStringLiteral() {
+    const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
+
+    std::string interpolatedString;
+
+    for (auto i = count - 1; i >= 0; --i) {
+        interpolatedString += stringify(peek(i), false);
+    }
+
+    for (int i = 0; i < count; ++i) {
+        pop();
+    }
+
+    push(interpolatedString);
     return ExecutionResult::OK;
 }
 
@@ -565,6 +583,21 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
         }
 
         push((*arrayPtr)[idx]);
+    } else if (firstValue.is<std::string>()) {
+        if (!secondValue.is<double>()) {
+            reportRuntimeError("string index must be an integer");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        const auto &str = firstValue.get<std::string>();
+        const auto idx = static_cast<int>(secondValue.get<double>());
+
+        if (idx < 0 || idx >= str.size()) {
+            reportRuntimeError("string index out of bounds");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        push(str[idx]);
     } else if (firstValue.is<std::shared_ptr<Dictionary>>()) {
         std::string key;
 

@@ -80,6 +80,13 @@ struct LiteralExpression : Expression {
         : value(std::move(value)) {  }
 };
 
+struct InterpolatedStringLiteralExpression : Expression {
+    std::vector<std::unique_ptr<Expression>> elements;
+
+    explicit InterpolatedStringLiteralExpression(std::vector<std::unique_ptr<Expression>> elements)
+        : elements(std::move(elements)) {  }
+};
+
 struct ArrayLiteralExpression : Expression {
     std::vector<std::unique_ptr<Expression>> elements;
 

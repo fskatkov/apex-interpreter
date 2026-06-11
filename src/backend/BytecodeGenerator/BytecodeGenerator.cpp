@@ -335,6 +335,8 @@ void BytecodeGenerator::compileExpression(Expression *originalExpression) {
         compileUnaryExpression(unaryExpression);
     } else if (const auto *literalExpression = dynamic_cast<LiteralExpression *>(originalExpression)) {
         compileLiteralExpression(literalExpression);
+    } else if (const auto *interpolatedStringLiteralExpression = dynamic_cast<InterpolatedStringLiteralExpression *>(originalExpression)) {
+        compileInterpolatedStringLiteralExpression(interpolatedStringLiteralExpression);
     } else if (const auto *arrayLiteralExpression = dynamic_cast<ArrayLiteralExpression *>(originalExpression)) {
         compileArrayLiteralExpression(arrayLiteralExpression);
     } else if (const auto *setLiteralExpression = dynamic_cast<SetLiteralExpression *>(originalExpression)) {
@@ -658,6 +660,18 @@ void BytecodeGenerator::compileUnaryExpression(const UnaryExpression *originalEx
 
 void BytecodeGenerator::compileLiteralExpression(const LiteralExpression *originalExpression) const {
     buffer->insert(originalExpression->value, 1);
+}
+
+void BytecodeGenerator::compileInterpolatedStringLiteralExpression(const InterpolatedStringLiteralExpression* originalExpression) {
+    for (const auto& element : originalExpression->elements) {
+        compileExpression(element.get());
+    }
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_STRING), 0);
+
+    const auto count = originalExpression->elements.size();
+    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
+    emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
 }
 
 void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpression *originalExpression) {

@@ -4,6 +4,12 @@
 #include "structures/Token/Token.h"
 #include "diagnostics/DiagnosticEngine.h"
 
+enum class LexerStringScanningMode {
+    REGULAR_STRING,
+    INTERPOLATED_STRING_TEXT,
+    INTERPOLATED_STRING_EXPRESSION,
+};
+
 class Lexer {
 public:
     explicit Lexer(std::string& source, DiagnosticEngine& diagnosticEngine);
@@ -21,8 +27,12 @@ private:
     std::size_t startLine;
     std::size_t column;
     std::size_t startColumn;
+
     std::vector<Token> tokens;
     bool encounteredError;
+
+    std::vector<LexerStringScanningMode> modes;
+    int braceDepth = 0;
 
     void scanToken();
     [[nodiscard]] bool isReachedEnd() const;
@@ -33,6 +43,7 @@ private:
     [[nodiscard]] TokenKind check(std::size_t starting, std::size_t ending, const std::string &rest, TokenKind kind) const;
     void add(const TokenKind& kind, const Value& literal = "");
     void addStringToken();
+    void scanInterpolatedString();
     void addNumberToken();
     void addCharacterToken();
     void addIdentifierToken();
