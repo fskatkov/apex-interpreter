@@ -632,6 +632,10 @@ void BytecodeGenerator::compileBinaryExpression(const BinaryExpression *original
             emitByte(static_cast<std::uint8_t>(InstructionType::OP_LESS_EQUALS), line);
             break;
         }
+        case TokenKind::IN: {
+            emitByte(static_cast<std::uint8_t>(InstructionType::OP_IN), line);
+            break;
+        }
         default:
             break;
     }

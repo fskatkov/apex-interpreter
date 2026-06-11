@@ -76,6 +76,7 @@ private:
     inline ExecutionResult executeLoop();
     inline ExecutionResult executeDuplicate();
     inline ExecutionResult executeDuplicate2();
+    inline ExecutionResult executeInOperator();
 
     inline ExecutionResult executePrint();
     inline ExecutionResult executeReturn();

@@ -388,7 +388,7 @@ std::unique_ptr<Expression> Parser::parseEqualityExpression() {
 std::unique_ptr<Expression> Parser::parseComparisonExpression() {
     auto expression = parseShiftExpression();
 
-    while (match({TokenKind::GREATER, TokenKind::GREATER_EQUALS, TokenKind::LESS, TokenKind::LESS_EQUALS})) {
+    while (match({TokenKind::GREATER, TokenKind::GREATER_EQUALS, TokenKind::LESS, TokenKind::LESS_EQUALS, TokenKind::IN})) {
         const auto operatorSymbol = previous();
         auto rhs = parseShiftExpression();
         expression = std::make_unique<BinaryExpression>(

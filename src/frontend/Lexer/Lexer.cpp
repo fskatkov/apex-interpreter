@@ -267,7 +267,7 @@ void Lexer::addStringToken() {
     }
 
     advance();
-    add(TokenKind::STRING, source.substr(startPosition, currentPosition - startPosition));
+    add(TokenKind::STRING, source.substr(startPosition + 1, currentPosition - startPosition - 2));
 }
 
 void Lexer::addNumberToken() {
@@ -417,7 +417,20 @@ TokenKind Lexer::checkIdentifierType() const {
             return check(1, 4, "rint", TokenKind::PRINT);
         }
         case 'i': {
-            return check(1, 1, "f", TokenKind::IF);
+            if (currentPosition - startPosition > 1) {
+                switch (source[startPosition + 1]) {
+                    case 'f': {
+                        return check(2, 0, "", TokenKind::IF);
+                    }
+                    case 'n': {
+                        return check(2, 0, "", TokenKind::IN);
+                    }
+                    default:
+                        return TokenKind::IDENTIFIER;
+                }
+            }
+
+            return TokenKind::IDENTIFIER;
         }
         case 'n': {
             return check(1, 3, "ull", TokenKind::NIL);

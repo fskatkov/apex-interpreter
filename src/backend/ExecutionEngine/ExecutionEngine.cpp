@@ -72,6 +72,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_LOOP)] = &ExecutionEngine::executeLoop;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE)] = &ExecutionEngine::executeDuplicate;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2)] = &ExecutionEngine::executeDuplicate2;
+    table[static_cast<std::uint8_t>(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_PRINT)] = &ExecutionEngine::executePrint;
     table[static_cast<std::uint8_t>(InstructionType::OP_RETURN)] = &ExecutionEngine::executeReturn;
@@ -684,6 +685,47 @@ inline ExecutionResult ExecutionEngine::executeDuplicate2() {
     const auto index = peek(0);
     push(target);
     push(index);
+    return ExecutionResult::OK;
+}
+
+inline ExecutionResult ExecutionEngine::executeInOperator() {
+    const auto rhs = pop();
+    const auto lhs = pop();
+
+    if (rhs.is<std::shared_ptr<Array>>()) {
+        const auto &arrayPtr = rhs.get<std::shared_ptr<Array>>();
+        const auto it = std::ranges::find(*arrayPtr, lhs);
+        push(it != arrayPtr->end());
+    } else if (rhs.is<std::shared_ptr<Set>>()) {
+        const auto &setPtr = rhs.get<std::shared_ptr<Set>>();
+        push(setPtr->contains(lhs));
+    } else if (rhs.is<std::shared_ptr<Dictionary>>()) {
+        const auto &dictionaryPtr = rhs.get<std::shared_ptr<Dictionary>>();
+
+        std::string key;
+        if (lhs.is<std::string>()) {
+            key = lhs.get<std::string>();
+        } else if (lhs.is<double>()) {
+            key = stringify(lhs.get<double>());
+        } else {
+            push(false);
+            return ExecutionResult::OK;
+        }
+
+        push(dictionaryPtr->contains(key));
+    } else if (rhs.is<std::string>()) {
+        if (!lhs.is<std::string>()) {
+            reportRuntimeError("element is of type `" + stringify(lhs) + "`, but not string");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        const auto &stringPtr = rhs.get<std::string>();
+        push(stringPtr.find(lhs.get<std::string>()) != std::string::npos);
+    } else {
+        reportRuntimeError("right-hand side of `in` must be container or string literal");
+        return ExecutionResult::RUNTIME_ERROR;
+    }
+
     return ExecutionResult::OK;
 }
 

@@ -43,6 +43,7 @@ enum class InstructionType {
     OP_LOOP,
     OP_DUPLICATE,
     OP_DUPLICATE2,
+    OP_IN,
 
     OP_PRINT,
     OP_POP,

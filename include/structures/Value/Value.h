@@ -78,7 +78,7 @@ struct Value {
                 return std::string(1, val);
             },
             [](const std::string &val) {
-                return val;
+                return "\"" + val + "\"";
             },
             [](NIL) {
                 return std::string("null");

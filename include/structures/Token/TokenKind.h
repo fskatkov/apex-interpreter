@@ -50,6 +50,7 @@ enum class TokenKind {
 
     AND,
     OR,
+    IN,
     RETURN,
     VAR,
     CONST,
