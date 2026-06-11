@@ -62,10 +62,6 @@ enum class TokenKind {
     NIL,
     CHARACTER,
 
-    ARRAY,
-    SET,
-    DICTIONARY,
-
     IF,
     ELSE,
     FOR,
@@ -77,6 +73,7 @@ enum class TokenKind {
     CONTINUE,
     BREAK,
     FUNCTION,
+    TYPEOF,
 
     CLASS,
     STRUCTURE,

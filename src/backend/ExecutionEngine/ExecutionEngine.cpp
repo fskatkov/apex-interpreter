@@ -72,9 +72,11 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_LOOP)] = &ExecutionEngine::executeLoop;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE)] = &ExecutionEngine::executeDuplicate;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2)] = &ExecutionEngine::executeDuplicate2;
-    table[static_cast<std::uint8_t>(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
 
+    table[static_cast<std::uint8_t>(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
+    table[static_cast<std::uint8_t>(InstructionType::OP_TYPEOF)] = &ExecutionEngine::executeTypeofOperator;
     table[static_cast<std::uint8_t>(InstructionType::OP_PRINT)] = &ExecutionEngine::executePrint;
+
     table[static_cast<std::uint8_t>(InstructionType::OP_RETURN)] = &ExecutionEngine::executeReturn;
     return table;
 }();
@@ -726,6 +728,11 @@ inline ExecutionResult ExecutionEngine::executeInOperator() {
         return ExecutionResult::RUNTIME_ERROR;
     }
 
+    return ExecutionResult::OK;
+}
+
+inline ExecutionResult ExecutionEngine::executeTypeofOperator() {
+    push(pop().type());
     return ExecutionResult::OK;
 }
 

@@ -64,6 +64,35 @@ struct Value {
         return as == other.as;
     }
 
+    [[nodiscard]] std::string type() const {
+        return std::visit(overloaded {
+            [](const double &val)  -> std::string {
+                return "Number";
+            },
+            [](const bool &val)  -> std::string {
+                return "Boolean";
+            },
+            [](const char &val)  -> std::string {
+                return "Character";
+            },
+            [](const std::string &val)  -> std::string {
+                return "String";
+            },
+            [](NIL)  -> std::string {
+                return "Null";
+            },
+            [](const std::shared_ptr<Array> &val) -> std::string {
+                return "Array";
+            },
+            [](const std::shared_ptr<Set> &val) -> std::string {
+                return "Set";
+            },
+            [](const std::shared_ptr<Dictionary> &val) -> std::string {
+                return "Dictionary";
+            }
+        }, as);
+    }
+
     [[nodiscard]] std::string str() const {
         return std::visit(overloaded {
             [](const double &val) {

@@ -466,7 +466,7 @@ std::unique_ptr<Expression> Parser::parseExponentialExpression() {
 }
 
 std::unique_ptr<Expression> Parser::parseUnaryExpression() {
-    while (match({TokenKind::BANG, TokenKind::MINUS, TokenKind::TILDE})) {
+    while (match({TokenKind::BANG, TokenKind::MINUS, TokenKind::TILDE, TokenKind::TYPEOF})) {
         const auto operatorSymbol = previous();
         auto rhs = parseUnaryExpression();
         return std::make_unique<UnaryExpression>(
@@ -582,61 +582,6 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
 
         consume(TokenKind::RIGHT_BRACE, "expected `}` in container literal expression");
         return std::make_unique<SetLiteralExpression>(std::move(elements));
-    }
-
-    if (match({ TokenKind::ARRAY })) {
-        consume(TokenKind::LEFT_PAREN, "expected `(` in `array` declaration");
-        if (match({ TokenKind::RIGHT_PAREN })) {
-            return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expression>>{});
-        }
-
-        std::vector<std::unique_ptr<Expression> > elements;
-
-        if (!match({TokenKind::RIGHT_PAREN})) {
-            do {
-                elements.push_back(parseExpression());
-            } while (match({TokenKind::COMMA}));
-        }
-
-        consume(TokenKind::RIGHT_PAREN, "expected `)` in container literal expression");
-        return std::make_unique<ArrayLiteralExpression>(std::move(elements));
-    }
-
-    if (match({ TokenKind::SET })) {
-        consume(TokenKind::LEFT_PAREN, "expected `(` in `set` declaration");
-        if (match({ TokenKind::RIGHT_PAREN })) {
-            return std::make_unique<SetLiteralExpression>(std::unordered_set<std::unique_ptr<Expression>>{});
-        }
-
-        std::unordered_set<std::unique_ptr<Expression>> elements;
-
-        do {
-            elements.insert(parseExpression());
-        } while (match({ TokenKind::COMMA }));
-
-        consume(TokenKind::RIGHT_PAREN, "expected `)` in container literal expression");
-        return std::make_unique<SetLiteralExpression>(std::move(elements));
-    }
-
-    if (match({ TokenKind::DICTIONARY })) {
-        consume(TokenKind::LEFT_PAREN, "expected `(` before container literal body");
-        if (match({ TokenKind::RIGHT_PAREN })) {
-            return std::make_unique<DictionaryLiteralExpression>(
-                std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>>{}
-            );
-        }
-
-        std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs;
-
-        do {
-            auto index = parsePrimaryExpression();
-            consume(TokenKind::COLON, "missing `:` after dictionary key");
-            auto expression = parseExpression();
-            pairs.emplace_back(std::move(index), std::move(expression));
-        } while (match({TokenKind::COMMA}));
-
-        consume(TokenKind::RIGHT_PAREN, "expected `)` at end of container literal expression");
-        return std::make_unique<DictionaryLiteralExpression>(std::move(pairs));
     }
 
     if (match({TokenKind::IDENTIFIER})) {

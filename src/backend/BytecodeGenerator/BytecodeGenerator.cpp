@@ -651,6 +651,8 @@ void BytecodeGenerator::compileUnaryExpression(const UnaryExpression *originalEx
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_NEGATE), line);
     } else if (originalExpression->unaryOperator.kind == TokenKind::TILDE) {
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
+    } else if (originalExpression->unaryOperator.kind == TokenKind::TYPEOF) {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_TYPEOF), line);
     }
 }
 

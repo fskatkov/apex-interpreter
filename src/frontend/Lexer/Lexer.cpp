@@ -333,9 +333,6 @@ TokenKind Lexer::checkIdentifierType() const {
                     case 'n': {
                         return check(2, 1, "d", TokenKind::AND);
                     }
-                    case 'r': {
-                        return check(2, 3, "ray", TokenKind::ARRAY);
-                    }
                     default:
                         return TokenKind::IDENTIFIER;
                 }
@@ -453,9 +450,6 @@ TokenKind Lexer::checkIdentifierType() const {
                     case 't': {
                         return check(2, 4, "ruct", TokenKind::STRUCTURE);
                     }
-                    case 'e': {
-                        return check(2, 1, "t", TokenKind::SET);
-                    }
                     default: {
                         return TokenKind::IDENTIFIER;
                     }
@@ -469,6 +463,9 @@ TokenKind Lexer::checkIdentifierType() const {
                 switch (source[startPosition + 1]) {
                     case 'h': {
                         return check(2, 2, "is", TokenKind::THIS);
+                    }
+                    case 'y': {
+                        return check(2, 4, "peof", TokenKind::TYPEOF);
                     }
                     default: {
                         return TokenKind::IDENTIFIER;
@@ -493,9 +490,6 @@ TokenKind Lexer::checkIdentifierType() const {
         case 'd': {
             if (currentPosition - startPosition > 1) {
                 switch (source[startPosition + 1]) {
-                    case 'i': {
-                        return check(2, 2, "ct", TokenKind::DICTIONARY);
-                    }
                     case 'e': {
                         return check(2, 5, "fault", TokenKind::DEFAULT);
                     }
