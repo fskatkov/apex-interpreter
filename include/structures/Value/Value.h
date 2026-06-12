@@ -64,6 +64,22 @@ struct Value {
         return as == other.as;
     }
 
+    bool operator<(const Value &other) const {
+        return as < other.as;
+    }
+
+    bool operator>(const Value &other) const {
+        return as > other.as;
+    }
+
+    bool operator<=(const Value &other) const {
+        return as <= other.as;
+    }
+
+    bool operator>=(const Value &other) const {
+        return as >= other.as;
+    }
+
     [[nodiscard]] std::string type() const {
         return std::visit(overloaded {
             [](const double &val)  -> std::string {

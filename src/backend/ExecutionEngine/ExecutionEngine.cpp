@@ -402,19 +402,109 @@ inline ExecutionResult ExecutionEngine::executeEquality() {
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterOperation() {
-    return ExecutionResult::OK;
+    return executeOperation(">",
+        [&](const double &first, const double &second) {
+            push(first > second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+            push(*first > *second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            if (first->size() <= second->size()) {
+                push(false);
+                return ExecutionResult::OK;
+            }
+
+            bool superset = false;
+            for (const auto &elem : *second) {
+                if (!first->contains(elem)) {
+                    superset = false;
+                    break;
+                }
+            }
+            push(superset);
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterThanOperation() {
-    return ExecutionResult::OK;
+    return executeOperation(">=",
+        [&](const double &first, const double &second) {
+            push(first >= second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+            push(*first >= *second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            bool superset = false;
+            for (const auto &elem : *second) {
+                if (!first->contains(elem)) {
+                    superset = false;
+                    break;
+                }
+            }
+            push(superset);
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeLessOperation() {
-    return ExecutionResult::OK;
+    return executeOperation("<",
+        [&](const double &first, const double &second) {
+            push(first < second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+            push(*first < *second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            if (first->size() >= second->size()) {
+                push(false);
+                return ExecutionResult::OK;
+            }
+
+            bool subset = false;
+            for (const auto &elem : *first) {
+                if (!second->contains(elem)) {
+                    subset = false;
+                    break;
+                }
+            }
+            push(subset);
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeLessThanOperation() {
-    return ExecutionResult::OK;
+    return executeOperation("<=",
+        [&](const double &first, const double &second) {
+            push(first <= second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+            push(*first <= *second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            bool subset = false;
+            for (const auto &elem : *first) {
+                if (!second->contains(elem)) {
+                    subset = false;
+                    break;
+                }
+            }
+            push(subset);
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeDefineGlobalVariable() {
