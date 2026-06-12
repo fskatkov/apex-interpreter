@@ -136,6 +136,14 @@ inline ExecutionResult ExecutionEngine::executeInterpolatedStringLiteral() {
 inline ExecutionResult ExecutionEngine::executeAddition() {
     if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::plus<double>{});
+    } else if (peek(0).is<char>() && peek(1).is<double>()) {
+        const auto rhs = pop().get<char>();
+        const auto lhs = static_cast<int>(pop().get<double>());
+        push(static_cast<char>(lhs + rhs));
+    } else if (peek(0).is<double>() && peek(1).is<char>()) {
+        const auto rhs = static_cast<int>(pop().get<double>());
+        const auto lhs = pop().get<char>();
+        push(static_cast<char>(rhs + lhs));
     } else if (peek(0).is<std::string>() && peek(1).is<std::string>()) {
         const auto rhs = pop().get<std::string>();
         const auto lhs = pop().get<std::string>();
@@ -165,6 +173,14 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
 inline ExecutionResult ExecutionEngine::executeSubtraction() {
     if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::minus<double>{});
+    } else if (peek(0).is<char>() && peek(1).is<double>()) {
+        const auto rhs = pop().get<char>();
+        const auto lhs = static_cast<int>(pop().get<double>());
+        push(static_cast<char>(lhs - rhs));
+    } else if (peek(0).is<double>() && peek(1).is<char>()) {
+        const auto rhs = static_cast<int>(pop().get<double>());
+        const auto lhs = pop().get<char>();
+        push(static_cast<char>(rhs - lhs));
     } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
         const auto rhs = pop().get<std::shared_ptr<Set>>();
         const auto lhs = pop().get<std::shared_ptr<Set>>();
@@ -189,6 +205,14 @@ inline ExecutionResult ExecutionEngine::executeSubtraction() {
 inline ExecutionResult ExecutionEngine::executeMultiplication() {
     if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::multiplies<double>{});
+    } else if (peek(0).is<char>() && peek(1).is<double>()) {
+        const auto rhs = pop().get<char>();
+        const auto lhs = static_cast<int>(pop().get<double>());
+        push(static_cast<char>(lhs * rhs));
+    } else if (peek(0).is<double>() && peek(1).is<char>()) {
+        const auto rhs = static_cast<int>(pop().get<double>());
+        const auto lhs = pop().get<char>();
+        push(static_cast<char>(rhs * lhs));
     } else if (peek(0).is<double>() && peek(1).is<std::shared_ptr<Array>>()) {
         const auto rhs = pop().get<double>();
         const auto lhs = pop().get<std::shared_ptr<Array>>();
@@ -220,6 +244,14 @@ inline ExecutionResult ExecutionEngine::executeMultiplication() {
 inline ExecutionResult ExecutionEngine::executeDivision() {
     if (peek(0).is<double>() && peek(1).is<double>()) {
         executeBinaryOperation<double>(std::divides<double>{});
+    } else if (peek(0).is<char>() && peek(1).is<double>()) {
+        const auto rhs = pop().get<char>();
+        const auto lhs = static_cast<int>(pop().get<double>());
+        push(static_cast<char>(lhs / rhs));
+    } else if (peek(0).is<double>() && peek(1).is<char>()) {
+        const auto rhs = static_cast<int>(pop().get<double>());
+        const auto lhs = pop().get<char>();
+        push(static_cast<char>(rhs / lhs));
     } else {
         reportRuntimeError("unsupported operand types for `/`: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;
@@ -233,6 +265,14 @@ inline ExecutionResult ExecutionEngine::executeModuloDivision() {
         executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
             return std::fmod(lhs, rhs);
         });
+    } else if (peek(0).is<char>() && peek(1).is<double>()) {
+        const auto rhs = pop().get<char>();
+        const auto lhs = static_cast<int>(pop().get<double>());
+        push(static_cast<char>(lhs % rhs));
+    } else if (peek(0).is<double>() && peek(1).is<char>()) {
+        const auto rhs = static_cast<int>(pop().get<double>());
+        const auto lhs = pop().get<char>();
+        push(static_cast<char>(rhs % lhs));
     } else {
         reportRuntimeError("unsupported operand types for `%`: expected two numbers");
         return ExecutionResult::RUNTIME_ERROR;

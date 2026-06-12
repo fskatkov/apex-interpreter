@@ -103,8 +103,8 @@ struct Value {
             [](const bool &val) {
                 return std::string(val ? "True" : "False");
             },
-            [](const char &val) {
-                return std::string(1, val);
+            [](const char &val) {;
+                return "\'" + std::string(1, val) + "\'";
             },
             [](const std::string &val) {
                 return "\"" + val + "\"";

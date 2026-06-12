@@ -341,8 +341,6 @@ void Lexer::addNumberToken() {
 }
 
 void Lexer::addCharacterToken() {
-    advance();
-
     if (peek() == '\'') {
         reportError("empty character literal");
         encounteredError = true;
@@ -372,7 +370,7 @@ void Lexer::addCharacterToken() {
     }
 
     advance();
-    add(TokenKind::CHARACTER, source.substr(startPosition + 1, currentPosition - startPosition - 2));
+    add(TokenKind::CHARACTER, source[startPosition + 1]);
 }
 
 void Lexer::addIdentifierToken() {
