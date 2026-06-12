@@ -134,164 +134,135 @@ inline ExecutionResult ExecutionEngine::executeInterpolatedStringLiteral() {
 }
 
 inline ExecutionResult ExecutionEngine::executeAddition() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>(std::plus<double>{});
-    } else if (peek(0).is<char>() && peek(1).is<double>()) {
-        const auto rhs = pop().get<char>();
-        const auto lhs = static_cast<int>(pop().get<double>());
-        push(static_cast<char>(lhs + rhs));
-    } else if (peek(0).is<double>() && peek(1).is<char>()) {
-        const auto rhs = static_cast<int>(pop().get<double>());
-        const auto lhs = pop().get<char>();
-        push(static_cast<char>(rhs + lhs));
-    } else if (peek(0).is<std::string>() && peek(1).is<std::string>()) {
-        const auto rhs = pop().get<std::string>();
-        const auto lhs = pop().get<std::string>();
-        push(lhs + rhs);
-    } else if (peek(0).is<std::shared_ptr<Array>>() && peek(1).is<std::shared_ptr<Array>>()) {
-        const auto rhs = pop().get<std::shared_ptr<Array>>();
-        const auto lhs = pop().get<std::shared_ptr<Array>>();
-
-        Array newArray = *lhs;
-        for (const auto& elem : *rhs) {
-            newArray.push_back(elem);
+    return executeOperation("+",
+        [&](const double &first, const double &second) {
+            push(first + second);
+            return ExecutionResult::OK;
+        },
+        [&](const double &first, const char &second) {
+            push(static_cast<char>(first + second));
+            return ExecutionResult::OK;
+        },
+        [&](const char &first, const double &second) {
+            push(static_cast<char>(first + second));
+            return ExecutionResult::OK;
+        },
+        [&](const std::string &first, const std::string &second) {
+            push(first + second);
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+            auto newArray = *first;
+            for (const auto& elem : *second) {
+                newArray.push_back(elem);
+            }
+            push(std::make_shared<Array>(newArray));
+            return ExecutionResult::OK;
         }
-
-        push(std::make_shared<Array>(newArray));
-    } else {
-        const std::string rhsType = pop().str();
-        const std::string lhsType = pop().str();
-        const auto errorMessage = "unsupported operand types [" + lhsType + "] and [" + rhsType
-                                  + "] for '+': expected either numbers, or strings, or arrays";
-        reportRuntimeError(errorMessage);
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeSubtraction() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>(std::minus<double>{});
-    } else if (peek(0).is<char>() && peek(1).is<double>()) {
-        const auto rhs = pop().get<char>();
-        const auto lhs = static_cast<int>(pop().get<double>());
-        push(static_cast<char>(lhs - rhs));
-    } else if (peek(0).is<double>() && peek(1).is<char>()) {
-        const auto rhs = static_cast<int>(pop().get<double>());
-        const auto lhs = pop().get<char>();
-        push(static_cast<char>(rhs - lhs));
-    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
-        const auto rhs = pop().get<std::shared_ptr<Set>>();
-        const auto lhs = pop().get<std::shared_ptr<Set>>();
-
-        Set difference;
-
-        for (const auto& elem : *lhs) {
-            if (!rhs->contains(elem)) {
-                difference.insert(elem);
+    return executeOperation("-",
+        [&](const double &first, const double &second) {
+            push(first - second);
+            return ExecutionResult::OK;
+        },
+        [&](const char &first, const double &second) {
+            push(static_cast<char>(first - second));
+            return ExecutionResult::OK;
+        },
+        [&](const double &first, const char &second) {
+            push(static_cast<char>(second - first));
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            Set difference;
+            for (const auto &elem : *first) {
+                if (!second->contains(elem)) {
+                    difference.insert(elem);
+                }
             }
+            push(std::make_shared<Set>(difference));
+            return ExecutionResult::OK;
         }
-
-        push(std::make_shared<Set>(difference));
-    } else {
-        reportRuntimeError("unsupported operand types for `-`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeMultiplication() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>(std::multiplies<double>{});
-    } else if (peek(0).is<char>() && peek(1).is<double>()) {
-        const auto rhs = pop().get<char>();
-        const auto lhs = static_cast<int>(pop().get<double>());
-        push(static_cast<char>(lhs * rhs));
-    } else if (peek(0).is<double>() && peek(1).is<char>()) {
-        const auto rhs = static_cast<int>(pop().get<double>());
-        const auto lhs = pop().get<char>();
-        push(static_cast<char>(rhs * lhs));
-    } else if (peek(0).is<double>() && peek(1).is<std::shared_ptr<Array>>()) {
-        const auto rhs = pop().get<double>();
-        const auto lhs = pop().get<std::shared_ptr<Array>>();
-
-        Array newArray = *lhs;
-        for (auto i = 1; i < rhs; ++i) {
-            newArray.insert(newArray.end(), lhs->begin(), lhs->end());
+    return executeOperation("*",
+        [&](const double &first, const double &second) {
+            push(first * second);
+            return ExecutionResult::OK;
+        },
+        [&](const char &first, const double &second) {
+            push(static_cast<char>(first * second));
+            return ExecutionResult::OK;
+        },
+        [&](const double &first, const char &second) {
+            push(static_cast<char>(first * second));
+            return ExecutionResult::OK;
+        },
+        [&](const double &first, const std::shared_ptr<Array> &second) {
+            Array newArray = *second;
+            for (auto i = 1; i < first; ++i) {
+                newArray.insert(newArray.end(), second->begin(), second->end());
+            }
+            push(std::make_shared<Array>(newArray));
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Array> &first, const double &second) {
+            Array newArray = *first;
+            for (auto i = 1; i < second; ++i) {
+                newArray.insert(newArray.end(), first->begin(), first->end());
+            }
+            push(std::make_shared<Array>(newArray));
+            return ExecutionResult::OK;
         }
-
-        push(std::make_shared<Array>(newArray));
-    } else if (peek(0).is<std::shared_ptr<Array>>() && peek(1).is<double>()) {
-        const auto rhs = pop().get<std::shared_ptr<Array>>();
-        const auto lhs = pop().get<double>();
-
-        Array newArray = *rhs;
-        for (auto i = 1; i < lhs; ++i) {
-            newArray.insert(newArray.end(), rhs->begin(), rhs->end());
-        }
-
-        push(std::make_shared<Array>(newArray));
-    } else {
-        reportRuntimeError("unsupported operand types for `*`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeDivision() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>(std::divides<double>{});
-    } else if (peek(0).is<char>() && peek(1).is<double>()) {
-        const auto rhs = pop().get<char>();
-        const auto lhs = static_cast<int>(pop().get<double>());
-        push(static_cast<char>(lhs / rhs));
-    } else if (peek(0).is<double>() && peek(1).is<char>()) {
-        const auto rhs = static_cast<int>(pop().get<double>());
-        const auto lhs = pop().get<char>();
-        push(static_cast<char>(rhs / lhs));
-    } else {
-        reportRuntimeError("unsupported operand types for `/`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    return executeOperation("/",
+        [&](const double &first, const double &second) {
+            push(first / second);
+            return ExecutionResult::OK;
+        },
+        [&](const char &first, const double &second) {
+            push(static_cast<char>(first / second));
+            return ExecutionResult::OK;
+        },
+        [&](const double &first, const char &second) {
+            push(static_cast<char>(second / first));
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeModuloDivision() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
-            return std::fmod(lhs, rhs);
-        });
-    } else if (peek(0).is<char>() && peek(1).is<double>()) {
-        const auto rhs = pop().get<char>();
-        const auto lhs = static_cast<int>(pop().get<double>());
-        push(static_cast<char>(lhs % rhs));
-    } else if (peek(0).is<double>() && peek(1).is<char>()) {
-        const auto rhs = static_cast<int>(pop().get<double>());
-        const auto lhs = pop().get<char>();
-        push(static_cast<char>(rhs % lhs));
-    } else {
-        reportRuntimeError("unsupported operand types for `%`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    return executeOperation("%",
+        [&](const double &first, const double &second) {
+            push(std::fmod(first, second));
+            return ExecutionResult::OK;
+        },
+        [&](const char &first, const double &second) {
+            push(static_cast<char>(first % static_cast<int>(second)));
+            return ExecutionResult::OK;
+        },
+        [&](const double &first, const char &second) {
+            push(static_cast<char>(second % static_cast<int>(first)));
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executePower() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([](const double &lhs, const double &rhs) {
-            return std::pow(lhs, rhs);
-        });
-    } else {
-        reportRuntimeError("unsupported operand types for `**`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    return executeOperation("**",
+        [&](const double &first, const double &second) {
+            push(std::pow(first, second));
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeNotOperation() {
@@ -317,83 +288,68 @@ inline ExecutionResult ExecutionEngine::executeNegation() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, std::bit_and<std::int64_t>{});
-        });
-    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
-        const auto rhs = pop().get<std::shared_ptr<Set>>();
-        const auto lhs = pop().get<std::shared_ptr<Set>>();
+    return executeOperation("&",
+        [&](const double &first, const double &second) {
+            push(executeBitwiseBinaryOperation(first, second, std::bit_and<std::int64_t>{}));
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            const auto& smaller = first->size() < second->size() ? first : second;
+            const auto& larger = first->size() < second->size() ? second : first;
 
-        const auto& smaller = (lhs->size() < rhs->size()) ? lhs : rhs;
-        const auto& larger = (lhs->size() < rhs->size()) ? rhs : lhs;
-
-        Set intersection;
-        for (const auto& elem : *smaller) {
-            if (larger->contains(elem)) {
-                intersection.insert(elem);
+            Set intersection;
+            for (const auto& elem : *smaller) {
+                if (larger->contains(elem)) {
+                    intersection.insert(elem);
+                }
             }
+
+            push(std::make_shared<Set>(intersection));
+            return ExecutionResult::OK;
         }
-
-        push(std::make_shared<Set>(intersection));
-    } else {
-        reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, std::bit_or<std::int64_t>{});
-        });
-    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
-        const auto rhs = pop().get<std::shared_ptr<Set>>();
-        const auto lhs = pop().get<std::shared_ptr<Set>>();
-
-        Set setUnion = *lhs;
-        setUnion.insert(rhs->begin(), rhs->end());
-        push(std::make_shared<Set>(setUnion));
-    } else {
-        reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    return executeOperation("|",
+        [&](const double &first, const double &second) {
+            push(executeBitwiseBinaryOperation(first, second, std::bit_or<std::int64_t>{}));
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            Set setUnion = *first;
+            setUnion.insert(second->begin(), second->end());
+            push(std::make_shared<Set>(setUnion));
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseXor() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, std::bit_xor<std::int64_t>{});
-        });
-    } else if (peek(0).is<std::shared_ptr<Set>>() && peek(1).is<std::shared_ptr<Set>>()) {
-        const auto rhs = pop().get<std::shared_ptr<Set>>();
-        const auto lhs = pop().get<std::shared_ptr<Set>>();
+    return executeOperation("^",
+        [&](const double &first, const double &second) {
+            push(executeBitwiseBinaryOperation(first, second, std::bit_xor<std::int64_t>{}));
+            return ExecutionResult::OK;
+        },
+        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
+            Set symmetricDifference;
 
-        Set symmetricDifference;
-
-        for (const auto& elem : *lhs) {
-            if (!rhs->contains(elem)) {
-                symmetricDifference.insert(elem);
+            for (const auto& elem : *first) {
+                if (!second->contains(elem)) {
+                    symmetricDifference.insert(elem);
+                }
             }
-        }
 
-        for (const auto& elem : *rhs) {
-            if (!lhs->contains(elem)) {
-                symmetricDifference.insert(elem);
+            for (const auto& elem : *second) {
+                if (!first->contains(elem)) {
+                    symmetricDifference.insert(elem);
+                }
             }
+
+            push(std::make_shared<Set>(symmetricDifference));
+            return ExecutionResult::OK;
         }
-
-        push(std::make_shared<Set>(symmetricDifference));
-    } else {
-        reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
-    return ExecutionResult::OK;
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseNot() {
@@ -409,33 +365,27 @@ inline ExecutionResult ExecutionEngine::executeBitwiseNot() {
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseLeftShift() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t &value, const std::int64_t &shift) {
-                return value << (shift % 64);
-            });
-        });
-    } else {
-        reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
+    return executeOperation("<<",
+        [&](const double &first, const double &second) {
+            const auto shift = static_cast<std::int64_t>(second);
+            const auto value = static_cast<std::int64_t>(first);
 
-    return ExecutionResult::OK;
+            push(static_cast<double>(value << (shift % 64)));
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseRightShift() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<double>([this](const double &lhs, const double &rhs) {
-            return executeBitwiseBinaryOperation(lhs, rhs, [](const std::int64_t &value, const std::int64_t &shift) {
-                return value >> (shift % 64);
-            });
-        });
-    } else {
-        reportRuntimeError("invalid operand types for bitwise operation: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
+    return executeOperation(">>",
+        [&](const double &first, const double &second) {
+            const auto shift = static_cast<std::int64_t>(second);
+            const auto value = static_cast<std::int64_t>(first);
 
-    return ExecutionResult::OK;
+            push(static_cast<double>(value >> (shift % 64)));
+            return ExecutionResult::OK;
+        }
+    );
 }
 
 inline ExecutionResult ExecutionEngine::executeEquality() {
@@ -452,46 +402,18 @@ inline ExecutionResult ExecutionEngine::executeEquality() {
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterOperation() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<bool>(std::greater<double>{});
-    } else {
-        reportRuntimeError("unsupported operand types for `>`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterThanOperation() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<bool>(std::greater_equal<double>{});
-    } else {
-        reportRuntimeError("unsupported operand types for `>=`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeLessOperation() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<bool>(std::less<double>{});
-    } else {
-        reportRuntimeError("unsupported operand types for `<`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeLessThanOperation() {
-    if (peek(0).is<double>() && peek(1).is<double>()) {
-        executeBinaryOperation<bool>(std::less_equal<double>{});
-    } else {
-        reportRuntimeError("unsupported operand types for `<=`: expected two numbers");
-        return ExecutionResult::RUNTIME_ERROR;
-    }
-
     return ExecutionResult::OK;
 }
 
@@ -834,15 +756,19 @@ Value ExecutionEngine::readConstant() {
     return buffer->values[readByte()];
 }
 
-template<typename T, typename U>
-void ExecutionEngine::executeBinaryOperation(U operation) {
-    if (!peek(0).is<double>() || !peek(1).is<double>()) {
-        return;
-    }
+template<typename... T>
+ExecutionResult ExecutionEngine::executeOperation(const std::string &symbol, T... items) {
+    const auto rhs = pop();
+    const auto lhs = pop();
 
-    const auto rhs = pop().get<double>();
-    const auto lhs = pop().get<double>();
-    push(static_cast<T>(operation(lhs, rhs)));
+    return std::visit<ExecutionResult>(overloaded {
+        items...,
+        [&](const auto &first, const auto &second) {
+            reportRuntimeError("unsupported operand types for `" + symbol + "`: [" + lhs.type()
+                + "] and [" + rhs.type() + "]");
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+    }, lhs.as, rhs.as);
 }
 
 template<typename T>

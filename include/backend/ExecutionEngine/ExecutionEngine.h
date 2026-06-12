@@ -89,8 +89,8 @@ private:
     std::uint8_t readByte();
     Value readConstant();
 
-    template<typename T, typename U>
-    void executeBinaryOperation(U operation);
+    template<typename... T>
+    ExecutionResult executeOperation(const std::string &symbol, T... items);
 
     template<typename T>
     double executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, T operation);
