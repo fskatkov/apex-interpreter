@@ -146,6 +146,10 @@ void Lexer::scanToken() {
             add(match('=') ? TokenKind::BANG_EQUALS : TokenKind::BANG);
             break;
         }
+        case '?': {
+            add(TokenKind::QUESTION_MARK);
+            break;
+        }
         case ';': {
             add(TokenKind::SEMICOLON);
             break;

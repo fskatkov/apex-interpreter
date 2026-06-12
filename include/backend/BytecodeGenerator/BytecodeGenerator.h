@@ -31,13 +31,13 @@ private:
     std::shared_ptr<Lexer> lexer;
     std::shared_ptr<Parser> parser;
     std::vector<Token> tokens;
-    std::vector<std::unique_ptr<Statement>> statements;
-    std::unique_ptr<Expression> expression;
+    std::vector<std::unique_ptr<Stmt>> statements;
+    std::unique_ptr<Expr> expression;
     std::vector<Local> locals;
     std::vector<ControlFlowContext> contexts;
     int scopeDepth = 0;
 
-    void compileStatement(Statement* statement);
+    void compileStatement(Stmt* statement);
     void compileSwitchStatement(const SwitchStatement* statement);
     void compileBreakStatement(const BreakStatement* statement);
     void compileContinueStatement(const ContinueStatement* statement);
@@ -50,8 +50,9 @@ private:
     void compileExpressionStatement(const ExpressionStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 
-    void compileExpression(Expression* originalExpression);
+    void compileExpression(Expr* originalExpression);
     void compileAssignmentExpression(const AssignmentExpression* originalExpression);
+    void compileTernaryOperatorExpression(const TernaryOperatorExpression* originalExpression);
     void compileLogicalExpression(const LogicalExpression* originalExpression);
     void compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression);
     void compileUpdateExpression(const UpdateExpression* originalExpression) const;

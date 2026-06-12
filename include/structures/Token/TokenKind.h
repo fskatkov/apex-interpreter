@@ -13,6 +13,7 @@ enum class TokenKind {
     COLON,
     DOT,
     COMMA,
+    QUESTION_MARK,
 
     PLUS,
     MINUS,

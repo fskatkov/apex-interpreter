@@ -12,7 +12,7 @@ add_executable(apex_interpreter main.cpp
         include/structures/Token/TokenKind.h
         src/frontend/Lexer/Lexer.cpp
         utils/SourceLocation/SourceLocation.h
-        include/structures/AST/Expr/Expression.h
+        include/structures/AST/Expr/Expr.h
         include/frontend/Parser/Parser.h
         src/frontend/Parser/Parser.cpp
         include/diagnostics/DiagnosticEngine.h
@@ -25,7 +25,7 @@ add_executable(apex_interpreter main.cpp
         src/backend/ExecutionEngine/ExecutionEngine.cpp
         include/backend/BytecodeGenerator/BytecodeGenerator.h
         src/backend/BytecodeGenerator/BytecodeGenerator.cpp
-        include/structures/AST/Stmt/Statement.h
+        include/structures/AST/Stmt/Stmt.h
         include/structures/Value/Value.h
 )
 

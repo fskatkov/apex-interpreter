@@ -4,15 +4,15 @@ Parser::Parser(const std::vector<Token> &tokens, DiagnosticEngine &diagnosticEng
     : diagnosticEngine(diagnosticEngine), tokens(tokens), current(0) {
 }
 
-std::vector<std::unique_ptr<Statement> > Parser::parse() {
-    std::vector<std::unique_ptr<Statement> > statements;
+std::vector<std::unique_ptr<Stmt> > Parser::parse() {
+    std::vector<std::unique_ptr<Stmt> > statements;
     while (!isReachedEnd()) {
         statements.push_back(parseDeclarationStatement());
     }
     return statements;
 }
 
-std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
+std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
     if (match({TokenKind::VAR})) {
         return parseVariableDeclarationStatement(false);
     }
@@ -24,7 +24,7 @@ std::unique_ptr<Statement> Parser::parseDeclarationStatement() {
     return parseStatement();
 }
 
-std::unique_ptr<Statement> Parser::parseStatement() {
+std::unique_ptr<Stmt> Parser::parseStatement() {
     if (match({TokenKind::SWITCH})) {
         return parseSwitchStatement();
     }
@@ -64,7 +64,7 @@ std::unique_ptr<Statement> Parser::parseStatement() {
     return parseExpressionStatement();
 }
 
-std::unique_ptr<Statement> Parser::parseSwitchStatement() {
+std::unique_ptr<Stmt> Parser::parseSwitchStatement() {
     consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
 
     auto condition = parseExpression();
@@ -101,43 +101,43 @@ std::unique_ptr<Statement> Parser::parseSwitchStatement() {
     );
 }
 
-std::unique_ptr<Statement> Parser::parseBreakStatement() {
+std::unique_ptr<Stmt> Parser::parseBreakStatement() {
     auto keyword = previous();
     consume(TokenKind::SEMICOLON, "expected `;` at end of `break` statement");
     return std::make_unique<BreakStatement>(keyword);
 }
 
-std::unique_ptr<Statement> Parser::parseContinueStatement() {
+std::unique_ptr<Stmt> Parser::parseContinueStatement() {
     auto keyword = previous();
     consume(TokenKind::SEMICOLON, "expected `;` at end of `continue` statement");
     return std::make_unique<ContinueStatement>(keyword);
 }
 
-std::unique_ptr<Statement> Parser::parseForStatement() {
+std::unique_ptr<Stmt> Parser::parseForStatement() {
     consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
 
-    std::unique_ptr<Statement> initializer = nullptr;
+    std::unique_ptr<Stmt> initializer = nullptr;
     if (match({TokenKind::VAR})) {
         initializer = parseVariableDeclarationStatement(false);
     } else {
         initializer = parseExpressionStatement();
     }
 
-    std::unique_ptr<Expression> condition = nullptr;
+    std::unique_ptr<Expr> condition = nullptr;
     if (!check({TokenKind::SEMICOLON})) {
         condition = parseExpression();
     }
 
     consume(TokenKind::SEMICOLON, "expected `;` at end of `for` condition");
 
-    std::unique_ptr<Expression> increment = nullptr;
+    std::unique_ptr<Expr> increment = nullptr;
     if (!check({TokenKind::RIGHT_PAREN})) {
         increment = parseExpression();
     }
 
     consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
 
-    std::unique_ptr<Statement> body = parseStatement();
+    std::unique_ptr<Stmt> body = parseStatement();
     return std::make_unique<ForStatement>(
         std::move(initializer),
         std::move(condition),
@@ -146,7 +146,7 @@ std::unique_ptr<Statement> Parser::parseForStatement() {
     );
 }
 
-std::unique_ptr<Statement> Parser::parseWhileStatement() {
+std::unique_ptr<Stmt> Parser::parseWhileStatement() {
     consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
     auto condition = parseExpression();
     consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
@@ -155,7 +155,7 @@ std::unique_ptr<Statement> Parser::parseWhileStatement() {
     return std::make_unique<WhileStatement>(std::move(condition), std::move(body));
 }
 
-std::unique_ptr<Statement> Parser::parseDoWhileStatement() {
+std::unique_ptr<Stmt> Parser::parseDoWhileStatement() {
     auto body = parseStatement();
 
     consume(TokenKind::WHILE, "expected `while` statement after `do` body");
@@ -169,13 +169,13 @@ std::unique_ptr<Statement> Parser::parseDoWhileStatement() {
     return std::make_unique<DoWhileStatement>(std::move(condition), std::move(body));
 }
 
-std::unique_ptr<Statement> Parser::parseConditionalStatement() {
+std::unique_ptr<Stmt> Parser::parseConditionalStatement() {
     consume(TokenKind::LEFT_PAREN, "expected `(` in expression list");
     auto condition = parseExpression();
     consume(TokenKind::RIGHT_PAREN, "expected `)` in expression list");
 
     auto thenBranch = parseStatement();
-    std::unique_ptr<Statement> elseBranch = nullptr;
+    std::unique_ptr<Stmt> elseBranch = nullptr;
     if (match({TokenKind::ELSE})) {
         elseBranch = parseStatement();
     }
@@ -187,9 +187,9 @@ std::unique_ptr<Statement> Parser::parseConditionalStatement() {
     );
 }
 
-std::unique_ptr<Statement> Parser::parseBlockStatement() {
+std::unique_ptr<Stmt> Parser::parseBlockStatement() {
     auto parseStatements = [this]() {
-        std::vector<std::unique_ptr<Statement> > statements;
+        std::vector<std::unique_ptr<Stmt> > statements;
 
         while (!check(TokenKind::RIGHT_BRACE) && !isReachedEnd()) {
             statements.push_back(parseDeclarationStatement());
@@ -202,7 +202,7 @@ std::unique_ptr<Statement> Parser::parseBlockStatement() {
     return std::make_unique<BlockStatement>(std::move(parseStatements()));
 }
 
-std::unique_ptr<Statement> Parser::parsePrintStatement() {
+std::unique_ptr<Stmt> Parser::parsePrintStatement() {
     consume(TokenKind::LEFT_PAREN, "expected `(` before print expression");
     auto expression = parseExpression();
     consume(TokenKind::RIGHT_PAREN, "expected `)` at end of print statement");
@@ -210,16 +210,16 @@ std::unique_ptr<Statement> Parser::parsePrintStatement() {
     return std::make_unique<PrintStatement>(std::move(expression));
 }
 
-std::unique_ptr<Statement> Parser::parseExpressionStatement() {
+std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
     auto expression = parseExpression();
     consume(TokenKind::SEMICOLON, "expected `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
 }
 
-std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement(bool isConst) {
+std::unique_ptr<Stmt> Parser::parseVariableDeclarationStatement(bool isConst) {
     const auto name = consume(TokenKind::IDENTIFIER, "expected variable name");
 
-    std::unique_ptr<Expression> initializer = nullptr;
+    std::unique_ptr<Expr> initializer = nullptr;
     if (match({TokenKind::EQUALS})) {
         initializer = parseExpression();
     } else if (isConst) {
@@ -235,12 +235,12 @@ std::unique_ptr<Statement> Parser::parseVariableDeclarationStatement(bool isCons
     return std::make_unique<VariableStatement>(name, std::move(initializer), isConst);
 }
 
-std::unique_ptr<Expression> Parser::parseExpression() {
+std::unique_ptr<Expr> Parser::parseExpression() {
     return parseAssignmentExpression();
 }
 
-std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
-    auto expression = parseLogicalOrExpression();
+std::unique_ptr<Expr> Parser::parseAssignmentExpression() {
+    auto expression = parseTernaryOperatorExpression();
 
     if (match({TokenKind::EQUALS})) {
         const auto operatorSymbol = previous();
@@ -269,7 +269,7 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
 
     if (match(compoundOperators)) {
         const auto operatorSymbol = previous();
-        auto rhs = parseLogicalOrExpression();
+        auto rhs = parseTernaryOperatorExpression();
 
         if (dynamic_cast<VariableExpression *>(expression.get()) || dynamic_cast<IndexExpression *>(expression.get())) {
             return std::make_unique<CompoundAssignmentExpression>(
@@ -289,7 +289,24 @@ std::unique_ptr<Expression> Parser::parseAssignmentExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseLogicalOrExpression() {
+std::unique_ptr<Expr> Parser::parseTernaryOperatorExpression() {
+    auto expression = parseLogicalOrExpression();
+
+    if (match({ TokenKind::QUESTION_MARK })) {
+        auto thenBranch = parseTernaryOperatorExpression();
+        consume(TokenKind::COLON, "expected `:` after `? ...` in ternary expression");
+        auto elseBranch = parseTernaryOperatorExpression();
+        expression = std::make_unique<TernaryOperatorExpression>(
+            std::move(expression),
+            std::move(thenBranch),
+            std::move(elseBranch)
+        );
+    }
+
+    return expression;
+}
+
+std::unique_ptr<Expr> Parser::parseLogicalOrExpression() {
     auto expression = parseLogicalAndExpression();
 
     while (match({TokenKind::OR})) {
@@ -305,7 +322,7 @@ std::unique_ptr<Expression> Parser::parseLogicalOrExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseLogicalAndExpression() {
+std::unique_ptr<Expr> Parser::parseLogicalAndExpression() {
     auto expression = parseBitwiseOrExpression();
 
     while (match({TokenKind::AND})) {
@@ -321,7 +338,7 @@ std::unique_ptr<Expression> Parser::parseLogicalAndExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
+std::unique_ptr<Expr> Parser::parseBitwiseOrExpression() {
     auto expression = parseBitwiseXorExpression();
 
     while (match({TokenKind::PIPE})) {
@@ -337,7 +354,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseOrExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
+std::unique_ptr<Expr> Parser::parseBitwiseXorExpression() {
     auto expression = parseBitwiseAndExpression();
 
     while (match({TokenKind::CARET})) {
@@ -353,7 +370,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseXorExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseBitwiseAndExpression() {
+std::unique_ptr<Expr> Parser::parseBitwiseAndExpression() {
     auto expression = parseEqualityExpression();
 
     while (match({TokenKind::AMPERSAND})) {
@@ -369,7 +386,7 @@ std::unique_ptr<Expression> Parser::parseBitwiseAndExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseEqualityExpression() {
+std::unique_ptr<Expr> Parser::parseEqualityExpression() {
     auto expression = parseComparisonExpression();
 
     while (match({TokenKind::BANG_EQUALS, TokenKind::EQUALS_EQUALS})) {
@@ -385,7 +402,7 @@ std::unique_ptr<Expression> Parser::parseEqualityExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseComparisonExpression() {
+std::unique_ptr<Expr> Parser::parseComparisonExpression() {
     auto expression = parseShiftExpression();
 
     while (match({TokenKind::GREATER, TokenKind::GREATER_EQUALS, TokenKind::LESS, TokenKind::LESS_EQUALS, TokenKind::IN})) {
@@ -401,7 +418,7 @@ std::unique_ptr<Expression> Parser::parseComparisonExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseShiftExpression() {
+std::unique_ptr<Expr> Parser::parseShiftExpression() {
     auto expression = parseTermExpression();
 
     while (match({TokenKind::LEFT_ANGLE, TokenKind::RIGHT_ANGLE})) {
@@ -417,7 +434,7 @@ std::unique_ptr<Expression> Parser::parseShiftExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseTermExpression() {
+std::unique_ptr<Expr> Parser::parseTermExpression() {
     auto expression = parseFactorExpression();
 
     while (match({TokenKind::PLUS, TokenKind::MINUS})) {
@@ -433,7 +450,7 @@ std::unique_ptr<Expression> Parser::parseTermExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseFactorExpression() {
+std::unique_ptr<Expr> Parser::parseFactorExpression() {
     auto expression = parseExponentialExpression();
 
     while (match({TokenKind::MODULO, TokenKind::SLASH, TokenKind::STAR, TokenKind::POWER})) {
@@ -449,7 +466,7 @@ std::unique_ptr<Expression> Parser::parseFactorExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseExponentialExpression() {
+std::unique_ptr<Expr> Parser::parseExponentialExpression() {
     auto expression = parseUnaryExpression();
 
     while (match({TokenKind::POWER})) {
@@ -465,7 +482,7 @@ std::unique_ptr<Expression> Parser::parseExponentialExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parseUnaryExpression() {
+std::unique_ptr<Expr> Parser::parseUnaryExpression() {
     while (match({TokenKind::BANG, TokenKind::MINUS, TokenKind::TILDE, TokenKind::TYPEOF})) {
         const auto operatorSymbol = previous();
         auto rhs = parseUnaryExpression();
@@ -478,7 +495,7 @@ std::unique_ptr<Expression> Parser::parseUnaryExpression() {
     return parsePostfixExpression();
 }
 
-std::unique_ptr<Expression> Parser::parsePostfixExpression() {
+std::unique_ptr<Expr> Parser::parsePostfixExpression() {
     auto expression = parsePrimaryExpression();
 
     while (true) {
@@ -506,7 +523,7 @@ std::unique_ptr<Expression> Parser::parsePostfixExpression() {
     return expression;
 }
 
-std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
+std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     if (match({TokenKind::TRUE})) {
         return std::make_unique<LiteralExpression>(true);
     }
@@ -524,7 +541,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     }
 
     if (match({ TokenKind::F_STRING_START })) {
-        std::vector<std::unique_ptr<Expression>> elements;
+        std::vector<std::unique_ptr<Expr>> elements;
 
         while (!check(TokenKind::F_STRING_END) && !isReachedEnd()) {
             if (match({ TokenKind::F_STRING_SLICE })) {
@@ -542,10 +559,10 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
 
     if (match({ TokenKind::LEFT_BRACKET })) {
         if (match({ TokenKind::RIGHT_BRACKET })) {
-            return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expression>>{});
+            return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expr>>{});
         }
 
-        std::vector<std::unique_ptr<Expression> > elements;
+        std::vector<std::unique_ptr<Expr> > elements;
 
         if (!match({TokenKind::RIGHT_BRACKET})) {
             do {
@@ -560,13 +577,13 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     if (match({ TokenKind::LEFT_BRACE })) {
         if (match({ TokenKind::RIGHT_BRACE })) {
             return std::make_unique<DictionaryLiteralExpression>(
-                std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>>{}
+                std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>{}
             );
         }
 
         auto firstElement = parseExpression();
         if (match({ TokenKind::COLON })) {
-            std::vector<std::pair<std::unique_ptr<Expression>, std::unique_ptr<Expression>>> pairs;
+            std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> pairs;
 
             auto firstValue = parseExpression();
             pairs.emplace_back(std::move(firstElement), std::move(firstValue));
@@ -586,7 +603,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
             return std::make_unique<DictionaryLiteralExpression>(std::move(pairs));
         }
 
-        std::unordered_set<std::unique_ptr<Expression>> elements;
+        std::unordered_set<std::unique_ptr<Expr>> elements;
         elements.insert(std::move(firstElement));
 
         while (match({ TokenKind::COMMA })) {
@@ -606,7 +623,7 @@ std::unique_ptr<Expression> Parser::parsePrimaryExpression() {
     }
 
     if (match({TokenKind::LEFT_PAREN})) {
-        std::unique_ptr<Expression> expression = parseExpression();
+        std::unique_ptr<Expr> expression = parseExpression();
         consume(TokenKind::RIGHT_PAREN, "expected `)` after expression");
         return std::make_unique<GroupingExpression>(std::move(expression));
     }

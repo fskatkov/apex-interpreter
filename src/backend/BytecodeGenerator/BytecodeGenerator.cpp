@@ -23,7 +23,7 @@ void BytecodeGenerator::generate(std::string &source) {
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), 0);
 }
 
-void BytecodeGenerator::compileStatement(Statement *statement) {
+void BytecodeGenerator::compileStatement(Stmt *statement) {
     if (const auto *switchStatement = dynamic_cast<SwitchStatement *>(statement)) {
         compileSwitchStatement(switchStatement);
     } else if (const auto *forStatement = dynamic_cast<ForStatement *>(statement)) {
@@ -315,11 +315,13 @@ void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_PRINT), 0);
 }
 
-void BytecodeGenerator::compileExpression(Expression *originalExpression) {
+void BytecodeGenerator::compileExpression(Expr *originalExpression) {
     if (auto *variableExpression = dynamic_cast<VariableExpression *>(originalExpression)) {
         compileVariableExpression(variableExpression);
     } else if (const auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
         compileAssignmentExpression(assignmentExpression);
+    } else if (const auto *ternaryOperatorExpression = dynamic_cast<TernaryOperatorExpression *>(originalExpression)) {
+        compileTernaryOperatorExpression(ternaryOperatorExpression);
     } else if (const auto *logicalExpression = dynamic_cast<LogicalExpression *>(originalExpression)) {
         compileLogicalExpression(logicalExpression);
     } else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(
@@ -370,6 +372,23 @@ void BytecodeGenerator::compileAssignmentExpression(const AssignmentExpression *
         emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET),
                  originalExpression->equalsToken.sourceLocation.line);
     }
+}
+
+void BytecodeGenerator::compileTernaryOperatorExpression(const TernaryOperatorExpression* originalExpression) {
+    compileExpression(originalExpression->condition.get());
+
+    const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    compileExpression(originalExpression->thenBranch.get());
+
+    const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+
+    patchJump(thenJump);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+
+    compileExpression(originalExpression->elseBranch.get());
+
+    patchJump(elseJump);
 }
 
 void BytecodeGenerator::compileLogicalExpression(const LogicalExpression *originalExpression) {
