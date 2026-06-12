@@ -29,9 +29,21 @@ using Array      = std::vector<Value>;
 using Set        = std::unordered_set<Value, ValueHasher>;
 using Dictionary = std::unordered_map<Value, Value, ValueHasher>;
 
+struct Function {
+    std::string name;
+    int arity;
+    int startingAddress;
+};
+
+struct NativeFunction {
+    std::string name;
+    int arity;
+    std::function<Value(const std::vector<Value> &)> callable;
+};
+
 struct Value {
     using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>, std::shared_ptr<Set>,
-                              std::shared_ptr<Dictionary>>;
+        std::shared_ptr<Dictionary>, std::shared_ptr<Function>, std::shared_ptr<NativeFunction> >;
     Type as;
 
     explicit Value()                         : as(NIL{  }) {  }
@@ -105,6 +117,12 @@ struct Value {
             },
             [](const std::shared_ptr<Dictionary> &val) -> std::string {
                 return "Dictionary";
+            },
+            [](const std::shared_ptr<Function> &val) -> std::string {
+                return "Function(" + std::to_string(val->arity) + " arguments)";
+            },
+            [](const std::shared_ptr<NativeFunction> &val) -> std::string {
+                return "Native_Function(" + std::to_string(val->arity) + " arguments)";
             }
         }, as);
     }
@@ -185,6 +203,13 @@ struct Value {
 
                 result += "}";
                 return result;
+            },
+            [](const std::shared_ptr<Function> &val) -> std::string {
+                return "<func `" + (val ? val->name : "anonymous") + ">` with " + std::to_string(val->arity) + " arguments at "
+                       + std::to_string(val->startingAddress) + " in memory";
+            },
+            [](const std::shared_ptr<NativeFunction> &val) -> std::string {
+                return "<native function `" + (val ? val->name : "anonymous") + "`>";
             }
         }, as);
     }

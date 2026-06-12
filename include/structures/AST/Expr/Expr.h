@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "Common/Common.h"
 #include "structures/Token/Token.h"
 
@@ -119,6 +121,15 @@ struct DictionaryLiteralExpression : Expr {
 
     explicit DictionaryLiteralExpression(std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> pairs)
         : pairs(std::move(pairs)) {  }
+};
+
+struct FunctionCallExpression : Expr {
+    std::unique_ptr<Expr> callee;
+    Token end;
+    std::vector<std::unique_ptr<Expr>> arguments;
+
+    explicit FunctionCallExpression(std::unique_ptr<Expr> callee, Token end, std::vector<std::unique_ptr<Expr>> arguments)
+        : callee(std::move(callee)), end(std::move(end)), arguments(std::move(arguments)) {  }
 };
 
 struct IndexExpression : Expr {

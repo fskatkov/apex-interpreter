@@ -345,6 +345,8 @@ void BytecodeGenerator::compileExpression(Expr *originalExpression) {
         compileSetLiteralExpression(setLiteralExpression);
     } else if (const auto *dictionaryLiteralExpression = dynamic_cast<DictionaryLiteralExpression *>(originalExpression)) {
         compileDictionaryLiteralExpression(dictionaryLiteralExpression);
+    } else if (const auto *functionCallExpression = dynamic_cast<FunctionCallExpression *>(originalExpression)) {
+        compileFunctionCallExpression(functionCallExpression);
     } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression)) {
         compileIndexExpression(indexExpression);
     }
@@ -728,6 +730,16 @@ void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiter
     const auto count = statement->pairs.size();
     emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
     emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
+}
+
+void BytecodeGenerator::compileFunctionCallExpression(const FunctionCallExpression* originalExpression) {
+    compileExpression(originalExpression->callee.get());
+    for (const auto &arg : originalExpression->arguments) {
+        compileExpression(arg.get());
+    }
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CALL), originalExpression->end.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(originalExpression->arguments.size()),
+             originalExpression->end.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileIndexExpression(const IndexExpression *originalExpression) {

@@ -12,6 +12,12 @@ enum class ExecutionResult {
     HALT,
 };
 
+struct Frame {
+    std::shared_ptr<Function> function;
+    const std::uint8_t* address;
+    int stackOffset;
+};
+
 class ExecutionEngine {
 public:
     explicit ExecutionEngine(std::string& source, DiagnosticEngine& diagnosticEngine);
@@ -23,6 +29,7 @@ private:
     std::unordered_map<std::string, Value> globalVariables;
     std::unordered_set<std::string> constants;
     std::unique_ptr<BytecodeBuffer> buffer;
+    std::vector<Frame> frames;
 
     const std::uint8_t* address;
     Array stack;
@@ -77,6 +84,7 @@ private:
     inline ExecutionResult executeLoop();
     inline ExecutionResult executeDuplicate();
     inline ExecutionResult executeDuplicate2();
+    inline ExecutionResult executeFunctionCall();
 
     inline ExecutionResult executeInOperator();
     inline ExecutionResult executeTypeofOperator();

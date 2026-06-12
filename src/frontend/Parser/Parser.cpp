@@ -523,6 +523,41 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
     return expression;
 }
 
+std::unique_ptr<Expr> Parser::parseFunctionCallExpression() {
+    auto expression = parsePrimaryExpression();
+
+    while (true) {
+        if (match({ TokenKind::LEFT_PAREN })) {
+            std::vector<std::unique_ptr<Expr>> arguments;
+
+            if (!check({ TokenKind::RIGHT_PAREN })) {
+                do {
+                    if (arguments.size() >= 255) {
+                        diagnosticEngine.report(
+                            Diagnostic::DiagnosticKind::Error,
+                            SourceLocation{},
+                            "number of argument cannot exceed 255 arguments"
+                        );
+                    }
+
+                    arguments.push_back(parseExpression());
+                } while (match({ TokenKind::COMMA }));
+            }
+
+            auto end = consume(TokenKind::RIGHT_PAREN, "expected `)` at end of argument list");
+            return std::make_unique<FunctionCallExpression>(
+                std::move(expression),
+                end,
+                std::move(arguments)
+            );
+        }
+
+        break;
+    }
+
+    return expression;
+}
+
 std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     if (match({TokenKind::TRUE})) {
         return std::make_unique<LiteralExpression>(true);

@@ -73,6 +73,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_LOOP)] = &ExecutionEngine::executeLoop;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE)] = &ExecutionEngine::executeDuplicate;
     table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2)] = &ExecutionEngine::executeDuplicate2;
+    table[static_cast<std::uint8_t>(InstructionType::OP_CALL)] = &ExecutionEngine::executeFunctionCall;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
     table[static_cast<std::uint8_t>(InstructionType::OP_TYPEOF)] = &ExecutionEngine::executeTypeofOperator;
@@ -775,6 +776,56 @@ inline ExecutionResult ExecutionEngine::executeDuplicate2() {
     return ExecutionResult::OK;
 }
 
+inline ExecutionResult ExecutionEngine::executeFunctionCall() {
+    const auto argCount = readByte();
+    const auto callee = peek(argCount);
+
+    if (callee.is<std::shared_ptr<NativeFunction>>()) {
+        const auto &nativeFunc = callee.get<std::shared_ptr<NativeFunction>>();
+
+        if (argCount != nativeFunc->arity) {
+            reportRuntimeError(
+                "expected " + std::to_string(nativeFunc->arity) + " arguments but got " + std::to_string(argCount));
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        std::vector<Value> args;
+        for (auto i = argCount - 1; i >= 0; --i) {
+            args.push_back(peek(i));
+        }
+
+        auto finalNativeFunc = nativeFunc->callable(args);
+        for (auto i = 0; i < argCount; ++i) {
+            pop();
+        }
+
+        push(finalNativeFunc);
+        return ExecutionResult::OK;
+    }
+
+    if (callee.is<std::shared_ptr<Function>>()) {
+        const auto &func = callee.get<std::shared_ptr<Function>>();
+
+        if (argCount != func->arity) {
+            reportRuntimeError(
+                "expected " + std::to_string(func->arity) + " arguments but got " + std::to_string(argCount));
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        Frame frame;
+        frame.function = func;
+        frame.address = address;
+        frame.stackOffset = static_cast<int>(stack.size()) - argCount - 1;
+
+        frames.push_back(frame);
+        address = buffer->code.data() + func->startingAddress;
+
+        return ExecutionResult::OK;
+    }
+
+    return ExecutionResult::OK;
+}
+
 inline ExecutionResult ExecutionEngine::executeInOperator() {
     const auto rhs = pop();
     const auto lhs = pop();
@@ -827,11 +878,23 @@ inline ExecutionResult ExecutionEngine::executePrint() {
 }
 
 inline ExecutionResult ExecutionEngine::executeReturn() {
-    if (!stack.empty()) {
-        std::cout << stringify(pop()) << "\n";
+    const auto finalValue = pop();
+
+    if (frames.empty()) {
+        std::cout << stringify(finalValue) << "\n";
+        return ExecutionResult::HALT;
     }
 
-    return ExecutionResult::HALT;
+    const auto frame = frames.back();
+    frames.pop_back();
+    address = frame.address;
+
+    while (stack.size() > frame.stackOffset) {
+        pop();
+    }
+
+    push(finalValue);
+    return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeUnknown() {
