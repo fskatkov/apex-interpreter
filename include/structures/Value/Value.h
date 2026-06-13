@@ -35,15 +35,18 @@ struct Function {
     int startingAddress;
 };
 
+struct BoundNativeMethod;
+
 struct NativeFunction {
     std::string name;
     int arity;
-    std::function<Value(const std::vector<Value> &)> callable;
+    std::function<Value(Value receiver, const std::vector<Value> &)> callable;
 };
 
 struct Value {
     using Type = std::variant<double, bool, char, std::string, NIL, std::shared_ptr<Array>, std::shared_ptr<Set>,
-        std::shared_ptr<Dictionary>, std::shared_ptr<Function>, std::shared_ptr<NativeFunction> >;
+        std::shared_ptr<Dictionary>, std::shared_ptr<Function>, std::shared_ptr<NativeFunction>,
+        std::shared_ptr<BoundNativeMethod> >;
     Type as;
 
     explicit Value()                              : as(NIL{  }) {  }
@@ -58,6 +61,7 @@ struct Value {
     Value(std::shared_ptr<Dictionary> val)        : as(std::move(val)) {  }
     Value(std::shared_ptr<Function> val)          : as(std::move(val)) {  }
     Value(std::shared_ptr<NativeFunction> val)    : as(std::move(val)) {  }
+    Value(std::shared_ptr<BoundNativeMethod> val)    : as(std::move(val)) {  }
 
     template<typename T>
     [[nodiscard]] bool is() const {
@@ -125,6 +129,9 @@ struct Value {
             },
             [](const std::shared_ptr<NativeFunction> &val) -> std::string {
                 return "Native_Function(" + std::to_string(val->arity) + " arguments)";
+            },
+            [](const std::shared_ptr<BoundNativeMethod> &val) -> std::string {
+                return "Bound_Method()";
             }
         }, as);
     }
@@ -212,6 +219,9 @@ struct Value {
             },
             [](const std::shared_ptr<NativeFunction> &val) -> std::string {
                 return "<native function `" + (val ? val->name : "anonymous") + "`>";
+            },
+            [](const std::shared_ptr<BoundNativeMethod> &val) -> std::string {
+                return "Bound_Method with zero or some arguments";
             }
         }, as);
     }
@@ -220,3 +230,8 @@ struct Value {
 inline std::size_t ValueHasher::operator()(const Value& v) const noexcept {
     return std::hash<Value::Type>{}(v.as);
 }
+
+struct BoundNativeMethod {
+    Value receiver;
+    std::shared_ptr<NativeFunction> method;
+};

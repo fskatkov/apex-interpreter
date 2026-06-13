@@ -77,6 +77,7 @@ private:
     inline ExecutionResult executeBuildDictionary();
     inline ExecutionResult executeGetIndex();
     inline ExecutionResult executeSetIndex();
+    inline ExecutionResult executeGetProperty();
 
     inline ExecutionResult executeJumpIfFalseOperation();
     inline ExecutionResult executeJumpOperation();

@@ -581,6 +581,9 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
                 end,
                 std::move(arguments)
             );
+        } else if (match({ TokenKind::DOT })) {
+            auto name = consume(TokenKind::IDENTIFIER, "expected property name after `.`");
+            expression = std::make_unique<GetPropertyExpression>(std::move(expression), name);
         } else if (match({TokenKind::INCREMENT, TokenKind::DECREMENT})) {
             const auto operatorSymbol = previous();
             return std::make_unique<UpdateExpression>(

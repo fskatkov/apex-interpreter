@@ -66,6 +66,7 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY)] = &ExecutionEngine::executeBuildDictionary;
     table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET)] = &ExecutionEngine::executeGetIndex;
     table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET)] = &ExecutionEngine::executeSetIndex;
+    table[static_cast<std::uint8_t>(InstructionType::OP_GET_PROPERTY)] = &ExecutionEngine::executeGetProperty;
 
     table[static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE)] = &ExecutionEngine::executeJumpIfFalseOperation;
     table[static_cast<std::uint8_t>(InstructionType::OP_JUMP)] = &ExecutionEngine::executeJumpOperation;
@@ -736,6 +737,16 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
     return ExecutionResult::OK;
 }
 
+inline ExecutionResult ExecutionEngine::executeGetProperty() {
+    const auto name = readConstant().get<std::string>();
+    const auto target = pop();
+
+
+
+    reportRuntimeError("property `" + name + "` does not exist");
+    return ExecutionResult::OK;
+}
+
 inline ExecutionResult ExecutionEngine::executeJumpIfFalseOperation() {
     const auto offset = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
 
@@ -787,29 +798,6 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
     const auto argCount = readByte();
     const auto callee = peek(argCount);
 
-    if (callee.is<std::shared_ptr<NativeFunction>>()) {
-        const auto &nativeFunc = callee.get<std::shared_ptr<NativeFunction>>();
-
-        if (argCount != nativeFunc->arity) {
-            reportRuntimeError(
-                "expected " + std::to_string(nativeFunc->arity) + " arguments but got " + std::to_string(argCount));
-            return ExecutionResult::RUNTIME_ERROR;
-        }
-
-        std::vector<Value> args;
-        for (auto i = argCount - 1; i >= 0; --i) {
-            args.push_back(peek(i));
-        }
-
-        auto finalNativeFunc = nativeFunc->callable(args);
-        for (auto i = 0; i < argCount; ++i) {
-            pop();
-        }
-
-        push(finalNativeFunc);
-        return ExecutionResult::OK;
-    }
-
     if (callee.is<std::shared_ptr<Function>>()) {
         const auto &func = callee.get<std::shared_ptr<Function>>();
 
@@ -826,6 +814,32 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
 
         frames.push_back(frame);
         address = buffer->code.data() + func->startingAddress;
+
+        return ExecutionResult::OK;
+    }
+
+    if (callee.is<std::shared_ptr<BoundNativeMethod>>()) {
+        const auto &bound = callee.get<std::shared_ptr<BoundNativeMethod>>();
+        const auto &nativeFunc = bound->method;
+
+        if (argCount != nativeFunc->arity) {
+            reportRuntimeError(
+                "expected " + std::to_string(nativeFunc->arity) + "arguments but got " + std::to_string(argCount));
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        std::vector<Value> args;
+        for (auto i = argCount - 1; i >= 0; --i) {
+            args.push_back(peek(i));
+        }
+
+        auto result = nativeFunc->callable(bound->receiver, args);
+        for (auto i = 0; i < argCount; ++i) {
+            pop();
+        }
+
+        pop();
+        push(result);
 
         return ExecutionResult::OK;
     }

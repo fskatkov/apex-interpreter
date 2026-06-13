@@ -53,21 +53,22 @@ private:
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expr* originalExpression);
+    void compileFunctionCallExpression(const FunctionCallExpression* originalExpression);
+    void compileVariableExpression(VariableExpression* originalExpression) const;
     void compileAssignmentExpression(const AssignmentExpression* originalExpression);
+    void compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression);
     void compileTernaryOperatorExpression(const TernaryOperatorExpression* originalExpression);
     void compileLogicalExpression(const LogicalExpression* originalExpression);
-    void compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression);
-    void compileUpdateExpression(const UpdateExpression* originalExpression) const;
-    void compileVariableExpression(VariableExpression* originalExpression) const;
     void compileGroupingExpression(const GroupingExpression* originalExpression);
     void compileBinaryExpression(const BinaryExpression* originalExpression);
     void compileUnaryExpression(const UnaryExpression* originalExpression);
+    void compileUpdateExpression(const UpdateExpression* originalExpression) const;
+    void compileGetPropertyExpression(const GetPropertyExpression* originalExpression);
     void compileLiteralExpression(const LiteralExpression* originalExpression) const;
     void compileInterpolatedStringLiteralExpression(const InterpolatedStringLiteralExpression* originalExpression);
     void compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression);
     void compileSetLiteralExpression(const SetLiteralExpression* originalExpression);
     void compileDictionaryLiteralExpression(const DictionaryLiteralExpression* originalExpression);
-    void compileFunctionCallExpression(const FunctionCallExpression* originalExpression);
     void compileIndexExpression(const IndexExpression* originalExpression);
 
     void emitByte(const std::uint8_t& byte, const std::size_t& line) const;

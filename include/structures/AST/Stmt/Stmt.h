@@ -16,6 +16,24 @@ struct FunctionStatement : Stmt {
         : name(std::move(name)), arguments(std::move(arguments)), statements(std::move(statements)) {  }
 };
 
+struct BlockStatement : Stmt {
+    std::vector<std::unique_ptr<Stmt> > statements;
+
+    explicit BlockStatement(std::vector<std::unique_ptr<Stmt> > statements)
+        : statements(std::move(statements)) {
+    }
+};
+
+struct VariableStatement : Stmt {
+    Token name;
+    std::unique_ptr<Expr> initializer;
+    bool isConst;
+
+    explicit VariableStatement(Token name, std::unique_ptr<Expr> initializer, const bool isConst = false)
+        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) {
+    }
+};
+
 struct CaseStatement : Stmt {
     std::unique_ptr<Expr> condition;
     std::unique_ptr<Stmt> body;
@@ -34,20 +52,6 @@ struct SwitchStatement : Stmt {
                              std::unique_ptr<Stmt> defaultCase)
         : condition(std::move(condition)), cases(std::move(cases)), defaultCase(std::move(defaultCase)) {
     }
-};
-
-struct BreakStatement : Stmt {
-    Token keyword;
-
-    explicit BreakStatement(Token keyword)
-        : keyword(std::move(keyword)) {  }
-};
-
-struct ContinueStatement : Stmt {
-    Token keyword;
-
-    explicit ContinueStatement(Token keyword)
-        : keyword(std::move(keyword)) {  }
 };
 
 struct ForStatement : Stmt {
@@ -93,24 +97,6 @@ struct ConditionalStatement : Stmt {
     }
 };
 
-struct BlockStatement : Stmt {
-    std::vector<std::unique_ptr<Stmt> > statements;
-
-    explicit BlockStatement(std::vector<std::unique_ptr<Stmt> > statements)
-        : statements(std::move(statements)) {
-    }
-};
-
-struct VariableStatement : Stmt {
-    Token name;
-    std::unique_ptr<Expr> initializer;
-    bool isConst;
-
-    explicit VariableStatement(Token name, std::unique_ptr<Expr> initializer, const bool isConst = false)
-        : name(std::move(name)), initializer(std::move(initializer)), isConst(isConst) {
-    }
-};
-
 struct PrintStatement : Stmt {
     std::unique_ptr<Expr> expression;
 
@@ -125,6 +111,20 @@ struct ExpressionStatement : Stmt {
     explicit ExpressionStatement(std::unique_ptr<Expr> expression)
         : expression(std::move(expression)) {
     }
+};
+
+struct BreakStatement : Stmt {
+    Token keyword;
+
+    explicit BreakStatement(Token keyword)
+        : keyword(std::move(keyword)) {  }
+};
+
+struct ContinueStatement : Stmt {
+    Token keyword;
+
+    explicit ContinueStatement(Token keyword)
+        : keyword(std::move(keyword)) {  }
 };
 
 struct ReturnStatement : Stmt {

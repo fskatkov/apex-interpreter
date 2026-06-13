@@ -9,6 +9,15 @@ struct Expr {
     virtual ~Expr() = default;
 };
 
+struct FunctionCallExpression : Expr {
+    std::unique_ptr<Expr> callee;
+    Token end;
+    std::vector<std::unique_ptr<Expr>> arguments;
+
+    explicit FunctionCallExpression(std::unique_ptr<Expr> callee, Token end, std::vector<std::unique_ptr<Expr>> arguments)
+        : callee(std::move(callee)), end(std::move(end)), arguments(std::move(arguments)) {  }
+};
+
 struct VariableExpression : Expr {
     Token name;
 
@@ -32,6 +41,19 @@ struct CompoundAssignmentExpression : Expr {
 
     explicit CompoundAssignmentExpression(std::unique_ptr<Expr> lhs, Token operatorSymbol, std::unique_ptr<Expr> rhs)
         : lhs(std::move(lhs)), operatorSymbol(std::move(operatorSymbol)), rhs(std::move(rhs)) {  }
+};
+
+struct TernaryOperatorExpression : Expr {
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<Expr> thenBranch;
+    std::unique_ptr<Expr> elseBranch;
+
+    explicit TernaryOperatorExpression(std::unique_ptr<Expr> condition,
+                                       std::unique_ptr<Expr> thenBranch,
+                                       std::unique_ptr<Expr> elseBranch)
+        : condition(std::move(condition)), thenBranch(std::move(thenBranch)),
+          elseBranch(std::move(elseBranch)) {
+    }
 };
 
 struct LogicalExpression : Expr {
@@ -75,17 +97,12 @@ struct UpdateExpression : Expr {
         : operatorSymbol(std::move(operatorSymbol)), expression(std::move(expression)) {  }
 };
 
-struct TernaryOperatorExpression : Expr {
-    std::unique_ptr<Expr> condition;
-    std::unique_ptr<Expr> thenBranch;
-    std::unique_ptr<Expr> elseBranch;
+struct GetPropertyExpression : Expr {
+    std::unique_ptr<Expr> object;
+    Token name;
 
-    explicit TernaryOperatorExpression(std::unique_ptr<Expr> condition,
-                                       std::unique_ptr<Expr> thenBranch,
-                                       std::unique_ptr<Expr> elseBranch)
-        : condition(std::move(condition)), thenBranch(std::move(thenBranch)),
-          elseBranch(std::move(elseBranch)) {
-    }
+    explicit GetPropertyExpression(std::unique_ptr<Expr> object, Token name)
+        : object(std::move(object)), name(std::move(name)) {  }
 };
 
 struct LiteralExpression : Expr {
@@ -124,15 +141,6 @@ struct DictionaryLiteralExpression : Expr {
 
     explicit DictionaryLiteralExpression(Token brace, std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> pairs)
         : brace(std::move(brace)), pairs(std::move(pairs)) {  }
-};
-
-struct FunctionCallExpression : Expr {
-    std::unique_ptr<Expr> callee;
-    Token end;
-    std::vector<std::unique_ptr<Expr>> arguments;
-
-    explicit FunctionCallExpression(std::unique_ptr<Expr> callee, Token end, std::vector<std::unique_ptr<Expr>> arguments)
-        : callee(std::move(callee)), end(std::move(end)), arguments(std::move(arguments)) {  }
 };
 
 struct IndexExpression : Expr {

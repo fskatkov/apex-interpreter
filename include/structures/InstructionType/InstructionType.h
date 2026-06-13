@@ -38,6 +38,7 @@ enum class InstructionType {
     OP_SET_LOCAL,
     OP_INDEX_GET,
     OP_INDEX_SET,
+    OP_GET_PROPERTY,
 
     OP_JUMP_IF_FALSE,
     OP_JUMP,
