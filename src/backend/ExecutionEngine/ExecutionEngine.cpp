@@ -885,12 +885,15 @@ inline ExecutionResult ExecutionEngine::executePrint() {
 }
 
 inline ExecutionResult ExecutionEngine::executeReturn() {
-    const auto finalValue = pop();
-
     if (frames.empty()) {
-        std::cout << stringify(finalValue) << "\n";
+        if (!stack.empty()) {
+            std::cout << stringify(pop()) << "\n";
+        }
+
         return ExecutionResult::HALT;
     }
+
+    const auto finalValue = pop();
 
     const auto frame = frames.back();
     frames.pop_back();
