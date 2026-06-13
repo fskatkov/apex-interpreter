@@ -18,3 +18,4 @@
 #include <variant>
 #include <utility>
 #include <ranges>
+#include <stdexcept>

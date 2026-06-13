@@ -829,7 +829,7 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
 
         if (argCount != nativeFunc->arity) {
             reportRuntimeError(
-                "expected " + std::to_string(nativeFunc->arity) + "arguments but got " + std::to_string(argCount));
+                "expected " + std::to_string(nativeFunc->arity) + " arguments but got " + std::to_string(argCount));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -838,13 +838,20 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
             args.push_back(peek(i));
         }
 
-        auto result = nativeFunc->callable(bound->receiver, args);
+        Value finalValue;
+        try {
+            finalValue = nativeFunc->callable(bound->receiver, args);
+        } catch (const std::runtime_error &error) {
+            reportRuntimeError(error.what());
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
         for (auto i = 0; i < argCount; ++i) {
             pop();
         }
 
         pop();
-        push(result);
+        push(finalValue);
 
         return ExecutionResult::OK;
     }
@@ -981,7 +988,7 @@ Value ExecutionEngine::peek(const int &distance) const {
 }
 
 void ExecutionEngine::registerStandardLibrary() {
-    stdlib::ArrayLib::registerMethods(this->arrayMethods);
+    stdlib::ArrayBuiltins::registerMethods(this->arrayMethods);
 }
 
 std::shared_ptr<NativeFunction> ExecutionEngine::getArrayMethod(const std::string &name) {

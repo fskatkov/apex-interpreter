@@ -4,7 +4,7 @@
 #include "diagnostics/DiagnosticEngine.h"
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
-#include "stdlib/ArrayLib/ArrayLib.h"
+#include "stdlib/ArrayLib/ArrayBuiltins.h"
 
 enum class ExecutionResult {
     COMPILETIME_ERROR,
