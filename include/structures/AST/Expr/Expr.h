@@ -103,24 +103,27 @@ struct InterpolatedStringLiteralExpression : Expr {
 };
 
 struct ArrayLiteralExpression : Expr {
+    Token bracket;
     std::vector<std::unique_ptr<Expr>> elements;
 
-    explicit ArrayLiteralExpression(std::vector<std::unique_ptr<Expr>> elements)
-        : elements(std::move(elements)) {  }
+    explicit ArrayLiteralExpression(Token bracket, std::vector<std::unique_ptr<Expr>> elements)
+        : bracket(std::move(bracket)), elements(std::move(elements)) {  }
 };
 
 struct SetLiteralExpression : Expr {
+    Token brace;
     std::unordered_set<std::unique_ptr<Expr>> elements;
 
-    explicit SetLiteralExpression(std::unordered_set<std::unique_ptr<Expr>> elements)
-        : elements(std::move(elements)) {  }
+    explicit SetLiteralExpression(Token brace, std::unordered_set<std::unique_ptr<Expr>> elements)
+        : brace(std::move(brace)), elements(std::move(elements)) {  }
 };
 
 struct DictionaryLiteralExpression : Expr {
+    Token brace;
     std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> pairs;
 
-    explicit DictionaryLiteralExpression(std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> pairs)
-        : pairs(std::move(pairs)) {  }
+    explicit DictionaryLiteralExpression(Token brace, std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>> pairs)
+        : brace(std::move(brace)), pairs(std::move(pairs)) {  }
 };
 
 struct FunctionCallExpression : Expr {

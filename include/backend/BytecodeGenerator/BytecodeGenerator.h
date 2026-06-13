@@ -49,6 +49,7 @@ private:
     void compileVariableStatement(VariableStatement* statement);
     void compileFunctionStatement(FunctionStatement* statement);
     void compileExpressionStatement(const ExpressionStatement* statement);
+    void compileReturnStatement(const ReturnStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expr* originalExpression);
@@ -65,7 +66,7 @@ private:
     void compileInterpolatedStringLiteralExpression(const InterpolatedStringLiteralExpression* originalExpression);
     void compileArrayLiteralExpression(const ArrayLiteralExpression* originalExpression);
     void compileSetLiteralExpression(const SetLiteralExpression* originalExpression);
-    void compileDictionaryLiteralExpression(const DictionaryLiteralExpression* statement);
+    void compileDictionaryLiteralExpression(const DictionaryLiteralExpression* originalExpression);
     void compileFunctionCallExpression(const FunctionCallExpression* originalExpression);
     void compileIndexExpression(const IndexExpression* originalExpression);
 

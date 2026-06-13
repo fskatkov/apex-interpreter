@@ -61,6 +61,10 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
         return parseBlockStatement();
     }
 
+    if (match({ TokenKind::RETURN })) {
+        return parseReturnStatement();
+    }
+
     if (match({TokenKind::PRINT})) {
         return parsePrintStatement();
     }
@@ -218,6 +222,16 @@ std::unique_ptr<Stmt> Parser::parseExpressionStatement() {
     auto expression = parseExpression();
     consume(TokenKind::SEMICOLON, "expected `;` at end of expression");
     return std::make_unique<ExpressionStatement>(std::move(expression));
+}
+
+std::unique_ptr<Stmt> Parser::parseReturnStatement() {
+    auto keyword = previous();
+    std::unique_ptr<Expr> value;
+    if (!check({ TokenKind::SEMICOLON })) {
+        value = parseExpression();
+    }
+    consume(TokenKind::SEMICOLON, "expected `;` at end of `return` statement");
+    return std::make_unique<ReturnStatement>(std::move(keyword), std::move(value));
 }
 
 std::unique_ptr<Stmt> Parser::parseVariableDeclarationStatement(bool isConst) {
@@ -544,25 +558,7 @@ std::unique_ptr<Expr> Parser::parsePostfixExpression() {
                 bracket,
                 std::move(index)
             );
-        } else if (match({TokenKind::INCREMENT, TokenKind::DECREMENT})) {
-            const auto operatorSymbol = previous();
-            return std::make_unique<UpdateExpression>(
-                operatorSymbol,
-                std::move(expression)
-            );
-        } else {
-            break;
-        }
-    }
-
-    return expression;
-}
-
-std::unique_ptr<Expr> Parser::parseFunctionCallExpression() {
-    auto expression = parsePrimaryExpression();
-
-    while (true) {
-        if (match({ TokenKind::LEFT_PAREN })) {
+        } else if (match({ TokenKind::LEFT_PAREN })) {
             std::vector<std::unique_ptr<Expr>> arguments;
 
             if (!check({ TokenKind::RIGHT_PAREN })) {
@@ -570,7 +566,7 @@ std::unique_ptr<Expr> Parser::parseFunctionCallExpression() {
                     if (arguments.size() >= 255) {
                         diagnosticEngine.report(
                             Diagnostic::DiagnosticKind::Error,
-                            SourceLocation{},
+                            peek().sourceLocation,
                             "function call cannot contain more than 255 arguments"
                         );
                     }
@@ -580,14 +576,20 @@ std::unique_ptr<Expr> Parser::parseFunctionCallExpression() {
             }
 
             auto end = consume(TokenKind::RIGHT_PAREN, "expected `)` at end of argument list");
-            return std::make_unique<FunctionCallExpression>(
+            expression = std::make_unique<FunctionCallExpression>(
                 std::move(expression),
                 end,
                 std::move(arguments)
             );
+        } else if (match({TokenKind::INCREMENT, TokenKind::DECREMENT})) {
+            const auto operatorSymbol = previous();
+            return std::make_unique<UpdateExpression>(
+                operatorSymbol,
+                std::move(expression)
+            );
+        } else {
+            break;
         }
-
-        break;
     }
 
     return expression;
@@ -628,8 +630,10 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
     }
 
     if (match({ TokenKind::LEFT_BRACKET })) {
+        auto bracket = previous();
+
         if (match({ TokenKind::RIGHT_BRACKET })) {
-            return std::make_unique<ArrayLiteralExpression>(std::vector<std::unique_ptr<Expr>>{});
+            return std::make_unique<ArrayLiteralExpression>(bracket, std::vector<std::unique_ptr<Expr>>{});
         }
 
         std::vector<std::unique_ptr<Expr> > elements;
@@ -641,12 +645,15 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
         }
 
         consume(TokenKind::RIGHT_BRACKET, "expected `]` in container literal expression");
-        return std::make_unique<ArrayLiteralExpression>(std::move(elements));
+        return std::make_unique<ArrayLiteralExpression>(bracket, std::move(elements));
     }
 
     if (match({ TokenKind::LEFT_BRACE })) {
+        auto brace = previous();
+
         if (match({ TokenKind::RIGHT_BRACE })) {
             return std::make_unique<DictionaryLiteralExpression>(
+                brace,
                 std::vector<std::pair<std::unique_ptr<Expr>, std::unique_ptr<Expr>>>{}
             );
         }
@@ -670,7 +677,7 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
             }
 
             consume(TokenKind::RIGHT_BRACE, "expected `}` at end of container literal expression");
-            return std::make_unique<DictionaryLiteralExpression>(std::move(pairs));
+            return std::make_unique<DictionaryLiteralExpression>(brace, std::move(pairs));
         }
 
         std::unordered_set<std::unique_ptr<Expr>> elements;
@@ -685,7 +692,7 @@ std::unique_ptr<Expr> Parser::parsePrimaryExpression() {
         }
 
         consume(TokenKind::RIGHT_BRACE, "expected `}` in container literal expression");
-        return std::make_unique<SetLiteralExpression>(std::move(elements));
+        return std::make_unique<SetLiteralExpression>(brace, std::move(elements));
     }
 
     if (match({TokenKind::IDENTIFIER})) {

@@ -126,3 +126,11 @@ struct ExpressionStatement : Stmt {
         : expression(std::move(expression)) {
     }
 };
+
+struct ReturnStatement : Stmt {
+    Token keyword;
+    std::unique_ptr<Expr> value;
+
+    explicit ReturnStatement(Token keyword, std::unique_ptr<Expr> value)
+        : keyword(std::move(keyword)), value(std::move(value)) {  }
+};

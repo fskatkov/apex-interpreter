@@ -44,6 +44,8 @@ void BytecodeGenerator::compileStatement(Stmt *statement) {
         compileFunctionStatement(functionStatement);
     } else if (const auto *expressionStatement = dynamic_cast<ExpressionStatement *>(statement)) {
         compileExpressionStatement(expressionStatement);
+    } else if (const auto *returnStatement = dynamic_cast<ReturnStatement *>(statement)) {
+        compileReturnStatement(returnStatement);
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
         compilePrintStatement(printStatement);
     }
@@ -306,8 +308,6 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
 }
 
 void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
-    const auto line = statement->name.sourceLocation.line;
-
     const auto overBodyJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
     const auto startingAddress = static_cast<int>(buffer->code.size());
 
@@ -317,7 +317,9 @@ void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
         locals.emplace_back(arg, scopeDepth);
     }
 
-    compileStatement(statement->statements.get());
+    if (const auto *blockStatement = dynamic_cast<BlockStatement *>(statement->statements.get())) {
+        compileBlockStatement(blockStatement);
+    }
 
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), 0);
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), 0);
@@ -331,17 +333,27 @@ void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
         static_cast<int>(statement->arguments.size()),
         startingAddress
     ));
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), line);
-    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), statement->name.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 
     buffer->values.emplace_back(statement->name.lexeme);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL), line);
-    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL), statement->name.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement *statement) {
     compileExpression(statement->expression.get());
     emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+}
+
+void BytecodeGenerator::compileReturnStatement(const ReturnStatement* statement) {
+    if (statement->value) {
+        compileExpression(statement->value.get());
+    } else {
+        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), statement->keyword.sourceLocation.line);
+    }
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), statement->keyword.sourceLocation.line);
 }
 
 void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
@@ -734,11 +746,12 @@ void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpressi
         compileExpression(element.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY), 0);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY),
+             originalExpression->bracket.sourceLocation.line);
 
     const auto count = originalExpression->elements.size();
-    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
-    emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
+    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), originalExpression->bracket.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(count & 0xff), originalExpression->bracket.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileSetLiteralExpression(const SetLiteralExpression* originalExpression) {
@@ -746,24 +759,24 @@ void BytecodeGenerator::compileSetLiteralExpression(const SetLiteralExpression* 
         compileExpression(element.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET), 0);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET), originalExpression->brace.sourceLocation.line);
 
     const auto count = originalExpression->elements.size();
-    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
-    emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
+    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), originalExpression->brace.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(count & 0xff), originalExpression->brace.sourceLocation.line);
 }
 
-void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiteralExpression* statement) {
-    for (const auto&[first, second] : statement->pairs) {
+void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiteralExpression* originalExpression) {
+    for (const auto&[first, second] : originalExpression->pairs) {
         compileExpression(first.get());
         compileExpression(second.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY), 0);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY), originalExpression->brace.sourceLocation.line);
 
-    const auto count = statement->pairs.size();
-    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
-    emitByte(static_cast<std::uint8_t>(count & 0xff), 0);
+    const auto count = originalExpression->pairs.size();
+    emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), originalExpression->brace.sourceLocation.line);
+    emitByte(static_cast<std::uint8_t>(count & 0xff), originalExpression->brace.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileFunctionCallExpression(const FunctionCallExpression* originalExpression) {

@@ -27,6 +27,7 @@ private:
     std::unique_ptr<Stmt> parseBlockStatement();
     std::unique_ptr<Stmt> parsePrintStatement();
     std::unique_ptr<Stmt> parseExpressionStatement();
+    std::unique_ptr<Stmt> parseReturnStatement();
     std::unique_ptr<Stmt> parseVariableDeclarationStatement(bool isConst);
     std::unique_ptr<Stmt> parseFunctionDeclarationStatement();
 
@@ -46,7 +47,6 @@ private:
     std::unique_ptr<Expr> parseExponentialExpression();
     std::unique_ptr<Expr> parseUnaryExpression();
     std::unique_ptr<Expr> parsePostfixExpression();
-    std::unique_ptr<Expr> parseFunctionCallExpression();
     std::unique_ptr<Expr> parsePrimaryExpression();
 
     bool match(std::initializer_list<TokenKind> kinds);
