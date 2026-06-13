@@ -555,7 +555,14 @@ inline ExecutionResult ExecutionEngine::executeSetGlobalVariable() {
 }
 
 inline ExecutionResult ExecutionEngine::executeGetLocalVariable() {
-    push(stack[readByte()]);
+    const auto index = readByte();
+
+    if (frames.empty()) {
+        push(stack[index]);
+    } else {
+        push(stack[frames.back().stackOffset + index + 1]);
+    }
+
     return ExecutionResult::OK;
 }
 

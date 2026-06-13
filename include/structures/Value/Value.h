@@ -46,16 +46,18 @@ struct Value {
         std::shared_ptr<Dictionary>, std::shared_ptr<Function>, std::shared_ptr<NativeFunction> >;
     Type as;
 
-    explicit Value()                         : as(NIL{  }) {  }
-    Value(double val)                        : as(val) {  }
-    Value(bool val)                          : as(val) {  }
-    Value(char val)                          : as(val) {  }
-    Value(const char* val)                   : as(std::string(val)) {  }
-    Value(std::string val)                   : as(std::move(val)) {  }
-    Value(NIL val)                           : as(val) {  }
-    Value(std::shared_ptr<Array> val)        : as(std::move(val)) {  }
-    Value(std::shared_ptr<Set> val)          : as(std::move(val)) {  }
-    Value(std::shared_ptr<Dictionary> val)   : as(std::move(val)) {  }
+    explicit Value()                              : as(NIL{  }) {  }
+    Value(double val)                             : as(val) {  }
+    Value(bool val)                               : as(val) {  }
+    Value(char val)                               : as(val) {  }
+    Value(const char* val)                        : as(std::string(val)) {  }
+    Value(std::string val)                        : as(std::move(val)) {  }
+    Value(NIL val)                                : as(val) {  }
+    Value(std::shared_ptr<Array> val)             : as(std::move(val)) {  }
+    Value(std::shared_ptr<Set> val)               : as(std::move(val)) {  }
+    Value(std::shared_ptr<Dictionary> val)        : as(std::move(val)) {  }
+    Value(std::shared_ptr<Function> val)          : as(std::move(val)) {  }
+    Value(std::shared_ptr<NativeFunction> val)    : as(std::move(val)) {  }
 
     template<typename T>
     [[nodiscard]] bool is() const {

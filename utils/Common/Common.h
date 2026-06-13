@@ -17,3 +17,4 @@
 #include <functional>
 #include <variant>
 #include <utility>
+#include <ranges>

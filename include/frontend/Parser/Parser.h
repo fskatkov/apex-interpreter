@@ -28,6 +28,7 @@ private:
     std::unique_ptr<Stmt> parsePrintStatement();
     std::unique_ptr<Stmt> parseExpressionStatement();
     std::unique_ptr<Stmt> parseVariableDeclarationStatement(bool isConst);
+    std::unique_ptr<Stmt> parseFunctionDeclarationStatement();
 
     std::unique_ptr<Expr> parseExpression();
     std::unique_ptr<Expr> parseAssignmentExpression();

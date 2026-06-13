@@ -47,6 +47,7 @@ private:
     void compileConditionalStatement(const ConditionalStatement* statement);
     void compileBlockStatement(const BlockStatement* statement);
     void compileVariableStatement(VariableStatement* statement);
+    void compileFunctionStatement(FunctionStatement* statement);
     void compileExpressionStatement(const ExpressionStatement* statement);
     void compilePrintStatement(const PrintStatement* statement);
 

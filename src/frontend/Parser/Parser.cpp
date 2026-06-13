@@ -13,6 +13,10 @@ std::vector<std::unique_ptr<Stmt> > Parser::parse() {
 }
 
 std::unique_ptr<Stmt> Parser::parseDeclarationStatement() {
+    if (match({ TokenKind::FUNCTION })) {
+        return parseFunctionDeclarationStatement();
+    }
+
     if (match({TokenKind::VAR})) {
         return parseVariableDeclarationStatement(false);
     }
@@ -233,6 +237,37 @@ std::unique_ptr<Stmt> Parser::parseVariableDeclarationStatement(bool isConst) {
 
     consume(TokenKind::SEMICOLON, "expected `;` at end of variable declaration");
     return std::make_unique<VariableStatement>(name, std::move(initializer), isConst);
+}
+
+std::unique_ptr<Stmt> Parser::parseFunctionDeclarationStatement() {
+    auto name = consume(TokenKind::IDENTIFIER, "expected function name");
+    consume(TokenKind::LEFT_PAREN, "expected `(` before the argument list");
+
+    std::vector<Token> arguments;
+    if (!check({ TokenKind::RIGHT_PAREN })) {
+        do {
+            if (arguments.size() >= 255) {
+                diagnosticEngine.report(
+                    Diagnostic::DiagnosticKind::Error,
+                    arguments.back().sourceLocation,
+                    "argument list cannot exceed 255 arguments"
+                );
+
+                return nullptr;
+            }
+
+            arguments.push_back(consume(TokenKind::IDENTIFIER, "expected argument name"));
+        } while (match({ TokenKind::COMMA }));
+    }
+
+    consume(TokenKind::RIGHT_PAREN, "expected `)` at end of argument list");
+    consume(TokenKind::LEFT_BRACE, "expected `{` before function body");
+    std::unique_ptr<Stmt> body = parseBlockStatement();
+    return std::make_unique<FunctionStatement>(
+        name,
+        arguments,
+        std::move(body)
+    );
 }
 
 std::unique_ptr<Expr> Parser::parseExpression() {
@@ -536,7 +571,7 @@ std::unique_ptr<Expr> Parser::parseFunctionCallExpression() {
                         diagnosticEngine.report(
                             Diagnostic::DiagnosticKind::Error,
                             SourceLocation{},
-                            "number of argument cannot exceed 255 arguments"
+                            "function call cannot contain more than 255 arguments"
                         );
                     }
 

@@ -1,7 +1,5 @@
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
 
-#include <ranges>
-
 BytecodeGenerator::BytecodeGenerator(DiagnosticEngine &diagnosticEngine)
     : buffer(nullptr), diagnosticEngine(diagnosticEngine), lexer(nullptr), parser(nullptr) {
 }
@@ -42,6 +40,8 @@ void BytecodeGenerator::compileStatement(Stmt *statement) {
         compileBlockStatement(blockStatement);
     } else if (auto *variableStatement = dynamic_cast<VariableStatement *>(statement)) {
         compileVariableStatement(variableStatement);
+    } else if (auto *functionStatement = dynamic_cast<FunctionStatement *>(statement)) {
+        compileFunctionStatement(functionStatement);
     } else if (const auto *expressionStatement = dynamic_cast<ExpressionStatement *>(statement)) {
         compileExpressionStatement(expressionStatement);
     } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
@@ -303,6 +303,40 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
         statement->name.sourceLocation.line
     );
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
+}
+
+void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
+    const auto line = statement->name.sourceLocation.line;
+
+    const auto overBodyJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+    const auto startingAddress = static_cast<int>(buffer->code.size());
+
+    beginScope();
+
+    for (const auto &arg : statement->arguments) {
+        locals.emplace_back(arg, scopeDepth);
+    }
+
+    compileStatement(statement->statements.get());
+
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), 0);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), 0);
+
+    endScope();
+
+    patchJump(overBodyJump);
+
+    buffer->values.emplace_back(std::make_shared<Function>(
+        statement->name.lexeme,
+        static_cast<int>(statement->arguments.size()),
+        startingAddress
+    ));
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), line);
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
+
+    buffer->values.emplace_back(statement->name.lexeme);
+    emitByte(static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL), line);
+    emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
 }
 
 void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement *statement) {

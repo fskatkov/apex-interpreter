@@ -7,6 +7,15 @@ struct Stmt {
     virtual ~Stmt() = default;
 };
 
+struct FunctionStatement : Stmt {
+    Token name;
+    std::vector<Token> arguments;
+    std::unique_ptr<Stmt> statements;
+
+    explicit FunctionStatement(Token name, std::vector<Token> arguments, std::unique_ptr<Stmt> statements)
+        : name(std::move(name)), arguments(std::move(arguments)), statements(std::move(statements)) {  }
+};
+
 struct CaseStatement : Stmt {
     std::unique_ptr<Expr> condition;
     std::unique_ptr<Stmt> body;
