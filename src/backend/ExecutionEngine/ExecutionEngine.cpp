@@ -3,6 +3,7 @@
 ExecutionEngine::ExecutionEngine(std::string &source, DiagnosticEngine &diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), source(source), buffer(nullptr), address(nullptr) {
     stack.reserve(256);
+    registerStandardLibrary();
 }
 
 ExecutionResult ExecutionEngine::run() {
@@ -739,9 +740,13 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
 
 inline ExecutionResult ExecutionEngine::executeGetProperty() {
     const auto name = readConstant().get<std::string>();
-    const auto target = pop();
 
-
+    if (const auto target = pop(); target.is<std::shared_ptr<Array>>()) {
+        if (auto method = getArrayMethod(name)) {
+            push(std::make_shared<BoundNativeMethod>(target, method));
+            return ExecutionResult::OK;
+        }
+    }
 
     reportRuntimeError("property `" + name + "` does not exist");
     return ExecutionResult::OK;
@@ -973,6 +978,18 @@ Value ExecutionEngine::pop() {
 
 Value ExecutionEngine::peek(const int &distance) const {
     return stack[stack.size() - distance - 1];
+}
+
+void ExecutionEngine::registerStandardLibrary() {
+    stdlib::ArrayLib::registerMethods(this->arrayMethods);
+}
+
+std::shared_ptr<NativeFunction> ExecutionEngine::getArrayMethod(const std::string &name) {
+    if (arrayMethods.contains(name)) {
+        return arrayMethods[name];
+    }
+
+    return nullptr;
 }
 
 std::string ExecutionEngine::stringify(const Value& value, bool isNested) {

@@ -4,6 +4,7 @@
 #include "diagnostics/DiagnosticEngine.h"
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
+#include "stdlib/ArrayLib/ArrayLib.h"
 
 enum class ExecutionResult {
     COMPILETIME_ERROR,
@@ -30,6 +31,7 @@ private:
     std::unordered_set<std::string> constants;
     std::unique_ptr<BytecodeBuffer> buffer;
     std::vector<Frame> frames;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> arrayMethods;
 
     const std::uint8_t* address;
     Array stack;
@@ -108,6 +110,9 @@ private:
     void push(const Value& value);
     Value pop();
     [[nodiscard]] Value peek(const int& distance) const;
+
+    void registerStandardLibrary();
+    std::shared_ptr<NativeFunction> getArrayMethod(const std::string &name);
 
     [[nodiscard]] static std::string stringify(const Value& value, bool isNested = false);
     void reportRuntimeError(const std::string& message);
