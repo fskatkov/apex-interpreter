@@ -27,8 +27,10 @@ add_executable(apex_interpreter main.cpp
         src/backend/BytecodeGenerator/BytecodeGenerator.cpp
         include/structures/AST/Stmt/Stmt.h
         include/structures/Value/Value.h
-        include/stdlib/ArrayLib/ArrayBuiltins.h
-        src/stdlib/ArrayLib/ArrayBuiltins.cpp
+        include/stdlib/ArrayBuiltins/ArrayBuiltins.h
+        src/stdlib/ArrayBuiltins/ArrayBuiltins.cpp
+        include/stdlib/SetBuiltins/SetBuiltins.h
+        src/stdlib/SetBuiltins/SetBuiltins.cpp
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)

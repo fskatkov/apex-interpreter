@@ -1,4 +1,4 @@
-#include "stdlib/ArrayLib/ArrayBuiltins.h"
+#include "stdlib/ArrayBuiltins/ArrayBuiltins.h"
 
 namespace stdlib::ArrayBuiltins {
     static Value retrieveArraySize(Value receiver, const std::vector<Value> &args) {

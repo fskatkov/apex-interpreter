@@ -746,6 +746,11 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
+    } else if (target.is<std::shared_ptr<Set>>()) {
+        if (auto method = getSetMethod(name)) {
+            push(std::make_shared<BoundNativeMethod>(target, method));
+            return ExecutionResult::OK;
+        }
     }
 
     reportRuntimeError("property `" + name + "` does not exist");
@@ -989,11 +994,20 @@ Value ExecutionEngine::peek(const int &distance) const {
 
 void ExecutionEngine::registerStandardLibrary() {
     stdlib::ArrayBuiltins::registerMethods(this->arrayMethods);
+    stdlib::SetBuiltins::registerMethods(this->setMethods);
 }
 
 std::shared_ptr<NativeFunction> ExecutionEngine::getArrayMethod(const std::string &name) {
     if (arrayMethods.contains(name)) {
         return arrayMethods[name];
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<NativeFunction> ExecutionEngine::getSetMethod(const std::string &name) {
+    if (setMethods.contains(name)) {
+        return setMethods[name];
     }
 
     return nullptr;
