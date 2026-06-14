@@ -15,6 +15,26 @@ namespace stdlib::SetBuiltins {
         return receiver;
     }
 
+    static Value insertSetElement(Value receiver, const std::vector<Value> &args) {
+        const auto receivedObject = receiver.get<std::shared_ptr<Set>>();
+        auto [it, success] = receivedObject->emplace(args[0]);
+        return success;
+    }
+
+    static Value removeSetElement(Value receiver, const std::vector<Value> &args) {
+        const auto receivedObject = receiver.get<std::shared_ptr<Set>>();
+        if (const auto it = receivedObject->find(args[0]); it != receivedObject->end()) {
+            receivedObject->erase(it);
+            return true;
+        }
+        return false;
+    }
+
+    static Value containsSetElement(Value receiver, const std::vector<Value> &args) {
+        const auto receivedObject = receiver.get<std::shared_ptr<Set>>();
+        return receivedObject->contains(args[0]);
+    }
+
     static Value applySetUnion(Value receiver, const std::vector<Value> &args) {
         const auto receivedObject = receiver.get<std::shared_ptr<Set>>();
 
@@ -96,14 +116,34 @@ namespace stdlib::SetBuiltins {
         return std::make_shared<Set>(symmetricDifferenceSet);
     }
 
+    static Value createSetClone(Value receiver, const std::vector<Value> &args) {
+        return receiver.get<std::shared_ptr<Set>>();
+    }
+
+    static Value convertSetToArray(Value receiver, const std::vector<Value> &args) {
+        const auto receivedObject = receiver.get<std::shared_ptr<Set>>();
+
+        Array convertedArray;
+        convertedArray.reserve(receivedObject->size());
+        convertedArray.insert(convertedArray.end(), receivedObject->begin(), receivedObject->end());
+        return std::make_shared<Array>(convertedArray);
+    }
+
     void registerMethods(std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& registry) {
         registry["size"] = std::make_shared<NativeFunction>("size", 0, retrieveSetSize);
         registry["isEmpty"] = std::make_shared<NativeFunction>("isEmpty", 0, checkSetEmptiness);
         registry["clear"] = std::make_shared<NativeFunction>("clear", 0, clearSet);
 
+        registry["insert"] = std::make_shared<NativeFunction>("insert", 1, insertSetElement);
+        registry["remove"] = std::make_shared<NativeFunction>("remove", 1, removeSetElement);
+        registry["contains"] = std::make_shared<NativeFunction>("contains", 1, containsSetElement);
+
         registry["union"] = std::make_shared<NativeFunction>("union", 1, applySetUnion);
         registry["intersection"] = std::make_shared<NativeFunction>("intersection", 1, applySetIntersection);
         registry["difference"] = std::make_shared<NativeFunction>("difference", 1, applySetDifference);
         registry["symmetricDifference"] = std::make_shared<NativeFunction>("symmetricDifference", 1, applySymmetricDifference);
+
+        registry["copy"] = std::make_shared<NativeFunction>("copy", 0, createSetClone);
+        registry["toArray"] = std::make_shared<NativeFunction>("toArray", 0, convertSetToArray);
     }
 }

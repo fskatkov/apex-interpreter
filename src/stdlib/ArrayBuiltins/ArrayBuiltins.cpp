@@ -165,7 +165,7 @@ namespace stdlib::ArrayBuiltins {
     static Value containsValue(Value receiver, const std::vector<Value> &args) {
         const auto receivedObject = receiver.get<std::shared_ptr<Array>>();
         const auto it = std::ranges::find(*receivedObject, args[0]);
-        return it != receivedObject->end() ? true : false;
+        return it != receivedObject->end();
     }
 
     void registerMethods(std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& registry) {
@@ -187,6 +187,6 @@ namespace stdlib::ArrayBuiltins {
         registry["concat"] = std::make_shared<NativeFunction>("concat", 1, concatenateTwoArrays);
         registry["indexOf"] = std::make_shared<NativeFunction>("indexOf", 1, retrieveFirstIndexOfArrayElement);
         registry["lastIndexOf"] = std::make_shared<NativeFunction>("lastIndexOf", 1, retrieveLastIndexOfArrayElement);
-        registry["contains"] = std::make_shared<NativeFunction>("contains", 1, retrieveLastIndexOfArrayElement);
+        registry["contains"] = std::make_shared<NativeFunction>("contains", 1, containsValue);
     }
 }
