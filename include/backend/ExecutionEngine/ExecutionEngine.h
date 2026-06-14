@@ -22,8 +22,8 @@ struct Frame {
 
 class ExecutionEngine {
 public:
-    explicit ExecutionEngine(std::string& source, DiagnosticEngine& diagnosticEngine);
-    ExecutionResult run();
+    explicit ExecutionEngine(DiagnosticEngine& diagnosticEngine);
+    ExecutionResult run(const std::string &input);
 private:
     DiagnosticEngine& diagnosticEngine;
     std::string source;

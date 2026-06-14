@@ -1,12 +1,14 @@
 #include "backend/ExecutionEngine/ExecutionEngine.h"
 
-ExecutionEngine::ExecutionEngine(std::string &source, DiagnosticEngine &diagnosticEngine)
-    : diagnosticEngine(diagnosticEngine), source(source), buffer(nullptr), address(nullptr) {
+ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine)
+    : diagnosticEngine(diagnosticEngine), buffer(nullptr), address(nullptr) {
     stack.reserve(256);
     registerStandardLibrary();
 }
 
-ExecutionResult ExecutionEngine::run() {
+ExecutionResult ExecutionEngine::run(const std::string &input) {
+    source = input;
+
     BytecodeGenerator generator(diagnosticEngine);
     generator.generate(source);
 
