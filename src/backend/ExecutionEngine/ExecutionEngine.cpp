@@ -738,7 +738,7 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
     }
 
     return ExecutionResult::OK;
-}
+}   
 
 inline ExecutionResult ExecutionEngine::executeGetProperty() {
     const auto name = readConstant().get<std::string>();
@@ -755,6 +755,11 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
         }
     } else if (target.is<std::shared_ptr<Dictionary>>()) {
         if (auto method = getDictionaryMethod(name)) {
+            push(std::make_shared<BoundNativeMethod>(target, method));
+            return ExecutionResult::OK;
+        }
+    } else if (target.is<std::string>()) {
+        if (auto method = getStringMethod(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
@@ -1003,6 +1008,7 @@ void ExecutionEngine::registerStandardLibrary() {
     stdlib::ArrayBuiltins::registerMethods(this->arrayMethods);
     stdlib::SetBuiltins::registerMethods(this->setMethods);
     stdlib::DictionaryBuiltins::registerMethods(this->dictionaryMethods);
+    stdlib::StringBuiltins::registerMethods(this->stringMethods);
 }
 
 std::shared_ptr<NativeFunction> ExecutionEngine::getArrayMethod(const std::string &name) {
@@ -1024,6 +1030,14 @@ std::shared_ptr<NativeFunction> ExecutionEngine::getSetMethod(const std::string 
 std::shared_ptr<NativeFunction> ExecutionEngine::getDictionaryMethod(const std::string &name) {
     if (dictionaryMethods.contains(name)) {
         return dictionaryMethods[name];
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<NativeFunction> ExecutionEngine::getStringMethod(const std::string &name) {
+    if (stringMethods.contains(name)) {
+        return stringMethods[name];
     }
 
     return nullptr;

@@ -33,6 +33,8 @@ add_executable(apex_interpreter main.cpp
         src/stdlib/SetBuiltins/SetBuiltins.cpp
         include/stdlib/DictionaryBuiltins/DictionaryBuiltins.h
         src/stdlib/DictionaryBuiltins/DictionaryBuiltins.cpp
+        include/stdlib/StringBuiltins/StringBuiltins.h
+        src/stdlib/StringBuiltins/StringBuiltins.cpp
 )
 
 target_include_directories(apex_interpreter PRIVATE utils)
