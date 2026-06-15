@@ -73,6 +73,76 @@ namespace stdlib::StringBuiltins {
         return receivedObject.ends_with(args[0].get<std::string>());
     }
 
+    static Value takeSubstring(Value receiver, const std::vector<Value> &args) {
+        const auto receivedObject = receiver.get<std::string>();
+        if (!args[0].is<double>() && !args[1].is<double>()) {
+            throw std::runtime_error("substring borders must be numbers");
+        }
+
+        const auto lhs = static_cast<std::size_t>(args[0].get<double>());
+        const auto rhs = static_cast<std::size_t>(args[1].get<double>());
+        return receivedObject.substr(lhs, rhs);
+    }
+
+    static Value convertLowercase(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        std::ranges::transform(receivedObject, receivedObject.begin(), [](unsigned char letter) {
+            return std::tolower(letter);
+        });
+        return receivedObject;
+    }
+
+    static Value convertUppercase(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        std::ranges::transform(receivedObject, receivedObject.begin(), [](unsigned char letter) {
+            return std::toupper(letter);
+        });
+        return receivedObject;
+    }
+
+    static Value trimString(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        receivedObject.erase(0, receivedObject.find_first_not_of(" \t\n\r\f\v"));
+        receivedObject.erase(receivedObject.find_last_not_of(" \t\n\r\f\v") + 1);
+        return receivedObject;
+    }
+
+    static Value replaceSubstring(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+
+        if (!args[0].is<std::string>() && !args[1].is<std::string>()) {
+            throw std::runtime_error("expected substring of type String");
+        }
+
+        const auto targetSubstring = args[0].get<std::string>();
+        const auto replacementSubstring = args[1].get<std::string>();
+
+        if (auto it = receivedObject.find(targetSubstring); it != std::string::npos) {
+            receivedObject.replace(it, targetSubstring.length(), replacementSubstring);
+        }
+
+        return receivedObject;
+    }
+
+    static Value replaceAllSubstrings(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+
+        if (!args[0].is<std::string>() && !args[1].is<std::string>()) {
+            throw std::runtime_error("expected substring of type String");
+        }
+
+        const auto targetSubstring = args[0].get<std::string>();
+        const auto replacementSubstring = args[1].get<std::string>();
+
+        std::size_t it = 0;
+        while ((it = receivedObject.find(targetSubstring, it)) != std::string::npos) {
+            receivedObject.replace(it, targetSubstring.length(), replacementSubstring);
+            it += replacementSubstring.length();
+        }
+
+        return receivedObject;
+    }
+
     void registerMethods(std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& registry) {
         registry["len"] = std::make_shared<NativeFunction>("len", 0, retrieveStringLength);
         registry["isEmpty"] = std::make_shared<NativeFunction>("isEmpty", 0, checkStringEmptiness);
@@ -84,5 +154,12 @@ namespace stdlib::StringBuiltins {
         registry["contains"] = std::make_shared<NativeFunction>("contains", 1, containsSubstring);
         registry["startsWith"] = std::make_shared<NativeFunction>("startsWith", 1, starsWithSubstring);
         registry["endsWith"] = std::make_shared<NativeFunction>("endsWith", 1, endsWithSubstring);
+
+        registry["substring"] = std::make_shared<NativeFunction>("substring", 2, takeSubstring);
+        registry["lower"] = std::make_shared<NativeFunction>("lower", 0, convertLowercase);
+        registry["upper"] = std::make_shared<NativeFunction>("upper", 0, convertUppercase);
+        registry["trim"] = std::make_shared<NativeFunction>("trim", 0, trimString);
+        registry["replace"] = std::make_shared<NativeFunction>("replace", 2, replaceSubstring);
+        registry["replaceAll"] = std::make_shared<NativeFunction>("replaceAll", 2, replaceAllSubstrings);
     }
 }
