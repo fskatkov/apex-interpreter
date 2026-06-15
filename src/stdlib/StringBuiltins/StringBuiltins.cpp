@@ -143,6 +143,34 @@ namespace stdlib::StringBuiltins {
         return receivedObject;
     }
 
+    static Value checkIfAlpha(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](unsigned char letter) {
+            return std::isalpha(letter);
+        });
+    }
+
+    static Value checkIfNumeric(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](unsigned char letter) {
+            return std::isdigit(letter);
+        });
+    }
+
+    static Value checkIfAlphaNumeric(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](unsigned char letter) {
+            return std::isalnum(letter);
+        });
+    }
+
+    static Value checkIfWhitespace(Value receiver, const std::vector<Value> &args) {
+        auto receivedObject = receiver.get<std::string>();
+        return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](unsigned char letter) {
+            return std::isspace(letter);
+        });
+    }
+
     void registerMethods(std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& registry) {
         registry["len"] = std::make_shared<NativeFunction>("len", 0, retrieveStringLength);
         registry["isEmpty"] = std::make_shared<NativeFunction>("isEmpty", 0, checkStringEmptiness);
@@ -161,5 +189,10 @@ namespace stdlib::StringBuiltins {
         registry["trim"] = std::make_shared<NativeFunction>("trim", 0, trimString);
         registry["replace"] = std::make_shared<NativeFunction>("replace", 2, replaceSubstring);
         registry["replaceAll"] = std::make_shared<NativeFunction>("replaceAll", 2, replaceAllSubstrings);
+
+        registry["isAlpha"] = std::make_shared<NativeFunction>("isAlpha", 0, checkIfAlpha);
+        registry["isNumeric"] = std::make_shared<NativeFunction>("isNumeric", 0, checkIfNumeric);
+        registry["isAlphaNumeric"] = std::make_shared<NativeFunction>("isAlphaNumeric", 0, checkIfAlphaNumeric);
+        registry["isWhitespace"] = std::make_shared<NativeFunction>("isWhitespace", 0, checkIfWhitespace);
     }
 }
