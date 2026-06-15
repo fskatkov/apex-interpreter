@@ -763,6 +763,11 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
+    } else if (target.is<char>()) {
+        if (auto method = getCharacterMethod(name)) {
+            push(std::make_shared<BoundNativeMethod>(target, method));
+            return ExecutionResult::OK;
+        }
     }
 
     reportRuntimeError("property `" + name + "` does not exist");
@@ -1009,6 +1014,7 @@ void ExecutionEngine::registerStandardLibrary() {
     stdlib::SetBuiltins::registerMethods(this->setMethods);
     stdlib::DictionaryBuiltins::registerMethods(this->dictionaryMethods);
     stdlib::StringBuiltins::registerMethods(this->stringMethods);
+    stdlib::CharacterBuiltins::registerMethods(this->characterMethods);
 }
 
 std::shared_ptr<NativeFunction> ExecutionEngine::getArrayMethod(const std::string &name) {
@@ -1038,6 +1044,14 @@ std::shared_ptr<NativeFunction> ExecutionEngine::getDictionaryMethod(const std::
 std::shared_ptr<NativeFunction> ExecutionEngine::getStringMethod(const std::string &name) {
     if (stringMethods.contains(name)) {
         return stringMethods[name];
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<NativeFunction> ExecutionEngine::getCharacterMethod(const std::string &name) {
+    if (characterMethods.contains(name)) {
+        return characterMethods[name];
     }
 
     return nullptr;
