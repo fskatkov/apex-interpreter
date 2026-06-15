@@ -839,7 +839,7 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
         const auto &bound = callee.get<std::shared_ptr<BoundNativeMethod>>();
         const auto &nativeFunc = bound->method;
 
-        if (argCount != nativeFunc->arity) {
+        if (nativeFunc->arity != -1 && argCount != nativeFunc->arity) {
             reportRuntimeError(
                 "expected " + std::to_string(nativeFunc->arity) + " arguments but got " + std::to_string(argCount));
             return ExecutionResult::RUNTIME_ERROR;
