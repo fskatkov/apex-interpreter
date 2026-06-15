@@ -21,6 +21,11 @@ namespace stdlib::ArrayBuiltins {
         return NIL{};
     }
 
+    static Value checkArrayEmptiness(Value receiver, const std::vector<Value> &args) {
+        const auto receivedObject = receiver.get<std::shared_ptr<Array>>();
+        return receivedObject->empty();
+    }
+
     static Value getFrontArrayElement(Value receiver, const std::vector<Value> &args) {
         const auto receivedObject = receiver.get<std::shared_ptr<Array>>();
         if (receivedObject->empty()) {
@@ -171,8 +176,9 @@ namespace stdlib::ArrayBuiltins {
     void registerMethods(std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& registry) {
         registry["len"] = std::make_shared<NativeFunction>("len", 0, retrieveArraySize);
         registry["clear"] = std::make_shared<NativeFunction>("clear", 0, clearArray);
-        registry["clone"] = std::make_shared<NativeFunction>("clone", 0, createArrayClone);
+        registry["copy"] = std::make_shared<NativeFunction>("copy", 0, createArrayClone);
         registry["reverse"] = std::make_shared<NativeFunction>("reverse", 0, reverseArray);
+        registry["isEmpty"] = std::make_shared<NativeFunction>("isEmpty", 0, checkArrayEmptiness);
 
         registry["first"] = std::make_shared<NativeFunction>("first", 0, getFrontArrayElement);
         registry["last"] = std::make_shared<NativeFunction>("last", 0, getBackArrayElement);

@@ -6,6 +6,7 @@
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
 #include "stdlib/ArrayBuiltins/ArrayBuiltins.h"
 #include "stdlib/SetBuiltins/SetBuiltins.h"
+#include "stdlib/DictionaryBuiltins/DictionaryBuiltins.h"
 
 enum class ExecutionResult {
     COMPILETIME_ERROR,
@@ -34,6 +35,7 @@ private:
     std::vector<Frame> frames;
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> arrayMethods;
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> setMethods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> dictionaryMethods;
 
     const std::uint8_t* address;
     Array stack;
@@ -116,6 +118,7 @@ private:
     void registerStandardLibrary();
     std::shared_ptr<NativeFunction> getArrayMethod(const std::string &name);
     std::shared_ptr<NativeFunction> getSetMethod(const std::string &name);
+    std::shared_ptr<NativeFunction> getDictionaryMethod(const std::string &name);
 
     [[nodiscard]] static std::string stringify(const Value& value, bool isNested = false);
     void reportRuntimeError(const std::string& message);
