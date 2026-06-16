@@ -13,7 +13,6 @@ enum class LexerStringScanningMode {
 class Lexer {
 public:
     explicit Lexer(std::string& source, DiagnosticEngine& diagnosticEngine);
-    ~Lexer() = default;
     std::vector<Token> scan();
     [[nodiscard]] const std::vector<Token>& getTokens() const;
     [[nodiscard]] bool encounteredErrors() const;
@@ -21,15 +20,16 @@ private:
     DiagnosticEngine& diagnosticEngine;
 
     std::string source;
-    std::size_t startPosition;
-    std::size_t currentPosition;
-    std::size_t line;
-    std::size_t startLine;
-    std::size_t column;
-    std::size_t startColumn;
+
+    std::size_t startPosition = 0;
+    std::size_t currentPosition = 0;
+    std::size_t line = 1;
+    std::size_t startLine = 1;
+    std::size_t column = 1;
+    std::size_t startColumn = 1;
 
     std::vector<Token> tokens;
-    bool encounteredError;
+    bool encounteredError = false;
 
     std::vector<LexerStringScanningMode> modes;
     int braceDepth = 0;
@@ -40,13 +40,13 @@ private:
     [[nodiscard]] char peek() const;
     [[nodiscard]] char peekNext() const;
     bool match(const char& expected);
-    [[nodiscard]] TokenKind check(std::size_t starting, std::size_t ending, const std::string &rest, TokenKind kind) const;
+    [[nodiscard]] TokenKind check(std::size_t starting, std::size_t ending, const std::string_view &rest, TokenKind kind) const;
     void add(const TokenKind& kind, const Value& literal = "");
     void addStringToken();
-    void scanInterpolatedString();
+    void addInterpolatedStringToken();
     void addNumberToken();
     void addCharacterToken();
     void addIdentifierToken();
     [[nodiscard]] TokenKind checkIdentifierType() const;
-    void reportError(const std::string& message) const;
+    void reportError(const std::string_view& message) const;
 };
