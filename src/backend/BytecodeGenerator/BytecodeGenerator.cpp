@@ -1,7 +1,6 @@
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
 
-BytecodeGenerator::BytecodeGenerator(DiagnosticEngine &diagnosticEngine)
-    : buffer(nullptr), diagnosticEngine(diagnosticEngine), lexer(nullptr), parser(nullptr) {
+BytecodeGenerator::BytecodeGenerator(DiagnosticEngine &diagnosticEngine) : diagnosticEngine(diagnosticEngine) {
 }
 
 void BytecodeGenerator::generate(std::string &source) {
@@ -18,7 +17,7 @@ void BytecodeGenerator::generate(std::string &source) {
         compileStatement(statement.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), 0);
+    emitByte(std::to_underlying(InstructionType::OP_RETURN), 0);
 }
 
 void BytecodeGenerator::compileStatement(Stmt *statement) {
@@ -55,31 +54,31 @@ void BytecodeGenerator::compileSwitchStatement(const SwitchStatement *statement)
     compileExpression(statement->condition.get());
 
     contexts.push_back(ControlFlowContext{
-        false,
-        -1,
-        scopeDepth,
-        {},
-        {},
+        .isLoop = false,
+        .continueTarget = -1,
+        .loopScopeDepth = scopeDepth,
+        .breakJumps = {},
+        .continueJumps = {},
     });
 
     std::vector<int> endJumps;
     for (const auto &switchStatementCase: statement->cases) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE), 0);
+        emitByte(std::to_underlying(InstructionType::OP_DUPLICATE), 0);
         compileExpression(switchStatementCase->condition.get());
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS), 0);
+        emitByte(std::to_underlying(InstructionType::OP_EQUALS_EQUALS), 0);
 
-        const auto nextCaseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        const auto nextCaseJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
         compileStatement(switchStatementCase->body.get());
-        endJumps.push_back(emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP)));
+        endJumps.push_back(emitJump(std::to_underlying(InstructionType::OP_JUMP)));
 
         patchJump(nextCaseJump);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     compileStatement(statement->defaultCase.get());
 
     for (const auto &endJump: endJumps) {
@@ -106,11 +105,17 @@ void BytecodeGenerator::compileBreakStatement(const BreakStatement *statement) {
 
     auto &currentContext = contexts.back();
 
-    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > currentContext.loopScopeDepth; --i) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    const auto unwindLocals = locals
+                              | std::views::reverse
+                              | std::views::take_while([&](const auto &local) {
+                                  return local.depth > currentContext.loopScopeDepth;
+                              });
+
+    for (const auto &_: unwindLocals) {
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     }
 
-    const auto breakJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+    const auto breakJump = emitJump(std::to_underlying(InstructionType::OP_JUMP));
     currentContext.breakJumps.push_back(breakJump);
 }
 
@@ -134,13 +139,18 @@ void BytecodeGenerator::compileContinueStatement(const ContinueStatement *statem
         return;
     }
 
-    for (auto i = static_cast<int>(locals.size()) - 1; i >= 0 && locals[i].depth > innermostContext->loopScopeDepth; --
-         i) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    const auto unwindLocals = locals
+                              | std::views::reverse
+                              | std::views::take_while([&](const auto &local) {
+                                  return local.depth > innermostContext->loopScopeDepth;
+                              });
+
+    for (const auto &_: unwindLocals) {
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     }
 
     if (innermostContext->continueTarget == -1) {
-        innermostContext->continueJumps.push_back(emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP)));
+        innermostContext->continueJumps.push_back(emitJump(std::to_underlying(InstructionType::OP_JUMP)));
     } else {
         emitLoop(innermostContext->continueTarget);
     }
@@ -151,32 +161,32 @@ void BytecodeGenerator::compileForStatement(const ForStatement *statement) {
     compileStatement(statement->initializer.get());
 
     auto startingPoint = static_cast<int>(buffer->code.size());
-
     int exitJump = -1;
+
     if (statement->condition) {
         compileExpression(statement->condition.get());
-        exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        exitJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     }
 
     if (statement->increment) {
-        const auto bodyJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+        const auto bodyJump = emitJump(std::to_underlying(InstructionType::OP_JUMP));
         const auto increment = static_cast<int>(buffer->code.size());
 
         compileExpression(statement->increment.get());
 
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
         emitLoop(startingPoint);
         startingPoint = increment;
         patchJump(bodyJump);
     }
 
     contexts.push_back(ControlFlowContext{
-        true,
-        startingPoint,
-        scopeDepth,
-        {},
-        {}
+        .isLoop = true,
+        .continueTarget = startingPoint,
+        .loopScopeDepth = scopeDepth,
+        .breakJumps = {},
+        .continueJumps = {}
     });
 
     compileStatement(statement->body.get());
@@ -184,7 +194,7 @@ void BytecodeGenerator::compileForStatement(const ForStatement *statement) {
 
     if (exitJump != -1) {
         patchJump(exitJump);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     }
 
     for (const auto &breakJump: contexts.back().breakJumps) {
@@ -192,7 +202,6 @@ void BytecodeGenerator::compileForStatement(const ForStatement *statement) {
     }
 
     contexts.pop_back();
-
     endScope();
 }
 
@@ -200,23 +209,24 @@ void BytecodeGenerator::compileWhileStatement(const WhileStatement *statement) {
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
     contexts.push_back(ControlFlowContext{
-        true,
-        startingPoint,
-        scopeDepth,
-        {},
-        {}
+        .isLoop = true,
+        .continueTarget = startingPoint,
+        .loopScopeDepth = scopeDepth,
+        .breakJumps = {},
+        .continueJumps = {}
     });
 
     compileExpression(statement->condition.get());
 
-    const auto exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    const auto exitJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
     compileStatement(statement->body.get());
     emitLoop(startingPoint);
 
     patchJump(exitJump);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
     for (const auto &breakJump: contexts.back().breakJumps) {
         patchJump(breakJump);
@@ -229,11 +239,11 @@ void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement *statemen
     const auto startingPoint = static_cast<int>(buffer->code.size());
 
     contexts.push_back(ControlFlowContext{
-        true,
-        -1,
-        scopeDepth,
-        {},
-        {}
+        .isLoop = true,
+        .continueTarget = -1,
+        .loopScopeDepth = scopeDepth,
+        .breakJumps = {},
+        .continueJumps = {}
     });
 
     compileStatement(statement->body.get());
@@ -244,12 +254,13 @@ void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement *statemen
 
     compileExpression(statement->condition.get());
 
-    const auto exitJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    const auto exitJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     emitLoop(startingPoint);
 
     patchJump(exitJump);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
     for (const auto &breakJump: contexts.back().breakJumps) {
         patchJump(breakJump);
@@ -261,14 +272,15 @@ void BytecodeGenerator::compileDoWhileStatement(const DoWhileStatement *statemen
 void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement *statement) {
     compileExpression(statement->condition.get());
 
-    const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    const auto thenJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     compileStatement(statement->thenStatement.get());
 
     const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
 
     patchJump(thenJump);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
     if (statement->elseStatement) {
         compileStatement(statement->elseStatement.get());
@@ -279,9 +291,11 @@ void BytecodeGenerator::compileConditionalStatement(const ConditionalStatement *
 
 void BytecodeGenerator::compileBlockStatement(const BlockStatement *statement) {
     beginScope();
+
     for (const auto &stmt: statement->statements) {
         compileStatement(stmt.get());
     }
+
     endScope();
 }
 
@@ -289,7 +303,7 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
     if (statement->initializer) {
         compileExpression(statement->initializer.get());
     } else {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), statement->name.sourceLocation.line);
+        emitByte(std::to_underlying(InstructionType::OP_NULL), statement->name.sourceLocation.line);
     }
 
     if (scopeDepth > 0) {
@@ -298,22 +312,23 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
     }
 
     buffer->values.emplace_back(statement->name.lexeme);
+
     emitByte(
-        static_cast<std::uint8_t>(statement->isConst
-                                      ? InstructionType::OP_DEFINE_CONST
-                                      : InstructionType::OP_DEFINE_GLOBAL),
+        std::to_underlying(statement->isConst
+                               ? InstructionType::OP_DEFINE_CONST
+                               : InstructionType::OP_DEFINE_GLOBAL),
         statement->name.sourceLocation.line
     );
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 }
 
-void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
-    const auto overBodyJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+void BytecodeGenerator::compileFunctionStatement(FunctionStatement *statement) {
+    const auto overBodyJump = emitJump(std::to_underlying(InstructionType::OP_JUMP));
     const auto startingAddress = static_cast<int>(buffer->code.size());
 
     beginScope();
 
-    for (const auto &arg : statement->arguments) {
+    for (const auto &arg: statement->arguments) {
         locals.emplace_back(arg, scopeDepth);
     }
 
@@ -321,8 +336,8 @@ void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
         compileBlockStatement(blockStatement);
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), 0);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), 0);
+    emitByte(std::to_underlying(InstructionType::OP_NULL), 0);
+    emitByte(std::to_underlying(InstructionType::OP_RETURN), 0);
 
     endScope();
 
@@ -333,27 +348,29 @@ void BytecodeGenerator::compileFunctionStatement(FunctionStatement* statement) {
         static_cast<int>(statement->arguments.size()),
         startingAddress
     ));
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), statement->name.sourceLocation.line);
+
+    emitByte(std::to_underlying(InstructionType::OP_CONSTANT), statement->name.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 
     buffer->values.emplace_back(statement->name.lexeme);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL), statement->name.sourceLocation.line);
+
+    emitByte(std::to_underlying(InstructionType::OP_DEFINE_GLOBAL), statement->name.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileExpressionStatement(const ExpressionStatement *statement) {
     compileExpression(statement->expression.get());
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 }
 
-void BytecodeGenerator::compileReturnStatement(const ReturnStatement* statement) {
+void BytecodeGenerator::compileReturnStatement(const ReturnStatement *statement) {
     if (statement->value) {
         compileExpression(statement->value.get());
     } else {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NULL), statement->keyword.sourceLocation.line);
+        emitByte(std::to_underlying(InstructionType::OP_NULL), statement->keyword.sourceLocation.line);
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_RETURN), statement->keyword.sourceLocation.line);
+    emitByte(std::to_underlying(InstructionType::OP_RETURN), statement->keyword.sourceLocation.line);
 }
 
 void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
@@ -368,7 +385,8 @@ void BytecodeGenerator::compileExpression(Expr *originalExpression) {
         compileVariableExpression(variableExpression);
     } else if (const auto *assignmentExpression = dynamic_cast<AssignmentExpression *>(originalExpression)) {
         compileAssignmentExpression(assignmentExpression);
-    } else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(originalExpression)) {
+    } else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(
+        originalExpression)) {
         compileCompoundAssignmentExpression(compoundAssignmentExpression);
     } else if (const auto *ternaryOperatorExpression = dynamic_cast<TernaryOperatorExpression *>(originalExpression)) {
         compileTernaryOperatorExpression(ternaryOperatorExpression);
@@ -386,37 +404,42 @@ void BytecodeGenerator::compileExpression(Expr *originalExpression) {
         compileGetPropertyExpression(getPropertyExpression);
     } else if (const auto *literalExpression = dynamic_cast<LiteralExpression *>(originalExpression)) {
         compileLiteralExpression(literalExpression);
-    } else if (const auto *interpolatedStringLiteralExpression = dynamic_cast<InterpolatedStringLiteralExpression *>(originalExpression)) {
+    } else if (const auto *interpolatedStringLiteralExpression = dynamic_cast<InterpolatedStringLiteralExpression *>(
+        originalExpression)) {
         compileInterpolatedStringLiteralExpression(interpolatedStringLiteralExpression);
     } else if (const auto *arrayLiteralExpression = dynamic_cast<ArrayLiteralExpression *>(originalExpression)) {
         compileArrayLiteralExpression(arrayLiteralExpression);
     } else if (const auto *setLiteralExpression = dynamic_cast<SetLiteralExpression *>(originalExpression)) {
         compileSetLiteralExpression(setLiteralExpression);
-    } else if (const auto *dictionaryLiteralExpression = dynamic_cast<DictionaryLiteralExpression *>(originalExpression)) {
+    } else if (const auto *dictionaryLiteralExpression = dynamic_cast<DictionaryLiteralExpression *>(
+        originalExpression)) {
         compileDictionaryLiteralExpression(dictionaryLiteralExpression);
     } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression)) {
         compileIndexExpression(indexExpression);
     }
 }
 
-void BytecodeGenerator::compileFunctionCallExpression(const FunctionCallExpression* originalExpression) {
+void BytecodeGenerator::compileFunctionCallExpression(const FunctionCallExpression *originalExpression) {
     compileExpression(originalExpression->callee.get());
-    for (const auto &arg : originalExpression->arguments) {
+
+    for (const auto &arg: originalExpression->arguments) {
         compileExpression(arg.get());
     }
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CALL), originalExpression->end.sourceLocation.line);
+
+    emitByte(std::to_underlying(InstructionType::OP_CALL), originalExpression->end.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(originalExpression->arguments.size()),
              originalExpression->end.sourceLocation.line);
 }
 
 void BytecodeGenerator::compileVariableExpression(VariableExpression *originalExpression) const {
     if (const auto arg = resolveLocal(originalExpression->name); arg != -1) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL),
+        emitByte(std::to_underlying(InstructionType::OP_GET_LOCAL),
                  originalExpression->name.sourceLocation.line);
         emitByte(static_cast<std::uint8_t>(arg), originalExpression->name.sourceLocation.line);
     } else {
         buffer->values.emplace_back(originalExpression->name.lexeme);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL),
+
+        emitByte(std::to_underlying(InstructionType::OP_GET_GLOBAL),
                  originalExpression->name.sourceLocation.line);
         emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
     }
@@ -427,21 +450,23 @@ void BytecodeGenerator::compileAssignmentExpression(const AssignmentExpression *
         compileExpression(originalExpression->rhs.get());
 
         if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL),
+            emitByte(std::to_underlying(InstructionType::OP_SET_LOCAL),
                      variableExpression->name.sourceLocation.line);
             emitByte(static_cast<std::uint8_t>(arg), variableExpression->name.sourceLocation.line);
         } else {
             buffer->values.emplace_back(variableExpression->name.lexeme);
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL),
+
+            emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL),
                      variableExpression->name.sourceLocation.line);
             emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1),
                      variableExpression->name.sourceLocation.line);
         }
-    } else if (auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression->lhs.get())) {
+    } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression->lhs.get())) {
         compileExpression(indexExpression->target.get());
         compileExpression(indexExpression->index.get());
         compileExpression(originalExpression->rhs.get());
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET),
+
+        emitByte(std::to_underlying(InstructionType::OP_INDEX_SET),
                  originalExpression->equalsToken.sourceLocation.line);
     }
 }
@@ -454,113 +479,76 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
         compileExpression(originalExpression->rhs.get());
 
         switch (originalExpression->operatorSymbol.kind) {
-            case TokenKind::PLUS_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
+            case TokenKind::PLUS_EQUALS: emitByte(std::to_underlying(InstructionType::OP_ADD), line);
                 break;
-            }
-            case TokenKind::MINUS_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
+            case TokenKind::MINUS_EQUALS: emitByte(std::to_underlying(InstructionType::OP_SUB), line);
                 break;
-            }
-            case TokenKind::STAR_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
+            case TokenKind::STAR_EQUALS: emitByte(std::to_underlying(InstructionType::OP_MUL), line);
                 break;
-            }
-            case TokenKind::SLASH_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
+            case TokenKind::SLASH_EQUALS: emitByte(std::to_underlying(InstructionType::OP_DIV), line);
                 break;
-            }
-            case TokenKind::MODULO_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
+            case TokenKind::MODULO_EQUALS: emitByte(std::to_underlying(InstructionType::OP_MOD), line);
                 break;
-            }
-            case TokenKind::AMPERSAND_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+            case TokenKind::AMPERSAND_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_AND), line);
                 break;
-            }
-            case TokenKind::PIPE_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+            case TokenKind::PIPE_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_OR), line);
                 break;
-            }
-            case TokenKind::CARET_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+            case TokenKind::CARET_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_XOR), line);
                 break;
-            }
-            case TokenKind::LEFT_ANGLE_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+            case TokenKind::LEFT_ANGLE_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_LEFT_SHIFT),
+                                                        line);
                 break;
-            }
-            case TokenKind::RIGHT_ANGLE_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+            case TokenKind::RIGHT_ANGLE_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_RIGHT_SHIFT),
+                                                         line);
                 break;
-            }
-            default:
-                break;
+            default: break;
         }
 
         if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
+            emitByte(std::to_underlying(InstructionType::OP_SET_LOCAL), line);
             emitByte(static_cast<std::uint8_t>(arg), line);
         } else {
             buffer->values.emplace_back(variableExpression->name.lexeme);
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), line);
+
+            emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL), line);
             emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
         }
     } else if (const auto *indexExpression = dynamic_cast<IndexExpression *>(originalExpression->lhs.get())) {
         compileExpression(indexExpression->target.get());
         compileExpression(indexExpression->index.get());
 
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2), line);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET), line);
+        emitByte(std::to_underlying(InstructionType::OP_DUPLICATE2), line);
+        emitByte(std::to_underlying(InstructionType::OP_INDEX_GET), line);
 
         compileExpression(originalExpression->rhs.get());
 
         switch (originalExpression->operatorSymbol.kind) {
-            case TokenKind::PLUS_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
+            case TokenKind::PLUS_EQUALS: emitByte(std::to_underlying(InstructionType::OP_ADD), line);
                 break;
-            }
-            case TokenKind::MINUS_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
+            case TokenKind::MINUS_EQUALS: emitByte(std::to_underlying(InstructionType::OP_SUB), line);
                 break;
-            }
-            case TokenKind::STAR_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
+            case TokenKind::STAR_EQUALS: emitByte(std::to_underlying(InstructionType::OP_MUL), line);
                 break;
-            }
-            case TokenKind::SLASH_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
+            case TokenKind::SLASH_EQUALS: emitByte(std::to_underlying(InstructionType::OP_DIV), line);
                 break;
-            }
-            case TokenKind::MODULO_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
+            case TokenKind::MODULO_EQUALS: emitByte(std::to_underlying(InstructionType::OP_MOD), line);
                 break;
-            }
-            case TokenKind::AMPERSAND_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+            case TokenKind::AMPERSAND_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_AND), line);
                 break;
-            }
-            case TokenKind::PIPE_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+            case TokenKind::PIPE_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_OR), line);
                 break;
-            }
-            case TokenKind::CARET_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+            case TokenKind::CARET_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_XOR), line);
                 break;
-            }
-            case TokenKind::LEFT_ANGLE_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+            case TokenKind::LEFT_ANGLE_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_LEFT_SHIFT),
+                                                        line);
                 break;
-            }
-            case TokenKind::RIGHT_ANGLE_EQUALS: {
-                emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+            case TokenKind::RIGHT_ANGLE_EQUALS: emitByte(std::to_underlying(InstructionType::OP_BITWISE_RIGHT_SHIFT),
+                                                         line);
                 break;
-            }
-            default:
-                break;
+            default: break;
         }
 
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET), line);
+        emitByte(std::to_underlying(InstructionType::OP_INDEX_SET), line);
     } else {
         diagnosticEngine.report(
             Diagnostic::DiagnosticKind::Error,
@@ -570,17 +558,18 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
     }
 }
 
-void BytecodeGenerator::compileTernaryOperatorExpression(const TernaryOperatorExpression* originalExpression) {
+void BytecodeGenerator::compileTernaryOperatorExpression(const TernaryOperatorExpression *originalExpression) {
     compileExpression(originalExpression->condition.get());
 
-    const auto thenJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    const auto thenJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
     compileExpression(originalExpression->thenBranch.get());
 
-    const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+    const auto elseJump = emitJump(std::to_underlying(InstructionType::OP_JUMP));
 
     patchJump(thenJump);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
     compileExpression(originalExpression->elseBranch.get());
 
@@ -591,16 +580,16 @@ void BytecodeGenerator::compileLogicalExpression(const LogicalExpression *origin
     compileExpression(originalExpression->lhs.get());
 
     if (originalExpression->operatorSymbol.kind == TokenKind::AND) {
-        const auto endJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        const auto endJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
         compileExpression(originalExpression->rhs.get());
         patchJump(endJump);
     } else if (originalExpression->operatorSymbol.kind == TokenKind::OR) {
-        const auto elseJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE));
-        const auto endJump = emitJump(static_cast<std::uint8_t>(InstructionType::OP_JUMP));
+        const auto elseJump = emitJump(std::to_underlying(InstructionType::OP_JUMP_IF_FALSE));
+        const auto endJump = emitJump(std::to_underlying(InstructionType::OP_JUMP));
 
         patchJump(elseJump);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
 
         compileExpression(originalExpression->rhs.get());
         patchJump(endJump);
@@ -617,76 +606,41 @@ void BytecodeGenerator::compileBinaryExpression(const BinaryExpression *original
 
     const auto line = originalExpression->binaryOperator.sourceLocation.line;
     switch (originalExpression->binaryOperator.kind) {
-        case TokenKind::PLUS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_ADD), line);
+        case TokenKind::PLUS: emitByte(std::to_underlying(InstructionType::OP_ADD), line);
             break;
-        }
-        case TokenKind::MINUS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_SUB), line);
+        case TokenKind::MINUS: emitByte(std::to_underlying(InstructionType::OP_SUB), line);
             break;
-        }
-        case TokenKind::STAR: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MUL), line);
+        case TokenKind::STAR: emitByte(std::to_underlying(InstructionType::OP_MUL), line);
             break;
-        }
-        case TokenKind::SLASH: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_DIV), line);
+        case TokenKind::SLASH: emitByte(std::to_underlying(InstructionType::OP_DIV), line);
             break;
-        }
-        case TokenKind::MODULO: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_MOD), line);
+        case TokenKind::MODULO: emitByte(std::to_underlying(InstructionType::OP_MOD), line);
             break;
-        }
-        case TokenKind::POWER: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_POW), line);
+        case TokenKind::POWER: emitByte(std::to_underlying(InstructionType::OP_POW), line);
             break;
-        }
-        case TokenKind::AMPERSAND: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND), line);
+        case TokenKind::AMPERSAND: emitByte(std::to_underlying(InstructionType::OP_BITWISE_AND), line);
             break;
-        }
-        case TokenKind::PIPE: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR), line);
+        case TokenKind::PIPE: emitByte(std::to_underlying(InstructionType::OP_BITWISE_OR), line);
             break;
-        }
-        case TokenKind::CARET: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR), line);
+        case TokenKind::CARET: emitByte(std::to_underlying(InstructionType::OP_BITWISE_XOR), line);
             break;
-        }
-        case TokenKind::LEFT_ANGLE: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
+        case TokenKind::LEFT_ANGLE: emitByte(std::to_underlying(InstructionType::OP_BITWISE_LEFT_SHIFT), line);
             break;
-        }
-        case TokenKind::RIGHT_ANGLE: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
+        case TokenKind::RIGHT_ANGLE: emitByte(std::to_underlying(InstructionType::OP_BITWISE_RIGHT_SHIFT), line);
             break;
-        }
-        case TokenKind::EQUALS_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS), line);
+        case TokenKind::EQUALS_EQUALS: emitByte(std::to_underlying(InstructionType::OP_EQUALS_EQUALS), line);
             break;
-        }
-        case TokenKind::GREATER: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_GREATER), line);
+        case TokenKind::GREATER: emitByte(std::to_underlying(InstructionType::OP_GREATER), line);
             break;
-        }
-        case TokenKind::GREATER_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_GREATER_EQUALS), line);
+        case TokenKind::GREATER_EQUALS: emitByte(std::to_underlying(InstructionType::OP_GREATER_EQUALS), line);
             break;
-        }
-        case TokenKind::LESS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_LESS), line);
+        case TokenKind::LESS: emitByte(std::to_underlying(InstructionType::OP_LESS), line);
             break;
-        }
-        case TokenKind::LESS_EQUALS: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_LESS_EQUALS), line);
+        case TokenKind::LESS_EQUALS: emitByte(std::to_underlying(InstructionType::OP_LESS_EQUALS), line);
             break;
-        }
-        case TokenKind::IN: {
-            emitByte(static_cast<std::uint8_t>(InstructionType::OP_IN), line);
+        case TokenKind::IN: emitByte(std::to_underlying(InstructionType::OP_IN), line);
             break;
-        }
-        default:
-            break;
+        default: break;
     }
 }
 
@@ -695,13 +649,13 @@ void BytecodeGenerator::compileUnaryExpression(const UnaryExpression *originalEx
 
     const auto line = originalExpression->unaryOperator.sourceLocation.line;
     if (originalExpression->unaryOperator.kind == TokenKind::BANG) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NOT), line);
+        emitByte(std::to_underlying(InstructionType::OP_NOT), line);
     } else if (originalExpression->unaryOperator.kind == TokenKind::MINUS) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_NEGATE), line);
+        emitByte(std::to_underlying(InstructionType::OP_NEGATE), line);
     } else if (originalExpression->unaryOperator.kind == TokenKind::TILDE) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT), line);
+        emitByte(std::to_underlying(InstructionType::OP_BITWISE_NOT), line);
     } else if (originalExpression->unaryOperator.kind == TokenKind::TYPEOF) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_TYPEOF), line);
+        emitByte(std::to_underlying(InstructionType::OP_TYPEOF), line);
     }
 }
 
@@ -718,28 +672,31 @@ void BytecodeGenerator::compileUpdateExpression(const UpdateExpression *original
     }
 
     const auto line = originalExpression->operatorSymbol.sourceLocation.line;
-    const auto isIncrement = originalExpression->operatorSymbol.kind == TokenKind::INCREMENT;
 
     compileVariableExpression(variableExpression);
+
     buffer->values.emplace_back(1.0);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_CONSTANT), line);
+
+    emitByte(std::to_underlying(InstructionType::OP_CONSTANT), line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
-    emitByte(static_cast<std::uint8_t>(isIncrement ? InstructionType::OP_ADD : InstructionType::OP_SUB), line);
+    emitByte(std::to_underlying(originalExpression->operatorSymbol.kind == TokenKind::INCREMENT
+                                    ? InstructionType::OP_ADD
+                                    : InstructionType::OP_SUB), line);
 
     if (const auto arg = resolveLocal(variableExpression->name); arg != -1) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL), line);
+        emitByte(std::to_underlying(InstructionType::OP_SET_LOCAL), line);
         emitByte(static_cast<std::uint8_t>(arg), line);
     } else {
         buffer->values.emplace_back(variableExpression->name.lexeme);
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL), line);
+        emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL), line);
         emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
     }
 }
 
-void BytecodeGenerator::compileGetPropertyExpression(const GetPropertyExpression* originalExpression) {
+void BytecodeGenerator::compileGetPropertyExpression(const GetPropertyExpression *originalExpression) {
     compileExpression(originalExpression->object.get());
     buffer->values.emplace_back(originalExpression->name.lexeme);
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_GET_PROPERTY), originalExpression->name.sourceLocation.line);
+    emitByte(std::to_underlying(InstructionType::OP_GET_PROPERTY), originalExpression->name.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
 }
 
@@ -747,12 +704,13 @@ void BytecodeGenerator::compileLiteralExpression(const LiteralExpression *origin
     buffer->insert(originalExpression->value, 1);
 }
 
-void BytecodeGenerator::compileInterpolatedStringLiteralExpression(const InterpolatedStringLiteralExpression* originalExpression) {
-    for (const auto& element : originalExpression->elements) {
+void BytecodeGenerator::compileInterpolatedStringLiteralExpression(
+    const InterpolatedStringLiteralExpression *originalExpression) {
+    for (const auto &element: originalExpression->elements) {
         compileExpression(element.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_STRING), 0);
+    emitByte(std::to_underlying(InstructionType::OP_BUILD_STRING), 0);
 
     const auto count = originalExpression->elements.size();
     emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), 0);
@@ -764,7 +722,7 @@ void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpressi
         compileExpression(element.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY),
+    emitByte(std::to_underlying(InstructionType::OP_BUILD_ARRAY),
              originalExpression->bracket.sourceLocation.line);
 
     const auto count = originalExpression->elements.size();
@@ -772,25 +730,25 @@ void BytecodeGenerator::compileArrayLiteralExpression(const ArrayLiteralExpressi
     emitByte(static_cast<std::uint8_t>(count & 0xff), originalExpression->bracket.sourceLocation.line);
 }
 
-void BytecodeGenerator::compileSetLiteralExpression(const SetLiteralExpression* originalExpression) {
-    for (const auto &element : originalExpression->elements) {
+void BytecodeGenerator::compileSetLiteralExpression(const SetLiteralExpression *originalExpression) {
+    for (const auto &element: originalExpression->elements) {
         compileExpression(element.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET), originalExpression->brace.sourceLocation.line);
+    emitByte(std::to_underlying(InstructionType::OP_BUILD_SET), originalExpression->brace.sourceLocation.line);
 
     const auto count = originalExpression->elements.size();
     emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), originalExpression->brace.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(count & 0xff), originalExpression->brace.sourceLocation.line);
 }
 
-void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiteralExpression* originalExpression) {
-    for (const auto&[first, second] : originalExpression->pairs) {
+void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiteralExpression *originalExpression) {
+    for (const auto &[first, second]: originalExpression->pairs) {
         compileExpression(first.get());
         compileExpression(second.get());
     }
 
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY), originalExpression->brace.sourceLocation.line);
+    emitByte(std::to_underlying(InstructionType::OP_BUILD_DICTIONARY), originalExpression->brace.sourceLocation.line);
 
     const auto count = originalExpression->pairs.size();
     emitByte(static_cast<std::uint8_t>((count >> 8) & 0xff), originalExpression->brace.sourceLocation.line);
@@ -800,7 +758,7 @@ void BytecodeGenerator::compileDictionaryLiteralExpression(const DictionaryLiter
 void BytecodeGenerator::compileIndexExpression(const IndexExpression *originalExpression) {
     compileExpression(originalExpression->target.get());
     compileExpression(originalExpression->index.get());
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET), originalExpression->bracket.sourceLocation.line);
+    emitByte(std::to_underlying(InstructionType::OP_INDEX_GET), originalExpression->bracket.sourceLocation.line);
 }
 
 void BytecodeGenerator::emitByte(const std::uint8_t &byte, const std::size_t &line) const {
@@ -815,7 +773,7 @@ int BytecodeGenerator::emitJump(const std::uint8_t &instruction) const {
 }
 
 void BytecodeGenerator::emitLoop(const int &startingPoint) const {
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_LOOP), 0);
+    emitByte(std::to_underlying(InstructionType::OP_LOOP), 0);
     const auto offset = static_cast<int>(buffer->code.size()) - startingPoint + 2;
     emitByte(offset >> 8 & 0xff, 0);
     emitByte(offset & 0xff, 0);
@@ -835,16 +793,15 @@ void BytecodeGenerator::endScope() {
     scopeDepth--;
 
     while (!locals.empty() && locals.back().depth > scopeDepth) {
-        emitByte(static_cast<std::uint8_t>(InstructionType::OP_POP), 0);
+        emitByte(std::to_underlying(InstructionType::OP_POP), 0);
         locals.pop_back();
     }
 }
 
 int BytecodeGenerator::resolveLocal(const Token &name) const {
-    for (int i = static_cast<int>(locals.size() - 1); i >= 0; --i) {
-        if (locals[i].name.lexeme == name.lexeme) {
-            return i;
-        }
+    for (int i = static_cast<int>(locals.size()) - 1; i >= 0; --i) {
+        if (locals[i].name.lexeme == name.lexeme) return i;
     }
+
     return -1;
 }

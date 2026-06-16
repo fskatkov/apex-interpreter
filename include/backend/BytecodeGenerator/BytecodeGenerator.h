@@ -22,14 +22,14 @@ struct ControlFlowContext {
 
 class BytecodeGenerator {
 public:
-    std::unique_ptr<BytecodeBuffer> buffer;
+    std::unique_ptr<BytecodeBuffer> buffer = nullptr;
     explicit BytecodeGenerator(DiagnosticEngine& diagnosticEngine);
     void generate(std::string& source);
 private:
     DiagnosticEngine& diagnosticEngine;
 
-    std::shared_ptr<Lexer> lexer;
-    std::shared_ptr<Parser> parser;
+    std::shared_ptr<Lexer> lexer = nullptr;
+    std::shared_ptr<Parser> parser = nullptr;
     std::vector<Token> tokens;
     std::vector<std::unique_ptr<Stmt>> statements;
     std::unique_ptr<Expr> expression;
