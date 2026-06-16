@@ -1,6 +1,6 @@
 #include "frontend/Lexer/Lexer.h"
 
-Lexer::Lexer(std::string &source, DiagnosticEngine &diagnosticEngine)
+Lexer::Lexer(std::string source, DiagnosticEngine &diagnosticEngine)
     : diagnosticEngine(diagnosticEngine), source(std::move(source)) {
 }
 

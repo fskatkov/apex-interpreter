@@ -12,7 +12,7 @@ enum class LexerStringScanningMode {
 
 class Lexer {
 public:
-    explicit Lexer(std::string& source, DiagnosticEngine& diagnosticEngine);
+    explicit Lexer(std::string source, DiagnosticEngine& diagnosticEngine);
     std::vector<Token> scan();
     [[nodiscard]] const std::vector<Token>& getTokens() const;
     [[nodiscard]] bool encounteredErrors() const;
@@ -21,18 +21,18 @@ private:
 
     std::string source;
 
-    std::size_t startPosition = 0;
-    std::size_t currentPosition = 0;
-    std::size_t line = 1;
-    std::size_t startLine = 1;
-    std::size_t column = 1;
-    std::size_t startColumn = 1;
+    std::size_t startPosition{0};
+    std::size_t currentPosition{0};
+    std::size_t line{1};
+    std::size_t startLine{1};
+    std::size_t column{1};
+    std::size_t startColumn{1};
 
     std::vector<Token> tokens;
     bool encounteredError = false;
 
     std::vector<LexerStringScanningMode> modes;
-    int braceDepth = 0;
+    int braceDepth{0};
 
     void scanToken();
     [[nodiscard]] bool isReachedEnd() const;

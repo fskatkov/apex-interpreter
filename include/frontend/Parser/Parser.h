@@ -8,53 +8,54 @@
 
 class Parser {
 public:
-    explicit Parser(const std::vector<Token>& tokens, DiagnosticEngine& diagnosticEngine);
-    std::vector<std::unique_ptr<Stmt>> parse();
+    explicit Parser(std::vector<Token> tokens, DiagnosticEngine& diagnosticEngine);
+    [[nodiscard]] std::vector<std::unique_ptr<Stmt>> parse();
 private:
     DiagnosticEngine& diagnosticEngine;
     std::vector<Token> tokens;
-    std::size_t current;
+    std::size_t current{0};
 
-    std::unique_ptr<Stmt> parseDeclarationStatement();
-    std::unique_ptr<Stmt> parseStatement();
-    std::unique_ptr<Stmt> parseSwitchStatement();
-    std::unique_ptr<Stmt> parseBreakStatement();
-    std::unique_ptr<Stmt> parseContinueStatement();
-    std::unique_ptr<Stmt> parseForStatement();
-    std::unique_ptr<Stmt> parseWhileStatement();
-    std::unique_ptr<Stmt> parseDoWhileStatement();
-    std::unique_ptr<Stmt> parseConditionalStatement();
-    std::unique_ptr<Stmt> parseBlockStatement();
-    std::unique_ptr<Stmt> parsePrintStatement();
-    std::unique_ptr<Stmt> parseExpressionStatement();
-    std::unique_ptr<Stmt> parseReturnStatement();
-    std::unique_ptr<Stmt> parseVariableDeclarationStatement(bool isConst);
-    std::unique_ptr<Stmt> parseFunctionDeclarationStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseDeclarationStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseFunctionDeclarationStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseBlockStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseVariableDeclarationStatement(bool isConst);
+    [[nodiscard]] std::unique_ptr<Stmt> parseSwitchStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseForStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseWhileStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseDoWhileStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseConditionalStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseExpressionStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseBreakStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseContinueStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parseReturnStatement();
+    [[nodiscard]] std::unique_ptr<Stmt> parsePrintStatement();
 
-    std::unique_ptr<Expr> parseExpression();
-    std::unique_ptr<Expr> parseAssignmentExpression();
-    std::unique_ptr<Expr> parseTernaryOperatorExpression();
-    std::unique_ptr<Expr> parseLogicalOrExpression();
-    std::unique_ptr<Expr> parseLogicalAndExpression();
-    std::unique_ptr<Expr> parseBitwiseOrExpression();
-    std::unique_ptr<Expr> parseBitwiseXorExpression();
-    std::unique_ptr<Expr> parseBitwiseAndExpression();
-    std::unique_ptr<Expr> parseEqualityExpression();
-    std::unique_ptr<Expr> parseComparisonExpression();
-    std::unique_ptr<Expr> parseShiftExpression();
-    std::unique_ptr<Expr> parseTermExpression();
-    std::unique_ptr<Expr> parseFactorExpression();
-    std::unique_ptr<Expr> parseExponentialExpression();
-    std::unique_ptr<Expr> parseUnaryExpression();
-    std::unique_ptr<Expr> parsePostfixExpression();
-    std::unique_ptr<Expr> parsePrimaryExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseAssignmentExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseTernaryOperatorExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseLogicalOrExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseLogicalAndExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parsePipeOperation();
+    [[nodiscard]] std::unique_ptr<Expr> parseCaretOperation();
+    [[nodiscard]] std::unique_ptr<Expr> parseAmpersandOperation();
+    [[nodiscard]] std::unique_ptr<Expr> parseEqualityExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseComparisonExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseAngleOperation();
+    [[nodiscard]] std::unique_ptr<Expr> parseTermExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseFactorExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseExponentialExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parseUnaryExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parsePostfixExpression();
+    [[nodiscard]] std::unique_ptr<Expr> parsePrimaryExpression();
 
-    bool match(std::initializer_list<TokenKind> kinds);
-    bool check(const TokenKind& kind);
+    [[nodiscard]] bool match(std::initializer_list<TokenKind> kinds);
+    [[nodiscard]] bool check(const TokenKind& kind);
     Token advance();
-    bool isReachedEnd();
-    Token peek();
-    Token previous();
+    [[nodiscard]] bool isReachedEnd();
+    [[nodiscard]] Token peek();
+    [[nodiscard]] Token previous();
     Token consume(const TokenKind& kind, const std::string& message);
+
     void synchronize();
 };
