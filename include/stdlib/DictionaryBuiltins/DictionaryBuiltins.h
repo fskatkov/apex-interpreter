@@ -4,5 +4,5 @@
 #include "structures/Value/Value.h"
 
 namespace stdlib::DictionaryBuiltins {
-    void registerMethods(std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& registry);
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> registerMethods();
 }

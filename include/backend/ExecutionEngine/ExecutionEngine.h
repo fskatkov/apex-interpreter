@@ -37,7 +37,7 @@ private:
     std::unordered_map<std::string, Value> globalVariables;
     std::unordered_set<std::string> constants;
 
-    StdLib builtins;
+    StdLib builtins{};
 
     using Handler = ExecutionResult (ExecutionEngine::*)();
     static const std::array<Handler, 256> dispatchTable;

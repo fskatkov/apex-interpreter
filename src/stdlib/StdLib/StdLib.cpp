@@ -1,34 +1,34 @@
 #include "stdlib/StdLib/StdLib.h"
 
-void StdLib::registerStandardLibrary() {
-    stdlib::ArrayBuiltins::registerMethods(arrayMethods);
-    stdlib::SetBuiltins::registerMethods(setMethods);
-    stdlib::DictionaryBuiltins::registerMethods(dictionaryMethods);
-    stdlib::StringBuiltins::registerMethods(stringMethods);
-    stdlib::CharacterBuiltins::registerMethods(characterMethods);
+StdLib::StdLib() {
+    arrayMethods = stdlib::ArrayBuiltins::registerMethods();
+    setMethods = stdlib::SetBuiltins::registerMethods();
+    dictionaryMethods = stdlib::DictionaryBuiltins::registerMethods();
+    stringMethods = stdlib::StringBuiltins::registerMethods();
+    characterMethods = stdlib::CharacterBuiltins::registerMethods();
 }
 
 std::shared_ptr<NativeFunction> StdLib::getArrayMethod(const std::string &name) {
-    if (arrayMethods.contains(name)) return arrayMethods[name];
+    if (const auto it = arrayMethods.find(name); it != arrayMethods.end()) return it->second;
     return nullptr;
 }
 
 std::shared_ptr<NativeFunction> StdLib::getSetMethod(const std::string &name) {
-    if (setMethods.contains(name)) return setMethods[name];
+    if (const auto it = setMethods.find(name); it != setMethods.end()) return it->second;
     return nullptr;
 }
 
 std::shared_ptr<NativeFunction> StdLib::getDictionaryMethod(const std::string &name) {
-    if (dictionaryMethods.contains(name)) return dictionaryMethods[name];
+    if (const auto it = dictionaryMethods.find(name); it != dictionaryMethods.end()) return it->second;
     return nullptr;
 }
 
 std::shared_ptr<NativeFunction> StdLib::getStringMethod(const std::string &name) {
-    if (stringMethods.contains(name)) return stringMethods[name];
+    if (const auto it = stringMethods.find(name); it != stringMethods.end()) return it->second;
     return nullptr;
 }
 
 std::shared_ptr<NativeFunction> StdLib::getCharacterMethod(const std::string &name) {
-    if (characterMethods.contains(name)) return characterMethods[name];
+    if (const auto it = characterMethods.find(name); it != characterMethods.end()) return it->second;
     return nullptr;
 }

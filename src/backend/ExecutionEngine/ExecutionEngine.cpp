@@ -2,7 +2,6 @@
 
 ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine) : diagnosticEngine(diagnosticEngine) {
     stack.reserve(256);
-    builtins.registerStandardLibrary();
 }
 
 ExecutionResult ExecutionEngine::run(const std::string &input) {
