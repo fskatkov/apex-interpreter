@@ -1,9 +1,8 @@
 #include "backend/ExecutionEngine/ExecutionEngine.h"
 
-ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine)
-    : diagnosticEngine(diagnosticEngine), buffer(nullptr), address(nullptr) {
+ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine) : diagnosticEngine(diagnosticEngine) {
     stack.reserve(256);
-    registerStandardLibrary();
+    builtins.registerStandardLibrary();
 }
 
 ExecutionResult ExecutionEngine::run(const std::string &input) {
@@ -27,77 +26,72 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     std::array<ExecutionEngine::Handler, 256> table{};
     table.fill(&ExecutionEngine::executeUnknown);
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_CONSTANT)] = &ExecutionEngine::executeConstant;
-    table[static_cast<std::uint8_t>(InstructionType::OP_TRUE)] = &ExecutionEngine::executeTrueLiteral;
-    table[static_cast<std::uint8_t>(InstructionType::OP_FALSE)] = &ExecutionEngine::executeFalseLiteral;
-    table[static_cast<std::uint8_t>(InstructionType::OP_NULL)] = &ExecutionEngine::executeNullLiteral;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_STRING)] = &ExecutionEngine::executeInterpolatedStringLiteral;
+    table[std::to_underlying(InstructionType::OP_CONSTANT)] = &ExecutionEngine::executeConstant;
+    table[std::to_underlying(InstructionType::OP_TRUE)] = &ExecutionEngine::executeTrueLiteral;
+    table[std::to_underlying(InstructionType::OP_FALSE)] = &ExecutionEngine::executeFalseLiteral;
+    table[std::to_underlying(InstructionType::OP_NULL)] = &ExecutionEngine::executeNullLiteral;
+    table[std::to_underlying(InstructionType::OP_BUILD_STRING)] = &ExecutionEngine::executeInterpolatedStringLiteral;
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_ADD)] = &ExecutionEngine::executeAddition;
-    table[static_cast<std::uint8_t>(InstructionType::OP_SUB)] = &ExecutionEngine::executeSubtraction;
-    table[static_cast<std::uint8_t>(InstructionType::OP_MUL)] = &ExecutionEngine::executeMultiplication;
-    table[static_cast<std::uint8_t>(InstructionType::OP_DIV)] = &ExecutionEngine::executeDivision;
-    table[static_cast<std::uint8_t>(InstructionType::OP_MOD)] = &ExecutionEngine::executeModuloDivision;
-    table[static_cast<std::uint8_t>(InstructionType::OP_POW)] = &ExecutionEngine::executePower;
-    table[static_cast<std::uint8_t>(InstructionType::OP_NOT)] = &ExecutionEngine::executeNotOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_NEGATE)] = &ExecutionEngine::executeNegation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_AND)] = &ExecutionEngine::executeBitwiseAnd;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_OR)] = &ExecutionEngine::executeBitwiseOr;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_XOR)] = &ExecutionEngine::executeBitwiseXor;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_NOT)] = &ExecutionEngine::executeBitwiseNot;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_LEFT_SHIFT)] = &
+    table[std::to_underlying(InstructionType::OP_ADD)] = &ExecutionEngine::executeAddition;
+    table[std::to_underlying(InstructionType::OP_SUB)] = &ExecutionEngine::executeSubtraction;
+    table[std::to_underlying(InstructionType::OP_MUL)] = &ExecutionEngine::executeMultiplication;
+    table[std::to_underlying(InstructionType::OP_DIV)] = &ExecutionEngine::executeDivision;
+    table[std::to_underlying(InstructionType::OP_MOD)] = &ExecutionEngine::executeModuloDivision;
+    table[std::to_underlying(InstructionType::OP_POW)] = &ExecutionEngine::executePower;
+    table[std::to_underlying(InstructionType::OP_NOT)] = &ExecutionEngine::executeNotOperation;
+    table[std::to_underlying(InstructionType::OP_NEGATE)] = &ExecutionEngine::executeNegation;
+    table[std::to_underlying(InstructionType::OP_BITWISE_AND)] = &ExecutionEngine::executeBitwiseAnd;
+    table[std::to_underlying(InstructionType::OP_BITWISE_OR)] = &ExecutionEngine::executeBitwiseOr;
+    table[std::to_underlying(InstructionType::OP_BITWISE_XOR)] = &ExecutionEngine::executeBitwiseXor;
+    table[std::to_underlying(InstructionType::OP_BITWISE_NOT)] = &ExecutionEngine::executeBitwiseNot;
+    table[std::to_underlying(InstructionType::OP_BITWISE_LEFT_SHIFT)] = &
             ExecutionEngine::executeBitwiseLeftShift;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BITWISE_RIGHT_SHIFT)] = &
+    table[std::to_underlying(InstructionType::OP_BITWISE_RIGHT_SHIFT)] = &
             ExecutionEngine::executeBitwiseRightShift;
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_EQUALS_EQUALS)] = &ExecutionEngine::executeEquality;
-    table[static_cast<std::uint8_t>(InstructionType::OP_GREATER)] = &ExecutionEngine::executeGreaterOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_GREATER_EQUALS)] = &
+    table[std::to_underlying(InstructionType::OP_EQUALS_EQUALS)] = &ExecutionEngine::executeEquality;
+    table[std::to_underlying(InstructionType::OP_GREATER)] = &ExecutionEngine::executeGreaterOperation;
+    table[std::to_underlying(InstructionType::OP_GREATER_EQUALS)] = &
             ExecutionEngine::executeGreaterThanOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_LESS)] = &ExecutionEngine::executeLessOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_LESS_EQUALS)] = &ExecutionEngine::executeLessThanOperation;
+    table[std::to_underlying(InstructionType::OP_LESS)] = &ExecutionEngine::executeLessOperation;
+    table[std::to_underlying(InstructionType::OP_LESS_EQUALS)] = &ExecutionEngine::executeLessThanOperation;
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_DEFINE_GLOBAL)] = &ExecutionEngine::executeDefineGlobalVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_DEFINE_CONST)] = &
+    table[std::to_underlying(InstructionType::OP_DEFINE_GLOBAL)] = &ExecutionEngine::executeDefineGlobalVariable;
+    table[std::to_underlying(InstructionType::OP_DEFINE_CONST)] = &
             ExecutionEngine::executeDefineConstantVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_GET_GLOBAL)] = &ExecutionEngine::executeGetGlobalVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_SET_GLOBAL)] = &ExecutionEngine::executeSetGlobalVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_GET_LOCAL)] = &ExecutionEngine::executeGetLocalVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_SET_LOCAL)] = &ExecutionEngine::executeSetLocalVariable;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_ARRAY)] = &ExecutionEngine::executeBuildArray;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_SET)] = &ExecutionEngine::executeBuildSet;
-    table[static_cast<std::uint8_t>(InstructionType::OP_BUILD_DICTIONARY)] = &ExecutionEngine::executeBuildDictionary;
-    table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_GET)] = &ExecutionEngine::executeGetIndex;
-    table[static_cast<std::uint8_t>(InstructionType::OP_INDEX_SET)] = &ExecutionEngine::executeSetIndex;
-    table[static_cast<std::uint8_t>(InstructionType::OP_GET_PROPERTY)] = &ExecutionEngine::executeGetProperty;
+    table[std::to_underlying(InstructionType::OP_GET_GLOBAL)] = &ExecutionEngine::executeGetGlobalVariable;
+    table[std::to_underlying(InstructionType::OP_SET_GLOBAL)] = &ExecutionEngine::executeSetGlobalVariable;
+    table[std::to_underlying(InstructionType::OP_GET_LOCAL)] = &ExecutionEngine::executeGetLocalVariable;
+    table[std::to_underlying(InstructionType::OP_SET_LOCAL)] = &ExecutionEngine::executeSetLocalVariable;
+    table[std::to_underlying(InstructionType::OP_BUILD_ARRAY)] = &ExecutionEngine::executeBuildArray;
+    table[std::to_underlying(InstructionType::OP_BUILD_SET)] = &ExecutionEngine::executeBuildSet;
+    table[std::to_underlying(InstructionType::OP_BUILD_DICTIONARY)] = &ExecutionEngine::executeBuildDictionary;
+    table[std::to_underlying(InstructionType::OP_INDEX_GET)] = &ExecutionEngine::executeGetIndex;
+    table[std::to_underlying(InstructionType::OP_INDEX_SET)] = &ExecutionEngine::executeSetIndex;
+    table[std::to_underlying(InstructionType::OP_GET_PROPERTY)] = &ExecutionEngine::executeGetProperty;
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_JUMP_IF_FALSE)] = &ExecutionEngine::executeJumpIfFalseOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_JUMP)] = &ExecutionEngine::executeJumpOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_POP)] = &ExecutionEngine::executePopOperation;
-    table[static_cast<std::uint8_t>(InstructionType::OP_LOOP)] = &ExecutionEngine::executeLoop;
-    table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE)] = &ExecutionEngine::executeDuplicate;
-    table[static_cast<std::uint8_t>(InstructionType::OP_DUPLICATE2)] = &ExecutionEngine::executeDuplicate2;
-    table[static_cast<std::uint8_t>(InstructionType::OP_CALL)] = &ExecutionEngine::executeFunctionCall;
+    table[std::to_underlying(InstructionType::OP_JUMP_IF_FALSE)] = &ExecutionEngine::executeJumpIfFalseOperation;
+    table[std::to_underlying(InstructionType::OP_JUMP)] = &ExecutionEngine::executeJumpOperation;
+    table[std::to_underlying(InstructionType::OP_POP)] = &ExecutionEngine::executePopOperation;
+    table[std::to_underlying(InstructionType::OP_LOOP)] = &ExecutionEngine::executeLoop;
+    table[std::to_underlying(InstructionType::OP_DUPLICATE)] = &ExecutionEngine::executeDuplicate;
+    table[std::to_underlying(InstructionType::OP_DUPLICATE2)] = &ExecutionEngine::executeDuplicate2;
+    table[std::to_underlying(InstructionType::OP_CALL)] = &ExecutionEngine::executeFunctionCall;
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
-    table[static_cast<std::uint8_t>(InstructionType::OP_TYPEOF)] = &ExecutionEngine::executeTypeofOperator;
-    table[static_cast<std::uint8_t>(InstructionType::OP_PRINT)] = &ExecutionEngine::executePrint;
+    table[std::to_underlying(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
+    table[std::to_underlying(InstructionType::OP_TYPEOF)] = &ExecutionEngine::executeTypeofOperator;
+    table[std::to_underlying(InstructionType::OP_PRINT)] = &ExecutionEngine::executePrint;
 
-    table[static_cast<std::uint8_t>(InstructionType::OP_RETURN)] = &ExecutionEngine::executeReturn;
+    table[std::to_underlying(InstructionType::OP_RETURN)] = &ExecutionEngine::executeReturn;
     return table;
 }();
 
 ExecutionResult ExecutionEngine::execute() {
     while (true) {
         const auto result = (this->*dispatchTable[readByte()])();
-
-        if (result == ExecutionResult::HALT) {
-            return ExecutionResult::OK;
-        }
-
-        if (result != ExecutionResult::OK) {
-            return result;
-        }
+        if (result == ExecutionResult::OK) [[likely]] continue;
+        if (result == ExecutionResult::HALT) [[unlikely]] return ExecutionResult::OK;
+        return result;
     }
 }
 
@@ -126,7 +120,7 @@ inline ExecutionResult ExecutionEngine::executeInterpolatedStringLiteral() {
 
     std::string interpolatedString;
 
-    for (auto i = count - 1; i >= 0; --i) {
+    for (const auto i : std::views::iota(0, count) | std::views::reverse) {
         interpolatedString += stringify(peek(i), false);
     }
 
@@ -158,9 +152,7 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
         },
         [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
             auto newArray = *first;
-            for (const auto& elem : *second) {
-                newArray.push_back(elem);
-            }
+            newArray.append_range(*second);
             push(std::make_shared<Array>(newArray));
             return ExecutionResult::OK;
         }
@@ -211,7 +203,7 @@ inline ExecutionResult ExecutionEngine::executeMultiplication() {
         [&](const double &first, const std::shared_ptr<Array> &second) {
             Array newArray = *second;
             for (auto i = 1; i < first; ++i) {
-                newArray.insert(newArray.end(), second->begin(), second->end());
+                newArray.append_range(*second);
             }
             push(std::make_shared<Array>(newArray));
             return ExecutionResult::OK;
@@ -219,7 +211,7 @@ inline ExecutionResult ExecutionEngine::executeMultiplication() {
         [&](const std::shared_ptr<Array> &first, const double &second) {
             Array newArray = *first;
             for (auto i = 1; i < second; ++i) {
-                newArray.insert(newArray.end(), first->begin(), first->end());
+                newArray.append_range(*first);
             }
             push(std::make_shared<Array>(newArray));
             return ExecutionResult::OK;
@@ -323,7 +315,7 @@ inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
         },
         [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
             Set setUnion = *first;
-            setUnion.insert(second->begin(), second->end());
+            setUnion.insert_range(*second);
             push(std::make_shared<Set>(setUnion));
             return ExecutionResult::OK;
         }
@@ -533,7 +525,7 @@ inline ExecutionResult ExecutionEngine::executeGetGlobalVariable() {
     if (const auto it = globalVariables.find(name); it != globalVariables.end()) {
         push(it->second);
     } else {
-        reportRuntimeError("undefined variable `" + name + "`");
+        reportRuntimeError(std::format("undefined variable `{}`", name));
         return ExecutionResult::RUNTIME_ERROR;
     }
 
@@ -544,14 +536,14 @@ inline ExecutionResult ExecutionEngine::executeSetGlobalVariable() {
     const auto name = readConstant().get<std::string>();
 
     if (constants.contains(name)) {
-        reportRuntimeError("cannot reassign constant variable `" + name + "`");
+        reportRuntimeError(std::format("cannot reassign constant variable `{}`", name));
         return ExecutionResult::RUNTIME_ERROR;
     }
 
     if (const auto it = globalVariables.find(name); it != globalVariables.end()) {
         globalVariables[name] = peek(0);
     } else {
-        reportRuntimeError("undefined variable `" + name + "`");
+        reportRuntimeError(std::format("undefined variable `{}`", name));
         return ExecutionResult::RUNTIME_ERROR;
     }
 
@@ -580,7 +572,7 @@ inline ExecutionResult ExecutionEngine::executeBuildArray() {
     Array array;
     array.resize(count);
 
-    for (auto i = count - 1; i >= 0; --i) {
+    for (const auto i : std::views::iota(0, count) | std::views::reverse) {
         array[i] = pop();
     }
 
@@ -618,7 +610,7 @@ inline ExecutionResult ExecutionEngine::executeBuildDictionary() {
         } else if (key.is<double>()) {
             keyStr = stringify(key);
         } else {
-            reportRuntimeError("unsupported key `" + key.get<std::string>() + "`");
+            reportRuntimeError(std::format("unsupported key `{}`", key.get<std::string>()));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -677,7 +669,7 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
         const auto &dictionaryPtr = firstValue.get<std::shared_ptr<Dictionary>>();
 
         if (!dictionaryPtr->contains(key)) {
-            reportRuntimeError("key `" + key + "` does not exist");
+            reportRuntimeError(std::format("key `{}` does not exist", key));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -726,7 +718,7 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
         const auto &dictionaryPtr = firstValue.get<std::shared_ptr<Dictionary>>();
 
         if (!dictionaryPtr->contains(key)) {
-            reportRuntimeError("key `" + key + "` does not exist");
+            reportRuntimeError(std::format("key `{}` does not exist", key));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -744,33 +736,33 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
     const auto name = readConstant().get<std::string>();
 
     if (const auto target = pop(); target.is<std::shared_ptr<Array>>()) {
-        if (auto method = getArrayMethod(name)) {
+        if (auto method = builtins.getArrayMethod(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<std::shared_ptr<Set>>()) {
-        if (auto method = getSetMethod(name)) {
+        if (auto method = builtins.getSetMethod(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<std::shared_ptr<Dictionary>>()) {
-        if (auto method = getDictionaryMethod(name)) {
+        if (auto method = builtins.getDictionaryMethod(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<std::string>()) {
-        if (auto method = getStringMethod(name)) {
+        if (auto method = builtins.getStringMethod(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<char>()) {
-        if (auto method = getCharacterMethod(name)) {
+        if (auto method = builtins.getCharacterMethod(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     }
 
-    reportRuntimeError("property `" + name + "` does not exist");
+    reportRuntimeError(std::format("property `{}` does not exist", name));
     return ExecutionResult::OK;
 }
 
@@ -829,17 +821,15 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
         const auto &func = callee.get<std::shared_ptr<Function>>();
 
         if (argCount != func->arity) {
-            reportRuntimeError(
-                "expected " + std::to_string(func->arity) + " arguments but got " + std::to_string(argCount));
+            reportRuntimeError(std::format("expected {} arguments but got {}", std::to_string(func->arity), std::to_string(argCount)));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        Frame frame;
-        frame.function = func;
-        frame.address = address;
-        frame.stackOffset = static_cast<int>(stack.size()) - argCount - 1;
-
-        frames.push_back(frame);
+        frames.push_back(Frame{
+            .function = func,
+            .address = address,
+            .stackOffset = static_cast<int>(stack.size()) - argCount - 1
+        });
         address = buffer->code.data() + func->startingAddress;
 
         return ExecutionResult::OK;
@@ -850,13 +840,12 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
         const auto &nativeFunc = bound->method;
 
         if (nativeFunc->arity != -1 && argCount != nativeFunc->arity) {
-            reportRuntimeError(
-                "expected " + std::to_string(nativeFunc->arity) + " arguments but got " + std::to_string(argCount));
+            reportRuntimeError(std::format("expected {} arguments but got {}", std::to_string(nativeFunc->arity), std::to_string(argCount)));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
         std::vector<Value> args;
-        for (auto i = argCount - 1; i >= 0; --i) {
+        for (const auto i : std::views::iota(0, static_cast<int>(argCount)) | std::views::reverse) {
             args.push_back(peek(i));
         }
 
@@ -887,8 +876,7 @@ inline ExecutionResult ExecutionEngine::executeInOperator() {
 
     if (rhs.is<std::shared_ptr<Array>>()) {
         const auto &arrayPtr = rhs.get<std::shared_ptr<Array>>();
-        const auto it = std::ranges::find(*arrayPtr, lhs);
-        push(it != arrayPtr->end());
+        push(std::ranges::contains(*arrayPtr, lhs));
     } else if (rhs.is<std::shared_ptr<Set>>()) {
         const auto &setPtr = rhs.get<std::shared_ptr<Set>>();
         push(setPtr->contains(lhs));
@@ -908,12 +896,12 @@ inline ExecutionResult ExecutionEngine::executeInOperator() {
         push(dictionaryPtr->contains(key));
     } else if (rhs.is<std::string>()) {
         if (!lhs.is<std::string>()) {
-            reportRuntimeError("element is of type `" + stringify(lhs) + "`, but not string");
+            reportRuntimeError(std::format("element is of type {}, but not string", stringify(lhs)));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
         const auto &stringPtr = rhs.get<std::string>();
-        push(stringPtr.find(lhs.get<std::string>()) != std::string::npos);
+        push(stringPtr.contains(lhs.get<std::string>()));
     } else {
         reportRuntimeError("right-hand side of `in` must be container or string literal");
         return ExecutionResult::RUNTIME_ERROR;
@@ -975,16 +963,14 @@ ExecutionResult ExecutionEngine::executeOperation(const std::string &symbol, T..
     return std::visit<ExecutionResult>(overloaded {
         items...,
         [&](const auto &first, const auto &second) {
-            reportRuntimeError("unsupported operand types for `" + symbol + "`: [" + lhs.type()
-                + "] and [" + rhs.type() + "]");
+            reportRuntimeError(std::format("unsupported operand types for `{}`: [{}] and [{}]", symbol, lhs.type(), rhs.type()));
             return ExecutionResult::RUNTIME_ERROR;
         }
     }, lhs.as, rhs.as);
 }
 
-template<typename T>
-double ExecutionEngine::executeBitwiseBinaryOperation(const double &firstNumber, const double &secondNumber,
-                                                      T operation) {
+template<std::invocable<std::uint64_t, std::uint64_t> Op>
+double ExecutionEngine::executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, Op operation) {
     auto lhs = static_cast<std::int64_t>(firstNumber);
     auto rhs = static_cast<std::int64_t>(secondNumber);
     const std::int64_t result = operation(lhs, rhs);
@@ -1009,54 +995,6 @@ Value ExecutionEngine::peek(const int &distance) const {
     return stack[stack.size() - distance - 1];
 }
 
-void ExecutionEngine::registerStandardLibrary() {
-    stdlib::ArrayBuiltins::registerMethods(this->arrayMethods);
-    stdlib::SetBuiltins::registerMethods(this->setMethods);
-    stdlib::DictionaryBuiltins::registerMethods(this->dictionaryMethods);
-    stdlib::StringBuiltins::registerMethods(this->stringMethods);
-    stdlib::CharacterBuiltins::registerMethods(this->characterMethods);
-}
-
-std::shared_ptr<NativeFunction> ExecutionEngine::getArrayMethod(const std::string &name) {
-    if (arrayMethods.contains(name)) {
-        return arrayMethods[name];
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<NativeFunction> ExecutionEngine::getSetMethod(const std::string &name) {
-    if (setMethods.contains(name)) {
-        return setMethods[name];
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<NativeFunction> ExecutionEngine::getDictionaryMethod(const std::string &name) {
-    if (dictionaryMethods.contains(name)) {
-        return dictionaryMethods[name];
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<NativeFunction> ExecutionEngine::getStringMethod(const std::string &name) {
-    if (stringMethods.contains(name)) {
-        return stringMethods[name];
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<NativeFunction> ExecutionEngine::getCharacterMethod(const std::string &name) {
-    if (characterMethods.contains(name)) {
-        return characterMethods[name];
-    }
-
-    return nullptr;
-}
-
 std::string ExecutionEngine::stringify(const Value& value, bool isNested) {
     return value.str();
 }
@@ -1069,6 +1007,7 @@ void ExecutionEngine::reportRuntimeError(const std::string &message) {
         SourceLocation{line, 1, 0, 0},
         message
     );
+
     diagnosticEngine.raise();
 
     resetStack();

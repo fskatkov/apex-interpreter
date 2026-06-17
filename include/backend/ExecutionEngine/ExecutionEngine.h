@@ -4,11 +4,7 @@
 #include "diagnostics/DiagnosticEngine.h"
 #include "backend/BytecodeGenerator/BytecodeGenerator.h"
 #include "structures/BytecodeBuffer/BytecodeBuffer.h"
-#include "stdlib/ArrayBuiltins/ArrayBuiltins.h"
-#include "stdlib/SetBuiltins/SetBuiltins.h"
-#include "stdlib/DictionaryBuiltins/DictionaryBuiltins.h"
-#include "stdlib/StringBuiltins/StringBuiltins.h"
-#include "stdlib/CharacterBuiltins/CharacterBuiltins.h"
+#include "stdlib/StdLib/StdLib.h"
 
 enum class ExecutionResult {
     COMPILETIME_ERROR,
@@ -23,6 +19,8 @@ struct Frame {
     int stackOffset;
 };
 
+using Frames = std::vector<Frame>;
+
 class ExecutionEngine {
 public:
     explicit ExecutionEngine(DiagnosticEngine& diagnosticEngine);
@@ -30,24 +28,37 @@ public:
 private:
     DiagnosticEngine& diagnosticEngine;
     std::string source;
+    std::unique_ptr<BytecodeBuffer> buffer = nullptr;
+    const std::uint8_t* address = nullptr;
+
+    Frames frames;
+    Array stack;
 
     std::unordered_map<std::string, Value> globalVariables;
     std::unordered_set<std::string> constants;
-    std::unique_ptr<BytecodeBuffer> buffer;
-    std::vector<Frame> frames;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> arrayMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> setMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> dictionaryMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> stringMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> characterMethods;
 
-    const std::uint8_t* address;
-    Array stack;
+    StdLib builtins;
 
     using Handler = ExecutionResult (ExecutionEngine::*)();
     static const std::array<Handler, 256> dispatchTable;
 
     ExecutionResult execute();
+    std::uint8_t readByte();
+    [[maybe_unused]] Value readConstant();
+
+    template<typename... T>
+    [[maybe_unused]] ExecutionResult executeOperation(const std::string &symbol, T... items);
+
+    template<std::invocable<std::uint64_t, std::uint64_t> Op>
+    double executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, Op operation);
+
+    void resetStack();
+    void push(const Value& value);
+    [[maybe_unused]] Value pop();
+    [[maybe_unused]] [[nodiscard]] Value peek(const int& distance) const;
+
+    [[maybe_unused]] [[nodiscard]] static std::string stringify(const Value& value, bool isNested = false);
+    void reportRuntimeError(const std::string& message);
 
     inline ExecutionResult executeConstant();
     inline ExecutionResult executeTrueLiteral();
@@ -102,30 +113,5 @@ private:
     inline ExecutionResult executePrint();
 
     inline ExecutionResult executeReturn();
-
     inline ExecutionResult executeUnknown();
-
-    std::uint8_t readByte();
-    Value readConstant();
-
-    template<typename... T>
-    ExecutionResult executeOperation(const std::string &symbol, T... items);
-
-    template<typename T>
-    double executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, T operation);
-
-    void resetStack();
-    void push(const Value& value);
-    Value pop();
-    [[nodiscard]] Value peek(const int& distance) const;
-
-    void registerStandardLibrary();
-    std::shared_ptr<NativeFunction> getArrayMethod(const std::string &name);
-    std::shared_ptr<NativeFunction> getSetMethod(const std::string &name);
-    std::shared_ptr<NativeFunction> getDictionaryMethod(const std::string &name);
-    std::shared_ptr<NativeFunction> getStringMethod(const std::string &name);
-    std::shared_ptr<NativeFunction> getCharacterMethod(const std::string &name);
-
-    [[nodiscard]] static std::string stringify(const Value& value, bool isNested = false);
-    void reportRuntimeError(const std::string& message);
 };
