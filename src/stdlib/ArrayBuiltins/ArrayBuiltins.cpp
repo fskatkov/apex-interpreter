@@ -2,34 +2,34 @@
 
 namespace stdlib::ArrayBuiltins {
     namespace {
-        Value retrieveArraySize(Value receiver, const std::vector<Value> &args) {
+        Value retrieveArraySize(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             return static_cast<double>(receivedObject->size());
         }
 
-        Value clearArray(Value receiver, const std::vector<Value> &args) {
+        Value clearArray(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             receivedObject->clear();
             return receivedObject;
         }
 
-        Value createArrayClone(Value receiver, const std::vector<Value> &args) {
+        Value createArrayClone(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             return std::make_shared<Array>(*receivedObject);
         }
 
-        Value reverseArray(Value receiver, const std::vector<Value> &args) {
+        Value reverseArray(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             std::ranges::reverse(*receivedObject);
             return NIL{};
         }
 
-        Value checkArrayEmptiness(Value receiver, const std::vector<Value> &args) {
+        Value checkArrayEmptiness(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             return receivedObject->empty();
         }
 
-        Value getFrontArrayElement(Value receiver, const std::vector<Value> &args) {
+        Value getFrontArrayElement(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             if (receivedObject->empty()) [[unlikely]] {
                 throw std::runtime_error("array is empty but asked to get the front element");
@@ -37,7 +37,7 @@ namespace stdlib::ArrayBuiltins {
             return receivedObject->front();
         }
 
-        Value getBackArrayElement(Value receiver, const std::vector<Value> &args) {
+        Value getBackArrayElement(Value receiver, const std::vector<Value>&) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
             if (receivedObject->empty()) [[unlikely]] {
                 throw std::runtime_error("array is empty but asked to get the back element");
@@ -98,7 +98,7 @@ namespace stdlib::ArrayBuiltins {
             return NIL{};
         }
 
-        Value removeElementFromArrayEnd(Value receiver, const std::vector<Value> &args) {
+        Value removeElementFromArrayEnd(Value receiver, const std::vector<Value> &) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
 
             if (receivedObject->empty()) [[unlikely]] {
@@ -192,30 +192,103 @@ namespace stdlib::ArrayBuiltins {
 
         Value containsValue(Value receiver, const std::vector<Value> &args) {
             const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            return std::ranges::find(*receivedObject, args[0]) != receivedObject->end();
+            return std::ranges::contains(*receivedObject, args[0]);
         }
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
         return {
-            { "len", std::make_shared<NativeFunction>("len", 0, retrieveArraySize) },
-            { "clear", std::make_shared<NativeFunction>("clear", 0, clearArray) },
-            { "copy", std::make_shared<NativeFunction>("copy", 0, createArrayClone) },
-            { "reverse", std::make_shared<NativeFunction>("reverse", 0, reverseArray) },
-            { "isEmpty", std::make_shared<NativeFunction>("isEmpty", 0, checkArrayEmptiness) },
-            { "first", std::make_shared<NativeFunction>("first", 0, getFrontArrayElement) },
-            { "last", std::make_shared<NativeFunction>("last", 0, getBackArrayElement) },
-            { "at", std::make_shared<NativeFunction>("at", 1, getElementByIndex) },
-            { "set", std::make_shared<NativeFunction>("set", 2, updateElementByIndex) },
-            { "append", std::make_shared<NativeFunction>("append", 1, appendElementToArrayEnd) },
-            { "insertAt", std::make_shared<NativeFunction>("insertAt", 2, appendElementByIndex) },
-            { "pop", std::make_shared<NativeFunction>("pop", 0, removeElementFromArrayEnd) },
-            { "removeAt", std::make_shared<NativeFunction>("removeAt", 1, removeElementByIndex) },
-            { "slice", std::make_shared<NativeFunction>("slice", 2, sliceArray) },
-            { "concat", std::make_shared<NativeFunction>("concat", 1, concatenateTwoArrays) },
-            { "indexOf", std::make_shared<NativeFunction>("indexOf", 1, retrieveFirstIndexOfArrayElement) },
-            { "lastIndexOf", std::make_shared<NativeFunction>("lastIndexOf", 1, retrieveLastIndexOfArrayElement) },
-            { "contains", std::make_shared<NativeFunction>("contains", 1, containsValue) },
+            { "len", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "len",
+                .arity = 0,
+                .callable = retrieveArraySize
+            }) },
+            { "clear", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "clear",
+                .arity = 0,
+                .callable = clearArray
+            }) },
+            { "copy", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "copy",
+                .arity = 0,
+                .callable = createArrayClone
+            }) },
+            { "reverse", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "reverse",
+                .arity = 0,
+                .callable = reverseArray
+            }) },
+            { "isEmpty", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "isEmpty",
+                .arity = 0,
+                .callable = checkArrayEmptiness
+            }) },
+            { "first", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "first",
+                .arity = 0,
+                .callable = getFrontArrayElement
+            }) },
+            { "last", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "last",
+                .arity = 0,
+                .callable = getBackArrayElement
+            }) },
+            { "at", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "at",
+                .arity = 1,
+                .callable = getElementByIndex
+            }) },
+            { "set", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "set",
+                .arity = 2,
+                .callable = updateElementByIndex
+            }) },
+            { "append", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "append",
+                .arity = 1,
+                .callable = appendElementToArrayEnd
+            }) },
+            { "insertAt", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "insertAt",
+                .arity = 2,
+                .callable = appendElementByIndex
+            }) },
+
+            { "pop", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "pop",
+                .arity = 0,
+                .callable = removeElementFromArrayEnd
+            }) },
+            { "removeAt", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "removeAt",
+                .arity = 1,
+                .callable = removeElementByIndex
+            }) },
+            { "slice", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "slice",
+                .arity = 2,
+                .callable = sliceArray
+            }) },
+            { "concat", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "concat",
+                .arity = 1,
+                .callable = concatenateTwoArrays
+            }) },
+            { "indexOf", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "indexOf",
+                .arity = 1,
+                .callable = retrieveFirstIndexOfArrayElement
+            }) },
+            { "lastIndexOf", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "lastIndexOf",
+                .arity = 1,
+                .callable = retrieveLastIndexOfArrayElement
+            }) },
+            { "contains", std::make_shared<NativeFunction>(NativeFunction{
+                .name = "contains",
+                .arity = 1,
+                .callable = containsValue
+            }) },
         };
     }
 }
