@@ -29,7 +29,7 @@ namespace stdlib::SetBuiltins {
 
         Value applySetUnion(Value receiver, const std::vector<Value> &args) {
             if (!args.front().is<std::shared_ptr<Set> >()) [[unlikely]] {
-                throw std::runtime_error("cannot apply set union to a non-set value");
+                throw std::invalid_argument("cannot apply set union to a non-set value");
             }
 
             const auto &receivedObject = receiver.get<std::shared_ptr<Set> >();
@@ -43,7 +43,7 @@ namespace stdlib::SetBuiltins {
 
         Value applySetIntersection(Value receiver, const std::vector<Value> &args) {
             if (!args.front().is<std::shared_ptr<Set> >()) [[unlikely]] {
-                throw std::runtime_error("cannot apply set intersection to a non-set value");
+                throw std::invalid_argument("cannot apply set intersection to a non-set value");
             }
 
             const auto &receivedObject = receiver.get<std::shared_ptr<Set> >();
@@ -70,7 +70,7 @@ namespace stdlib::SetBuiltins {
 
         Value applySetDifference(Value receiver, const std::vector<Value> &args) {
             if (!args.front().is<std::shared_ptr<Set> >()) [[unlikely]] {
-                throw std::runtime_error("cannot apply set difference to a non-set value");
+                throw std::invalid_argument("cannot apply set difference to a non-set value");
             }
 
             const auto &receivedObject = receiver.get<std::shared_ptr<Set> >();
@@ -89,7 +89,7 @@ namespace stdlib::SetBuiltins {
 
         Value applySymmetricDifference(Value receiver, const std::vector<Value> &args) {
             if (!args.front().is<std::shared_ptr<Set> >()) [[unlikely]] {
-                throw std::runtime_error("cannot apply set symmetric difference to a non-set value");
+                throw std::invalid_argument("cannot apply set symmetric difference to a non-set value");
             }
 
             const auto &receivedObject = receiver.get<std::shared_ptr<Set> >();

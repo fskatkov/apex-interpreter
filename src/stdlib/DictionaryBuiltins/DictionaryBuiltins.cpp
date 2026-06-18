@@ -23,22 +23,23 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Value containsValue(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            if (!args.front().is<double>() && !args.front().is<std::string>()) {
+            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
                 throw std::invalid_argument("dictionary key must be Number or String");
             }
+
+            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
             return receivedObject->contains(args.front());
         }
 
         Value getDictionaryElementByKey(Value receiver, const std::vector<Value> &args) {
-            if (args.empty()) {
+            if (args.empty()) [[unlikely]] {
                 throw std::invalid_argument("get requires at least one element");
             }
 
             const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
             const auto &defaultValue = args.size() > 1 ? args[1] : NIL{};
 
-            if (!args.front().is<double>() && !args.front().is<std::string>()) {
+            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
                 throw std::invalid_argument("dictionary key must be Number or String");
             }
 
@@ -50,13 +51,13 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Value setDictionaryElementByKey(Value receiver, const std::vector<Value> &args) {
-            if (args.empty()) {
+            if (args.empty()) [[unlikely]] {
                 throw std::invalid_argument("setDefault requires at least one element");
             }
 
             const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
 
-            if (!args.front().is<double>() && !args.front().is<std::string>()) {
+            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
                 throw std::invalid_argument("dictionary key must be Number or String");
             }
 
@@ -78,11 +79,11 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Value mergeDictionaries(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            if (!args.front().is<std::shared_ptr<Dictionary> >()) {
+            if (!args.front().is<std::shared_ptr<Dictionary> >()) [[unlikely]] {
                 throw std::invalid_argument(std::format("expected Dictionary but got {}", args.front().type()));
             }
+
+            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
 
             const auto &otherObject = args.front().get<std::shared_ptr<Dictionary> >();
 
@@ -94,11 +95,11 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Value insertDictionary(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            if (!args.front().is<std::shared_ptr<Dictionary> >()) {
+            if (!args.front().is<std::shared_ptr<Dictionary> >()) [[unlikely]] {
                 throw std::invalid_argument(std::format("expected Dictionary but got {}", args.front().type()));
             }
+
+            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
 
             const auto otherObject = args.front().get<std::shared_ptr<Dictionary> >();
             receivedObject->insert(otherObject->begin(), otherObject->end());
@@ -106,11 +107,11 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Value removeDictionaryElementByKey(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            if (!args.front().is<double>() && !args.front().is<std::string>()) {
+            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
                 throw std::invalid_argument("dictionary key must be Number or String");
             }
+
+            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
 
             if (auto it = receivedObject->find(args.front()); it != receivedObject->end()) {
                 auto extractedValue = std::move(it->second);
