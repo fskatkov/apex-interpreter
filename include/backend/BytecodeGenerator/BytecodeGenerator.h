@@ -50,7 +50,6 @@ private:
     void compileFunctionStatement(FunctionStatement* statement);
     void compileExpressionStatement(const ExpressionStatement* statement);
     void compileReturnStatement(const ReturnStatement* statement);
-    void compilePrintStatement(const PrintStatement* statement);
 
     void compileExpression(Expr* originalExpression);
     void compileFunctionCallExpression(const FunctionCallExpression* originalExpression);

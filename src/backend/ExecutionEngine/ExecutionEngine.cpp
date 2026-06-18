@@ -2,6 +2,10 @@
 
 ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine) : diagnosticEngine(diagnosticEngine) {
     stack.reserve(256);
+
+    for (const auto &[name, native_func] : builtins.get_standard_io_methods()) {
+        globalVariables[name] = native_func;
+    }
 }
 
 ExecutionResult ExecutionEngine::run(const std::string &input) {
@@ -79,7 +83,6 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
 
     table[std::to_underlying(InstructionType::OP_IN)] = &ExecutionEngine::executeInOperator;
     table[std::to_underlying(InstructionType::OP_TYPEOF)] = &ExecutionEngine::executeTypeofOperator;
-    table[std::to_underlying(InstructionType::OP_PRINT)] = &ExecutionEngine::executePrint;
 
     table[std::to_underlying(InstructionType::OP_RETURN)] = &ExecutionEngine::executeReturn;
     return table;
@@ -735,27 +738,27 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
     const auto name = readConstant().get<std::string>();
 
     if (const auto target = pop(); target.is<std::shared_ptr<Array>>()) {
-        if (auto method = builtins.getArrayMethod(name)) {
+        if (auto method = builtins.get_array_method(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<std::shared_ptr<Set>>()) {
-        if (auto method = builtins.getSetMethod(name)) {
+        if (auto method = builtins.get_set_method(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<std::shared_ptr<Dictionary>>()) {
-        if (auto method = builtins.getDictionaryMethod(name)) {
+        if (auto method = builtins.get_dictionary_method(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<std::string>()) {
-        if (auto method = builtins.getStringMethod(name)) {
+        if (auto method = builtins.get_string_method(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<char>()) {
-        if (auto method = builtins.getCharacterMethod(name)) {
+        if (auto method = builtins.get_character_method(name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
@@ -831,6 +834,36 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
         });
         address = buffer->code.data() + func->startingAddress;
 
+        return ExecutionResult::OK;
+    }
+
+    if (callee.is<std::shared_ptr<NativeFunction>>()) {
+        const auto &nativeFunc = callee.get<std::shared_ptr<NativeFunction>>();
+
+        if (nativeFunc->arity != -1 && argCount != nativeFunc->arity) {
+            reportRuntimeError(std::format("expected {} arguments but got {}", nativeFunc->arity, argCount));
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        Array args;
+        for (const auto i : std::views::iota(0, static_cast<int>(argCount)) | std::views::reverse) {
+            args.push_back(peek(i));
+        }
+
+        Value finalValue;
+        try {
+            finalValue = nativeFunc->callable(NIL{}, args);
+        } catch (const std::runtime_error &error) {
+            reportRuntimeError(error.what());
+            return ExecutionResult::RUNTIME_ERROR;
+        }
+
+        for (auto i = 0; i < argCount; ++i) {
+            pop();
+        }
+
+        pop();
+        push(finalValue);
         return ExecutionResult::OK;
     }
 
@@ -911,11 +944,6 @@ inline ExecutionResult ExecutionEngine::executeInOperator() {
 
 inline ExecutionResult ExecutionEngine::executeTypeofOperator() {
     push(pop().type());
-    return ExecutionResult::OK;
-}
-
-inline ExecutionResult ExecutionEngine::executePrint() {
-    std::cout << stringify(pop()) << "\n";
     return ExecutionResult::OK;
 }
 

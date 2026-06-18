@@ -6,7 +6,7 @@ BytecodeGenerator::BytecodeGenerator(DiagnosticEngine &diagnosticEngine) : diagn
 void BytecodeGenerator::generate(std::string &source) {
     lexer = std::make_shared<Lexer>(source, diagnosticEngine);
     tokens = lexer->scan();
-    if (lexer->encounteredErrors()) return;
+    if (lexer->encountered_errors()) return;
 
     parser = std::make_shared<Parser>(tokens, diagnosticEngine);
     statements = parser->parse();
@@ -45,8 +45,6 @@ void BytecodeGenerator::compileStatement(Stmt *statement) {
         compileExpressionStatement(expressionStatement);
     } else if (const auto *returnStatement = dynamic_cast<ReturnStatement *>(statement)) {
         compileReturnStatement(returnStatement);
-    } else if (const auto *printStatement = dynamic_cast<PrintStatement *>(statement)) {
-        compilePrintStatement(printStatement);
     }
 }
 
@@ -371,11 +369,6 @@ void BytecodeGenerator::compileReturnStatement(const ReturnStatement *statement)
     }
 
     emitByte(std::to_underlying(InstructionType::OP_RETURN), statement->keyword.sourceLocation.line);
-}
-
-void BytecodeGenerator::compilePrintStatement(const PrintStatement *statement) {
-    compileExpression(statement->expression.get());
-    emitByte(static_cast<std::uint8_t>(InstructionType::OP_PRINT), 0);
 }
 
 void BytecodeGenerator::compileExpression(Expr *originalExpression) {

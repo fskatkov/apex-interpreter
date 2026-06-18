@@ -1,15 +1,15 @@
 #include "frontend/Lexer/Lexer.h"
 
-Lexer::Lexer(std::string source, DiagnosticEngine &diagnosticEngine)
-    : diagnosticEngine(diagnosticEngine), source(std::move(source)) {
+Lexer::Lexer(std::string source, DiagnosticEngine &diagnostic_engine)
+    : diagnostic_engine(diagnostic_engine), source(std::move(source)) {
 }
 
 std::vector<Token> Lexer::scan() {
-    while (!isReachedEnd()) {
-        startPosition = currentPosition;
-        startLine = line;
-        startColumn = column;
-        scanToken();
+    while (!is_reached_end()) {
+        start_position = current_position;
+        start_line = line;
+        start_column = column;
+        scan_token();
     }
 
     tokens.emplace_back(
@@ -19,7 +19,7 @@ std::vector<Token> Lexer::scan() {
         SourceLocation{
             .line = line,
             .column = column,
-            .offset = currentPosition,
+            .offset = current_position,
             .length = 0
         }
     );
@@ -27,17 +27,17 @@ std::vector<Token> Lexer::scan() {
     return tokens;
 }
 
-const std::vector<Token> &Lexer::getTokens() const {
+const std::vector<Token> &Lexer::get_tokens() const {
     return tokens;
 }
 
-bool Lexer::encounteredErrors() const {
-    return encounteredError;
+bool Lexer::encountered_errors() const {
+    return encountered_error;
 }
 
-void Lexer::scanToken() {
+void Lexer::scan_token() {
     if (!modes.empty() && modes.back() == LexerStringScanningMode::INTERPOLATED_STRING_TEXT) [[unlikely]] {
-        addInterpolatedStringToken();
+        make_interpolated_string_token();
         return;
     }
 
@@ -48,7 +48,7 @@ void Lexer::scanToken() {
             add(TokenKind::LEFT_BRACE);
 
             if (!modes.empty() && modes.back() == LexerStringScanningMode::INTERPOLATED_STRING_EXPRESSION) {
-                braceDepth++;
+                brace_depth++;
             }
 
             break;
@@ -57,10 +57,10 @@ void Lexer::scanToken() {
             add(TokenKind::RIGHT_BRACE);
 
             if (!modes.empty() && modes.back() == LexerStringScanningMode::INTERPOLATED_STRING_EXPRESSION) {
-                if (braceDepth > 1) {
-                    braceDepth--;
+                if (brace_depth > 1) {
+                    brace_depth--;
                 } else {
-                    braceDepth = 0;
+                    brace_depth = 0;
                     modes.pop_back();
                     modes.push_back(LexerStringScanningMode::INTERPOLATED_STRING_TEXT);
                 }
@@ -95,7 +95,7 @@ void Lexer::scanToken() {
         case '^': add(match('=') ? TokenKind::CARET_EQUALS : TokenKind::CARET); break;
         case '~': add(match('=') ? TokenKind::TILDE_EQUALS : TokenKind::TILDE); break;
         case '#': {
-            while (peek() != '\n' && !isReachedEnd()) {
+            while (peek() != '\n' && !is_reached_end()) {
                 advance();
             }
             break;
@@ -124,8 +124,8 @@ void Lexer::scanToken() {
         case '\t':
         case '\n':
             break;
-        case '\"': addStringToken(); break;
-        case '\'': addCharacterToken(); break;
+        case '\"': make_string_token(); break;
+        case '\'': make_character_token(); break;
         default: {
             if (c == 'f' && peek() == '"') {
                 advance();
@@ -135,24 +135,24 @@ void Lexer::scanToken() {
             }
 
             if (std::isdigit(static_cast<unsigned char>(c))) {
-                addNumberToken();
+                make_number_token();
             } else if (std::isalpha(static_cast<unsigned char>(c))) {
-                addIdentifierToken();
+                make_identifier_token();
             } else [[unlikely]] {
-                reportError("unexpected character");
-                encounteredError = true;
+                report_error("unexpected character");
+                encountered_error = true;
             }
             break;
         }
     }
 }
 
-bool Lexer::isReachedEnd() const {
-    return currentPosition >= source.length();
+bool Lexer::is_reached_end() const {
+    return current_position >= source.length();
 }
 
 char Lexer::advance() {
-    const auto symbol = source[currentPosition++];
+    const auto symbol = source[current_position++];
     if (symbol == '\n') [[unlikely]] {
         line++;
         column = 1;
@@ -163,26 +163,26 @@ char Lexer::advance() {
 }
 
 char Lexer::peek() const {
-    if (isReachedEnd()) [[unlikely]] return '\0';
-    return source[currentPosition];
+    if (is_reached_end()) [[unlikely]] return '\0';
+    return source[current_position];
 }
 
-char Lexer::peekNext() const {
-    if (currentPosition + 1 >= source.length()) [[unlikely]] return '\0';
-    return source[currentPosition + 1];
+char Lexer::peek_next() const {
+    if (current_position + 1 >= source.length()) [[unlikely]] return '\0';
+    return source[current_position + 1];
 }
 
 bool Lexer::match(const char &expected) {
-    if (isReachedEnd() || source[currentPosition] != expected) return false;
-    currentPosition++;
+    if (is_reached_end() || source[current_position] != expected) return false;
+    current_position++;
     column++;
     return true;
 }
 
 TokenKind Lexer::check(const std::size_t starting, const std::size_t ending, const std::string_view &rest,
                        const TokenKind kind) const {
-    if (currentPosition - startPosition == starting + ending) {
-        if (const std::string_view text(source.data() + startPosition + starting, ending); text == rest) {
+    if (current_position - start_position == starting + ending) {
+        if (const std::string_view text(source.data() + start_position + starting, ending); text == rest) {
             return kind;
         }
     }
@@ -191,55 +191,55 @@ TokenKind Lexer::check(const std::size_t starting, const std::size_t ending, con
 }
 
 void Lexer::add(const TokenKind &kind, const Value &literal) {
-    const auto length = currentPosition - startPosition;
+    const auto length = current_position - start_position;
 
     tokens.emplace_back(
         kind,
-        source.substr(startPosition, length),
+        source.substr(start_position, length),
         literal,
         SourceLocation{
-            .line = startLine,
-            .column = startColumn,
-            .offset = startPosition,
+            .line = start_line,
+            .column = start_column,
+            .offset = start_position,
             .length = length
         }
     );
 }
 
-void Lexer::addStringToken() {
-    while (peek() != '"' && !isReachedEnd()) {
+void Lexer::make_string_token() {
+    while (peek() != '"' && !is_reached_end()) {
         advance();
     }
 
-    if (isReachedEnd()) [[unlikely]] {
-        reportError("unterminated string");
-        encounteredError = true;
+    if (is_reached_end()) [[unlikely]] {
+        report_error("unterminated string");
+        encountered_error = true;
         return;
     }
 
     advance();
-    add(TokenKind::STRING, source.substr(startPosition + 1, currentPosition - startPosition - 2));
+    add(TokenKind::STRING, source.substr(start_position + 1, current_position - start_position - 2));
 }
 
-void Lexer::addInterpolatedStringToken() {
-    while (peek() != '{' && peek() != '"' && !isReachedEnd()) {
+void Lexer::make_interpolated_string_token() {
+    while (peek() != '{' && peek() != '"' && !is_reached_end()) {
         advance();
     }
 
-    if (isReachedEnd()) [[unlikely]] {
-        reportError("unterminated string");
-        encounteredError = true;
+    if (is_reached_end()) [[unlikely]] {
+        report_error("unterminated string");
+        encountered_error = true;
         return;
     }
 
-    if (currentPosition > startPosition) {
-        add(TokenKind::F_STRING_SLICE, source.substr(startPosition, currentPosition - startPosition));
+    if (current_position > start_position) {
+        add(TokenKind::F_STRING_SLICE, source.substr(start_position, current_position - start_position));
     }
 
     if (peek() == '{') {
         modes.pop_back();
         modes.push_back(LexerStringScanningMode::INTERPOLATED_STRING_EXPRESSION);
-        braceDepth = 0;
+        brace_depth = 0;
     } else {
         advance();
         add(TokenKind::F_STRING_END);
@@ -247,12 +247,12 @@ void Lexer::addInterpolatedStringToken() {
     }
 }
 
-void Lexer::addNumberToken() {
+void Lexer::make_number_token() {
     while (std::isdigit(static_cast<unsigned char>(peek()))) {
         advance();
     }
 
-    if (peek() == '.' && std::isdigit(static_cast<unsigned char>(peekNext()))) {
+    if (peek() == '.' && std::isdigit(static_cast<unsigned char>(peek_next()))) {
         advance();
 
         while (std::isdigit(static_cast<unsigned char>(peek()))) {
@@ -260,7 +260,7 @@ void Lexer::addNumberToken() {
         }
     }
 
-    const std::string_view numericString(source.data() + startPosition, currentPosition - startPosition);
+    const std::string_view numericString(source.data() + start_position, current_position - start_position);
     double value = 0;
 
     const auto [ptr, result] =
@@ -269,57 +269,58 @@ void Lexer::addNumberToken() {
     if (result == std::errc()) [[likely]] {
         add(TokenKind::NUMBER, value);
     } else [[unlikely]] {
-        reportError("invalid number format");
-        encounteredError = true;
+        report_error("invalid number format");
+        encountered_error = true;
     }
 }
 
-void Lexer::addCharacterToken() {
+void Lexer::make_character_token() {
     if (peek() == '\'') [[unlikely]] {
-        reportError("empty character literal");
-        encounteredError = true;
+        report_error("empty character literal");
+        encountered_error = true;
         advance();
         return;
     }
 
-    if (isReachedEnd()) [[unlikely]] {
-        reportError("unterminated character");
-        encounteredError = true;
+    if (is_reached_end()) [[unlikely]] {
+        report_error("unterminated character");
+        encountered_error = true;
         return;
     }
 
     if (const auto symbol = advance(); symbol == '\\') {
-        if (isReachedEnd()) [[unlikely]] {
-            reportError("unterminated character");
-            encounteredError = true;
+        if (is_reached_end()) [[unlikely]] {
+            report_error("unterminated character");
+            encountered_error = true;
             return;
         }
+
         advance();
     }
 
-    if (isReachedEnd() || peek() != '\'') [[unlikely]] {
-        reportError("unterminated character");
-        encounteredError = true;
+    if (is_reached_end() || peek() != '\'') [[unlikely]] {
+        report_error("unterminated character");
+        encountered_error = true;
         return;
     }
 
     advance();
-    add(TokenKind::CHARACTER, source[startPosition + 1]);
+    add(TokenKind::CHARACTER, source[start_position + 1]);
 }
 
-void Lexer::addIdentifierToken() {
+void Lexer::make_identifier_token() {
     while (std::isalnum(static_cast<unsigned char>(peek()))) {
         advance();
     }
 
-    add(checkIdentifierType(), "");
+    add(check_identifier(), "");
 }
 
-TokenKind Lexer::checkIdentifierType() const {
-    switch (source[startPosition]) {
+TokenKind Lexer::check_identifier() const {
+    switch (source[start_position]) {
         case 'a': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'n': return check(2, 1, "d", TokenKind::AND);
                     default: return TokenKind::IDENTIFIER;
                 }
@@ -328,13 +329,13 @@ TokenKind Lexer::checkIdentifierType() const {
             return TokenKind::IDENTIFIER;
         }
         case 'c': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'l': return check(2, 3, "ass", TokenKind::CLASS);
                     case 'o': {
-                        if (currentPosition - startPosition > 2 && source[startPosition + 2] == 'n') {
-                            if (currentPosition - startPosition > 3) {
-                                switch (source[startPosition + 3]) {
+                        if (current_position - start_position > 2 && source[start_position + 2] == 'n') {
+                            if (current_position - start_position > 3) {
+                                switch (source[start_position + 3]) {
                                     case 's': return check(4, 1, "t", TokenKind::CONST);
                                     case 't': return check(4, 4, "inue", TokenKind::CONTINUE);
                                     default: return TokenKind::IDENTIFIER;
@@ -352,8 +353,8 @@ TokenKind Lexer::checkIdentifierType() const {
             return TokenKind::IDENTIFIER;
         }
         case 'e': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'l': return check(2, 2, "se", TokenKind::ELSE);
                     case 'n': return check(2, 2, "um", TokenKind::ENUM);
                     default: return TokenKind::IDENTIFIER;
@@ -363,8 +364,8 @@ TokenKind Lexer::checkIdentifierType() const {
             return TokenKind::IDENTIFIER;
         }
         case 'f': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'o': return check(2, 1, "r", TokenKind::FOR);
                     case 'u': return check(2, 2, "nc", TokenKind::FUNCTION);
                     default: return TokenKind::IDENTIFIER;
@@ -373,10 +374,9 @@ TokenKind Lexer::checkIdentifierType() const {
 
             return TokenKind::IDENTIFIER;
         }
-        case 'p': return check(1, 4, "rint", TokenKind::PRINT);
         case 'i': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'f': return check(2, 0, "", TokenKind::IF);
                     case 'n': return check(2, 0, "", TokenKind::IN);
                     default: return TokenKind::IDENTIFIER;
@@ -389,8 +389,8 @@ TokenKind Lexer::checkIdentifierType() const {
         case 'o': return check(1, 1, "r", TokenKind::OR);
         case 'r': return check(1, 5, "eturn", TokenKind::RETURN);
         case 's': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'u': return check(2, 3, "per", TokenKind::SUPER);
                     case 'w': return check(2, 4, "itch", TokenKind::SWITCH);
                     case 't': return check(2, 4, "ruct", TokenKind::STRUCTURE);
@@ -401,8 +401,8 @@ TokenKind Lexer::checkIdentifierType() const {
             return TokenKind::IDENTIFIER;
         }
         case 't': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'h': return check(2, 2, "is", TokenKind::THIS);
                     case 'y': return check(2, 4, "peof", TokenKind::TYPEOF);
                     default: return TokenKind::IDENTIFIER;
@@ -416,8 +416,8 @@ TokenKind Lexer::checkIdentifierType() const {
         case 'v': return check(1, 2, "ar", TokenKind::VAR);
         case 'w': return check(1, 4, "hile", TokenKind::WHILE);
         case 'd': {
-            if (currentPosition - startPosition > 1) {
-                switch (source[startPosition + 1]) {
+            if (current_position - start_position > 1) {
+                switch (source[start_position + 1]) {
                     case 'e': return check(2, 5, "fault", TokenKind::DEFAULT);
                     case 'o': return check(2, 0, "", TokenKind::DO);
                     default: return TokenKind::IDENTIFIER;
@@ -431,13 +431,15 @@ TokenKind Lexer::checkIdentifierType() const {
     }
 }
 
-void Lexer::reportError(const std::string_view& message) const {
-    SourceLocation sourceLocation{
-        .line = startLine,
-        .column = startColumn,
-        .offset = startPosition,
-        .length = currentPosition - startPosition
-    };
-
-    diagnosticEngine.report(Diagnostic::DiagnosticKind::Error, sourceLocation, std::string(message));
+void Lexer::report_error(const std::string_view& message) const {
+    diagnostic_engine.report(
+        Diagnostic::DiagnosticKind::Error,
+        SourceLocation{
+            .line = start_line,
+            .column = start_column,
+            .offset = start_position,
+            .length = current_position - start_position
+        },
+        std::string(message)
+    );
 }

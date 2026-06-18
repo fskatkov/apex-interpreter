@@ -97,14 +97,6 @@ struct ConditionalStatement : Stmt {
     }
 };
 
-struct PrintStatement : Stmt {
-    std::unique_ptr<Expr> expression;
-
-    explicit PrintStatement(std::unique_ptr<Expr> expression)
-        : expression(std::move(expression)) {
-    }
-};
-
 struct ExpressionStatement : Stmt {
     std::unique_ptr<Expr> expression;
 

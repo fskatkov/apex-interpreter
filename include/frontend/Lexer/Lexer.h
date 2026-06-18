@@ -12,41 +12,41 @@ enum class LexerStringScanningMode {
 
 class Lexer {
 public:
-    explicit Lexer(std::string source, DiagnosticEngine& diagnosticEngine);
+    explicit Lexer(std::string source, DiagnosticEngine& diagnostic_engine);
     std::vector<Token> scan();
-    [[nodiscard]] const std::vector<Token>& getTokens() const;
-    [[nodiscard]] bool encounteredErrors() const;
+    [[nodiscard]] const std::vector<Token>& get_tokens() const;
+    [[nodiscard]] bool encountered_errors() const;
 private:
-    DiagnosticEngine& diagnosticEngine;
+    DiagnosticEngine& diagnostic_engine;
 
     std::string source;
 
-    std::size_t startPosition{0};
-    std::size_t currentPosition{0};
+    std::size_t start_position{0};
+    std::size_t current_position{0};
     std::size_t line{1};
-    std::size_t startLine{1};
+    std::size_t start_line{1};
     std::size_t column{1};
-    std::size_t startColumn{1};
+    std::size_t start_column{1};
 
     std::vector<Token> tokens;
-    bool encounteredError = false;
+    bool encountered_error = false;
 
     std::vector<LexerStringScanningMode> modes;
-    int braceDepth{0};
+    int brace_depth{0};
 
-    void scanToken();
-    [[nodiscard]] bool isReachedEnd() const;
+    void scan_token();
+    [[nodiscard]] bool is_reached_end() const;
     char advance();
     [[nodiscard]] char peek() const;
-    [[nodiscard]] char peekNext() const;
+    [[nodiscard]] char peek_next() const;
     bool match(const char& expected);
     [[nodiscard]] TokenKind check(std::size_t starting, std::size_t ending, const std::string_view &rest, TokenKind kind) const;
     void add(const TokenKind& kind, const Value& literal = "");
-    void addStringToken();
-    void addInterpolatedStringToken();
-    void addNumberToken();
-    void addCharacterToken();
-    void addIdentifierToken();
-    [[nodiscard]] TokenKind checkIdentifierType() const;
-    void reportError(const std::string_view& message) const;
+    void make_string_token();
+    void make_interpolated_string_token();
+    void make_number_token();
+    void make_character_token();
+    void make_identifier_token();
+    [[nodiscard]] TokenKind check_identifier() const;
+    void report_error(const std::string_view& message) const;
 };

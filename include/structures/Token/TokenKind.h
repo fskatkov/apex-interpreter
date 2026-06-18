@@ -83,7 +83,6 @@ enum class TokenKind {
     SUPER,
     ENUM,
 
-    PRINT,
     ERROR,
     END_OF_FILE
 };

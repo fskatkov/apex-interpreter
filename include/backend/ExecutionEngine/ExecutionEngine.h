@@ -110,7 +110,6 @@ private:
 
     inline ExecutionResult executeInOperator();
     inline ExecutionResult executeTypeofOperator();
-    inline ExecutionResult executePrint();
 
     inline ExecutionResult executeReturn();
     inline ExecutionResult executeUnknown();

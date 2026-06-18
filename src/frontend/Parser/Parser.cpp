@@ -28,8 +28,7 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
     if (match({TokenKind::DO})) return parseDoWhileStatement();
     if (match({TokenKind::IF})) return parseConditionalStatement();
     if (match({TokenKind::LEFT_BRACE})) return parseBlockStatement();
-    if (match({ TokenKind::RETURN })) return parseReturnStatement();
-    if (match({TokenKind::PRINT})) return parsePrintStatement();
+    if (match({TokenKind::RETURN})) return parseReturnStatement();
     return parseExpressionStatement();
 }
 
@@ -207,14 +206,6 @@ std::unique_ptr<Stmt> Parser::parseReturnStatement() {
     auto value = check({ TokenKind::SEMICOLON }) ? nullptr : parseExpression();
     consume(TokenKind::SEMICOLON, "expected `;` at end of `return` statement");
     return std::make_unique<ReturnStatement>(std::move(keyword), std::move(value));
-}
-
-std::unique_ptr<Stmt> Parser::parsePrintStatement() {
-    consume(TokenKind::LEFT_PAREN, "expected `(` before print expression");
-    auto expression = parseExpression();
-    consume(TokenKind::RIGHT_PAREN, "expected `)` at end of print statement");
-    consume(TokenKind::SEMICOLON, "expected `;` at end of print statement");
-    return std::make_unique<PrintStatement>(std::move(expression));
 }
 
 std::unique_ptr<Expr> Parser::parseExpression() {

@@ -39,19 +39,19 @@ int Driver::execute(const DriverConfig &config) {
             }
         }
         case DriverConfig::DriverMode::SCRIPT_MODE: {
-            std::filesystem::path filePath(config.path);
+            std::filesystem::path file_path(config.path);
 
-            if (!std::filesystem::exists(filePath)) {
+            if (!std::filesystem::exists(file_path)) {
                 std::cout << "\033[31m" << "apex: `" << config.path << "`: No such file or directory" << "\033[0m" << "\n";
                 return 66;
             }
 
-            if (filePath.extension() != ".apex") {
+            if (file_path.extension() != ".apex") {
                 std::cout << "\033[31m" << "error: Unsupported file type: " << config.path << "\033[0m" << "\n";
                 return 66;
             }
 
-            std::ifstream file(filePath, std::ios::in | std::ios::binary);
+            std::ifstream file(file_path, std::ios::in | std::ios::binary);
             if (!file.is_open()) {
                 std::cout << "\033[31m" << "apex: `" << config.path << "`: Permission denied" << "\033[0m" << "\n";
                 return 66;
@@ -61,10 +61,10 @@ int Driver::execute(const DriverConfig &config) {
             buffer << file.rdbuf();
 
             auto content = buffer.str();
-            DiagnosticEngine diagnosticEngine(content, "<" + config.path + ">");
-            ExecutionEngine executionEngine(diagnosticEngine);
+            DiagnosticEngine diagnostic_engine(content, "<" + config.path + ">");
+            ExecutionEngine execution_engine(diagnostic_engine);
 
-            const auto executedFile = executionEngine.run(content);
+            const auto executedFile = execution_engine.run(content);
             if (executedFile == ExecutionResult::RUNTIME_ERROR) {
                 return 70;
             }

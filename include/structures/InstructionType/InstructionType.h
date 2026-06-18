@@ -50,7 +50,6 @@ enum class InstructionType {
     OP_TYPEOF,
     OP_IN,
 
-    OP_PRINT,
     OP_POP,
     OP_RETURN
 };

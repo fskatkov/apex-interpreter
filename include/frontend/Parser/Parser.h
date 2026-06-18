@@ -29,7 +29,6 @@ private:
     [[nodiscard]] std::unique_ptr<Stmt> parseBreakStatement();
     [[nodiscard]] std::unique_ptr<Stmt> parseContinueStatement();
     [[nodiscard]] std::unique_ptr<Stmt> parseReturnStatement();
-    [[nodiscard]] std::unique_ptr<Stmt> parsePrintStatement();
 
     [[nodiscard]] std::unique_ptr<Expr> parseExpression();
     [[nodiscard]] std::unique_ptr<Expr> parseAssignmentExpression();

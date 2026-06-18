@@ -9,7 +9,7 @@ file(GLOB_RECURSE SOURCES
 )
 
 add_executable(apex_interpreter ${SOURCES}
-        include/stdlib/stdlib/StdLib.h
-        src/stdlib/stdlib/StdLib.cpp)
+        include/stdlib/StandardIOBuiltins/StandardIOBuiltins.h
+        src/stdlib/StandardIOBuiltins/StandardIOBuiltins.cpp)
 
 target_include_directories(apex_interpreter PRIVATE utils include)
