@@ -78,25 +78,7 @@ struct Value {
         return std::get<T>(as);
     }
 
-    bool operator==(const Value &other) const {
-        return as == other.as;
-    }
-
-    bool operator<(const Value &other) const {
-        return as < other.as;
-    }
-
-    bool operator>(const Value &other) const {
-        return as > other.as;
-    }
-
-    bool operator<=(const Value &other) const {
-        return as <= other.as;
-    }
-
-    bool operator>=(const Value &other) const {
-        return as >= other.as;
-    }
+    auto operator<=>(const Value &other) const = default;
 
     [[nodiscard]] std::string type() const {
         return std::visit(overloaded {
