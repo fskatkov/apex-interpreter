@@ -2,574 +2,157 @@
 
 namespace stdlib::MathsBuiltins {
     namespace {
-        Value take_absolute_value(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+        double retrieve_number_value(const Value &value) {
+            if (!value.is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", value.type()));
             }
 
-            return std::abs(args.front().get<double>());
+            return value.get<double>();
         }
 
-        Value check_value_sign(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            const auto &value = args.front().get<double>();
-            return value < 0 ? -1.0 : value > 0 ? 1.0 : 0.0;
+        template<typename T>
+        std::shared_ptr<NativeFunction> make_one_arity_function(const std::string &name, T &&function) {
+            return std::make_shared<NativeFunction>(NativeFunction{
+                .name = name,
+                .arity = 1,
+                .callable = [f = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
+                    return f(retrieve_number_value(args.front()));
+                }
+            });
         }
 
-        Value check_evenness(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::fmod(args.front().get<double>(), 2) == 0;
+        template<typename T>
+        std::shared_ptr<NativeFunction> make_two_arity_function(const std::string &name, T &&function) {
+            return std::make_shared<NativeFunction>(NativeFunction{
+                .name = name,
+                .arity = 2,
+                .callable = [f = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
+                    return f(retrieve_number_value(args[0]), retrieve_number_value(args[1]));
+                }
+            });
         }
 
-        Value check_oddness(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::fmod(args.front().get<double>(), 2) != 0;
+        template<typename T>
+        std::shared_ptr<NativeFunction> make_three_arity_function(const std::string &name, T &&function) {
+            return std::make_shared<NativeFunction>(NativeFunction{
+                .name = name,
+                .arity = 3,
+                .callable = [f = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
+                    return f(retrieve_number_value(args[0]), retrieve_number_value(args[1]),
+                             retrieve_number_value(args[2]));
+                }
+            });
         }
-
-        Value find_min_value(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
-            }
-
-            return std::min(args.front().get<double>(), args[1].get<double>());
-        }
-
-        Value find_max_value(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
-            }
-
-            return std::max(args.front().get<double>(), args[1].get<double>());
-        }
-
-        Value restrict_value_to_range(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>() || !args[2].is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}, {} and {}", args.front().type(), args[1].type(), args[2].type()));
-            }
-
-            if (args[1].is<double>() > args[2].is<double>()) {
-                throw std::runtime_error(std::format("impossible to restrive value to the specified range [{}; {}]", args[1].get<double>(), args[2].get<double>()));
-            }
-
-            return std::clamp(args.front().get<double>(), args[1].get<double>(), args[2].get<double>());
-        }
-
-        Value take_square_root(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::sqrt(args.front().get<double>());
-        }
-
-        Value compute_exponent(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::exp(args.front().get<double>());
-        }
-
-        Value compute_log(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::log(args.front().get<double>());
-        }
-
-        Value compute_log10(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::log10(args.front().get<double>());
-        }
-
-        Value compute_log2(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::log2(args.front().get<double>());
-        }
-
-        Value compute_log_n(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
-            }
-
-            return std::log(args.front().get<double>()) / std::log(args[1].get<double>());
-        }
-
-        Value compute_floor(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::floor(args.front().get<double>());
-        }
-
-        Value compute_ceil(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::ceil(args.front().get<double>());
-        }
-
-        Value round_number(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::round(args.front().get<double>());
-        }
-
-        Value truncate_number(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::trunc(args.front().get<double>());
-        }
-
-        Value take_fraction(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            double integer_part;
-            return std::modf(args.front().get<double>(), &integer_part);
-        }
-
-        Value find_nearby(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::nearbyint(args.front().get<double>());
-        }
-
-        Value find_rint(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::rint(args.front().get<double>());
-        }
-
-        Value compute_sin(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::sin(args.front().get<double>());
-        }
-
-        Value compute_cos(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::cos(args.front().get<double>());
-        }
-
-        Value compute_tan(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::tan(args.front().get<double>());
-        }
-
-        Value compute_asin(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::asin(args.front().get<double>());
-        }
-
-        Value compute_acos(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::acos(args.front().get<double>());
-        }
-
-        Value compute_atan(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::atan(args.front().get<double>());
-        }
-
-        Value compute_sec(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return 1.0 / std::cos(args.front().get<double>());
-        }
-
-        Value compute_csc(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return 1.0 / std::sin(args.front().get<double>());
-        }
-
-        Value compute_cot(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return 1.0 / std::tan(args.front().get<double>());
-        }
-
-        Value compute_asec(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            if (args.front().get<double>() < 1) {
-                throw std::invalid_argument("cannot work with number less than one");
-            }
-
-            return std::acos(1.0 / args.front().get<double>());
-        }
-
-        Value compute_acsc(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            if (args.front().get<double>() < 1) {
-                throw std::invalid_argument("cannot work with number less than one");
-            }
-
-            return std::asin(1.0 / args.front().get<double>());
-        }
-
-        Value compute_acot(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            constexpr double pi = std::numbers::pi;
-            const auto &value = args.front().get<double>();
-
-            if (value > 0) return std::atan(1.0 / value);
-            if (value < 0) return pi + std::atan(1.0 / value);
-
-            return pi / 2.0;
-        }
-
-        Value compute_factorial(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
-            }
-
-            return std::tgamma(args.front().get<double>() + 1.0);
-        }
-
-        Value compute_permutations_number(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
-            }
-
-            const auto &n = args.front().get<double>();
-            const auto &r = args[1].get<double>();
-
-            double permutations_number = 1.0;
-            for (auto i = 0; i < r; i += 1.0) {
-                permutations_number *= n - i;
-            }
-
-            return permutations_number;
-        }
-
-        Value compute_combinations_number(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>()) {
-                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
-            }
-
-            const auto &n = args.front().get<double>();
-
-            auto r = args[1].get<double>();
-            r = std::min(r, n - r);
-
-            double combinations_number = 1.0;
-            for (auto i = 1.0; i <= r; i += 1.0) {
-                combinations_number *= n - r + i;
-                combinations_number /= i;
-            }
-
-            return combinations_number;
-        }
-
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
-        return {
-            {
-                "abs", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "abs",
-                    .arity = 1,
-                    .callable = take_absolute_value
-                })
-            },
-            {
-                "sign", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "sign",
-                    .arity = 1,
-                    .callable = check_value_sign
-                })
-            },
-            {
-                "isEven", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isEven",
-                    .arity = 1,
-                    .callable = check_evenness
-                })
-            },
-            {
-                "isOdd", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isOdd",
-                    .arity = 1,
-                    .callable = check_oddness
-                })
-            },
-            {
-                "min", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "min",
-                    .arity = 2,
-                    .callable = find_min_value
-                })
-            },
-            {
-                "max", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "max",
-                    .arity = 2,
-                    .callable = find_max_value
-                })
-            },
-            {
-                "clamp", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "clamp",
-                    .arity = 3,
-                    .callable = restrict_value_to_range
-                })
-            },
-            {
-                "sqrt", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "sqrt",
-                    .arity = 1,
-                    .callable = take_square_root
-                })
-            },
-            {
-                "exp", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "exp",
-                    .arity = 1,
-                    .callable = compute_exponent
-                })
-            },
-            {
-                "log", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "log",
-                    .arity = 1,
-                    .callable = compute_log
-                })
-            },
-            {
-                "log10", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "log10",
-                    .arity = 1,
-                    .callable = compute_log10
-                })
-            },
-            {
-                "log2", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "log2",
-                    .arity = 1,
-                    .callable = compute_log2
-                })
-            },
-            {
-                "logn", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "logn",
-                    .arity = 2,
-                    .callable = compute_log_n
-                })
-            },
-            {
-                "floor", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "floor",
-                    .arity = 1,
-                    .callable = compute_floor
-                })
-            },
-            {
-                "ceil", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "ceil",
-                    .arity = 1,
-                    .callable = compute_ceil
-                })
-            },
-            {
-                "round", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "round",
-                    .arity = 1,
-                    .callable = round_number
-                })
-            },
-            {
-                "trunc", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "trunc",
-                    .arity = 1,
-                    .callable = truncate_number
-                })
-            },
-            {
-                "fract", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "fract",
-                    .arity = 1,
-                    .callable = take_fraction
-                })
-            },
-            {
-                "nearby", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "nearby",
-                    .arity = 1,
-                    .callable = find_nearby
-                })
-            },
-            {
-                "rint", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "rint",
-                    .arity = 1,
-                    .callable = find_rint
-                })
-            },
-            {
-                "sin", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "sin",
-                    .arity = 1,
-                    .callable = compute_sin
-                })
-            },
-            {
-                "cos", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "cos",
-                    .arity = 1,
-                    .callable = compute_cos
-                })
-            },
-            {
-                "tan", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "tan",
-                    .arity = 1,
-                    .callable = compute_tan
-                })
-            },
-            {
-                "asin", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "asin",
-                    .arity = 1,
-                    .callable = compute_asin
-                })
-            },
-            {
-                "acos", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "acos",
-                    .arity = 1,
-                    .callable = compute_acos
-                })
-            },
-            {
-                "atan", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "atan",
-                    .arity = 1,
-                    .callable = compute_atan
-                })
-            },
-            {
-                "sec", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "sec",
-                    .arity = 1,
-                    .callable = compute_sec
-                })
-            },
-            {
-                "csc", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "csc",
-                    .arity = 1,
-                    .callable = compute_csc
-                })
-            },
-            {
-                "cot", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "cot",
-                    .arity = 1,
-                    .callable = compute_cot
-                })
-            },
-            {
-                "asec", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "asec",
-                    .arity = 1,
-                    .callable = compute_asec
-                })
-            },
-            {
-                "acsc", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "acsc",
-                    .arity = 1,
-                    .callable = compute_acsc
-                })
-            },
-            {
-                "acot", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "acot",
-                    .arity = 1,
-                    .callable = compute_acot
-                })
-            },
-            {
-                "factorial", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "factorial",
-                    .arity = 1,
-                    .callable = compute_factorial
-                })
-            },
-            {
-                "countPermutations", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "countPermutations",
-                    .arity = 2,
-                    .callable = compute_permutations_number
-                })
-            },
-            {
-                "countCombinations", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "countCombinations",
-                    .arity = 2,
-                    .callable = compute_combinations_number
-                })
-            },
+        std::unordered_map<std::string, std::shared_ptr<NativeFunction> > methods_table;
+
+        auto register_one_arity_function = [&methods_table](std::string name, auto &&func) {
+            methods_table.emplace(
+                name,
+                make_one_arity_function(name, std::forward<decltype(func)>(func))
+            );
         };
+
+        auto register_two_arity_function = [&methods_table](std::string name, auto &&func) {
+            methods_table.emplace(
+                name,
+                make_two_arity_function(name, std::forward<decltype(func)>(func))
+            );
+        };
+
+        auto register_three_arity_function = [&methods_table](std::string name, auto &&func) {
+            methods_table.emplace(
+                name,
+                make_three_arity_function(name, std::forward<decltype(func)>(func))
+            );
+        };
+
+        register_one_arity_function("abs", [](const double &value) { return std::abs(value); });
+        register_one_arity_function("sign", [](const double &value) { return value < 0 ? -1.0 : value > 0 ? 1.0 : 0; });
+        register_one_arity_function("isEven", [](const double &value) { return std::fmod(value, 2) == 0; });
+        register_one_arity_function("isOdd", [](const double &value) { return std::fmod(value, 2) != 0; });
+        register_one_arity_function("sqrt", [](const double &value) { return std::sqrt(value); });
+        register_one_arity_function("exp", [](const double &value) { return std::exp(value); });
+        register_one_arity_function("log", [](const double &value) { return std::log(value); });
+        register_one_arity_function("log10", [](const double &value) { return std::log10(value); });
+        register_one_arity_function("log2", [](const double &value) { return std::log2(value); });
+        register_one_arity_function("floor", [](const double &value) { return std::floor(value); });
+        register_one_arity_function("ceil", [](const double &value) { return std::ceil(value); });
+        register_one_arity_function("round", [](const double &value) { return std::round(value); });
+        register_one_arity_function("trunc", [](const double &value) { return std::trunc(value); });
+
+        register_one_arity_function("fract", [](const double &value) {
+            double integer_part;
+            return std::modf(value, &integer_part);
+        });
+
+        register_one_arity_function("nearby", [](const double &value) { return std::nearbyint(value); });
+        register_one_arity_function("rint", [](const double &value) { return std::rint(value); });
+        register_one_arity_function("sin", [](const double &value) { return std::sin(value); });
+        register_one_arity_function("cos", [](const double &value) { return std::cos(value); });
+        register_one_arity_function("tan", [](const double &value) { return std::tan(value); });
+        register_one_arity_function("asin", [](const double &value) { return std::asin(value); });
+        register_one_arity_function("acos", [](const double &value) { return std::acos(value); });
+        register_one_arity_function("atan", [](const double &value) { return std::atan(value); });
+        register_one_arity_function("sec", [](const double &value) { return 1.0 / std::cos(value); });
+        register_one_arity_function("csc", [](const double &value) { return 1.0 / std::sin(value); });
+        register_one_arity_function("cot", [](const double &value) { return 1.0 / std::tan(value); });
+        register_one_arity_function("asec", [](const double &value) { return std::acos(1.0 / value); });
+        register_one_arity_function("acsc", [](const double &value) { return std::asin(1.0 / value); });
+
+        register_one_arity_function("acot", [](const double &value) {
+            if (value > 0) return std::atan(1.0 / value);
+            if (value < 0.0) return std::numbers::pi + std::atan(1.0 / value);
+
+            return std::numbers::pi / 2.0;
+        });
+
+        register_one_arity_function("factorial", [](const double &value) { return std::tgamma(value + 1.0); });
+
+        register_two_arity_function("min", [](const double &first_operand, const double &second_operand) {
+            return std::min(first_operand, second_operand);
+        });
+
+        register_two_arity_function("max", [](const double &first_operand, const double &second_operand) {
+            return std::max(first_operand, second_operand);
+        });
+
+        register_two_arity_function("logn", [](const double &first_operand, const double &second_operand) {
+            return std::log(first_operand) / std::log(second_operand);
+        });
+
+        register_two_arity_function("countPermutations", [](const double &first_operand, const double &second_operand) {
+            double permutations_counter = 1.0;
+            for (auto i = 0.0; i < second_operand; i += 1.0) {
+                permutations_counter *= first_operand - i;
+            }
+            return permutations_counter;
+        });
+
+        register_two_arity_function("countCombinations", [](const double first_operand, double second_operand) {
+            second_operand = std::min(second_operand, first_operand - second_operand);
+
+            double combinations_counter = 1.0;
+            for (auto i = 1.0; i <= second_operand; i += 1.0) {
+                combinations_counter *= first_operand - second_operand + i;
+                combinations_counter /= i;
+            }
+
+            return combinations_counter;
+        });
+
+        register_three_arity_function("clamp", [](const double &value, const double &lhs, const double &rhs) {
+            if (lhs > rhs) {
+                throw std::runtime_error(std::format("impossible to restrict value to the specified range [{}; {}]",
+                                                     lhs, rhs));
+            }
+
+            return std::clamp(value, lhs, rhs);
+        });
+
+        return methods_table;
     }
+
 }
