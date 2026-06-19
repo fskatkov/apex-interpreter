@@ -95,6 +95,63 @@ namespace stdlib::MathsBuiltins {
             return std::log(args.front().get<double>()) / std::log(args[1].get<double>());
         }
 
+        Value compute_floor(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::floor(args.front().get<double>());
+        }
+
+        Value compute_ceil(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::ceil(args.front().get<double>());
+        }
+
+        Value round_number(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::round(args.front().get<double>());
+        }
+
+        Value truncate_number(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::trunc(args.front().get<double>());
+        }
+
+        Value take_fraction(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            double integer_part;
+            return std::modf(args.front().get<double>(), &integer_part);
+        }
+
+        Value find_nearby(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::nearbyint(args.front().get<double>());
+        }
+
+        Value find_rint(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::rint(args.front().get<double>());
+        }
+
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
@@ -174,6 +231,55 @@ namespace stdlib::MathsBuiltins {
                     .name = "logn",
                     .arity = 2,
                     .callable = compute_log_n
+                })
+            },
+            {
+                "floor", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "floor",
+                    .arity = 1,
+                    .callable = compute_floor
+                })
+            },
+            {
+                "ceil", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "ceil",
+                    .arity = 1,
+                    .callable = compute_ceil
+                })
+            },
+            {
+                "round", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "round",
+                    .arity = 1,
+                    .callable = round_number
+                })
+            },
+            {
+                "trunc", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "trunc",
+                    .arity = 1,
+                    .callable = truncate_number
+                })
+            },
+            {
+                "fract", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "fract",
+                    .arity = 1,
+                    .callable = take_fraction
+                })
+            },
+            {
+                "nearby", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "nearby",
+                    .arity = 1,
+                    .callable = find_nearby
+                })
+            },
+            {
+                "rint", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "rint",
+                    .arity = 1,
+                    .callable = find_rint
                 })
             },
         };
