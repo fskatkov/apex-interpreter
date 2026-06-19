@@ -6,6 +6,10 @@ ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine) : diagnosti
     for (const auto &[name, native_func] : builtins.get_standard_io_methods()) {
         globalVariables[name] = native_func;
     }
+
+    for (const auto &[name, native_func] : builtins.get_maths_methods()) {
+        globalVariables[name] = native_func;
+    }
 }
 
 ExecutionResult ExecutionEngine::run(const std::string &input) {

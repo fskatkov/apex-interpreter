@@ -2,9 +2,9 @@
 
 namespace stdlib::StandardIOBuiltins {
     namespace {
-        Value builtin_println(const Value&, const std::vector<Value> &args) {
-            for (auto i = 0; i < args.size(); ++i) {
-                std::cout << args[i].str();
+        Value builtin_println(const Value &, const std::vector<Value> &args) {
+            for (const auto &arg: args) {
+                std::cout << arg.str();
             }
             std::cout << std::endl;
             return NIL{};
@@ -22,5 +22,4 @@ namespace stdlib::StandardIOBuiltins {
             }
         };
     }
-
 }

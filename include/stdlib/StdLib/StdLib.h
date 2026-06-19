@@ -6,6 +6,7 @@
 #include "stdlib/StringBuiltins/StringBuiltins.h"
 #include "stdlib/CharacterBuiltins/CharacterBuiltins.h"
 #include "stdlib/StandardIOBuiltins/StandardIOBuiltins.h"
+#include "stdlib/MathsBuiltins/MathsBuiltins.h"
 
 class StdLib {
 public:
@@ -17,11 +18,13 @@ public:
     [[nodiscard]] std::shared_ptr<NativeFunction> get_string_method(const std::string &name);
     [[nodiscard]] std::shared_ptr<NativeFunction> get_character_method(const std::string &name);
     [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& get_standard_io_methods() const;
+    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& get_maths_methods() const;
 private:
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> arrayMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> setMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> dictionaryMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> stringMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> characterMethods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> standardIOMethods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_array_methods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_set_methods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_dictionary_methods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_string_methods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_character_methods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_io_methods;
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_maths_methods;
 };

@@ -8,8 +8,6 @@ file(GLOB_RECURSE SOURCES
     "main.cpp"
 )
 
-add_executable(apex_interpreter ${SOURCES}
-        include/stdlib/StandardIOBuiltins/StandardIOBuiltins.h
-        src/stdlib/StandardIOBuiltins/StandardIOBuiltins.cpp)
+add_executable(apex_interpreter ${SOURCES})
 
 target_include_directories(apex_interpreter PRIVATE utils include)
