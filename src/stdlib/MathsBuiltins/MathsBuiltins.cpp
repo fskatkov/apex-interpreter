@@ -152,6 +152,116 @@ namespace stdlib::MathsBuiltins {
             return std::rint(args.front().get<double>());
         }
 
+        Value compute_sin(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::sin(args.front().get<double>());
+        }
+
+        Value compute_cos(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::cos(args.front().get<double>());
+        }
+
+        Value compute_tan(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::tan(args.front().get<double>());
+        }
+
+        Value compute_asin(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::asin(args.front().get<double>());
+        }
+
+        Value compute_acos(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::acos(args.front().get<double>());
+        }
+
+        Value compute_atan(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::atan(args.front().get<double>());
+        }
+
+        Value compute_sec(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return 1.0 / std::cos(args.front().get<double>());
+        }
+
+        Value compute_csc(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return 1.0 / std::sin(args.front().get<double>());
+        }
+
+        Value compute_cot(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return 1.0 / std::tan(args.front().get<double>());
+        }
+
+        Value compute_asec(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            if (args.front().get<double>() < 1) {
+                throw std::invalid_argument("cannot work with number less than one");
+            }
+
+            return std::acos(1.0 / args.front().get<double>());
+        }
+
+        Value compute_acsc(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            if (args.front().get<double>() < 1) {
+                throw std::invalid_argument("cannot work with number less than one");
+            }
+
+            return std::asin(1.0 / args.front().get<double>());
+        }
+
+        Value compute_acot(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            constexpr double pi = std::numbers::pi;
+            const auto &value = args.front().get<double>();
+
+            if (value > 0) return std::atan(1.0 / value);
+            if (value < 0) return pi + std::atan(1.0 / value);
+
+            return pi / 2.0;
+        }
+
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
@@ -280,6 +390,90 @@ namespace stdlib::MathsBuiltins {
                     .name = "rint",
                     .arity = 1,
                     .callable = find_rint
+                })
+            },
+            {
+                "sin", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "sin",
+                    .arity = 1,
+                    .callable = compute_sin
+                })
+            },
+            {
+                "cos", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "cos",
+                    .arity = 1,
+                    .callable = compute_cos
+                })
+            },
+            {
+                "tan", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "tan",
+                    .arity = 1,
+                    .callable = compute_tan
+                })
+            },
+            {
+                "asin", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "asin",
+                    .arity = 1,
+                    .callable = compute_asin
+                })
+            },
+            {
+                "acos", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "acos",
+                    .arity = 1,
+                    .callable = compute_acos
+                })
+            },
+            {
+                "atan", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "atan",
+                    .arity = 1,
+                    .callable = compute_atan
+                })
+            },
+            {
+                "sec", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "sec",
+                    .arity = 1,
+                    .callable = compute_sec
+                })
+            },
+            {
+                "csc", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "csc",
+                    .arity = 1,
+                    .callable = compute_csc
+                })
+            },
+            {
+                "cot", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "cot",
+                    .arity = 1,
+                    .callable = compute_cot
+                })
+            },
+            {
+                "asec", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "asec",
+                    .arity = 1,
+                    .callable = compute_asec
+                })
+            },
+            {
+                "acsc", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "acsc",
+                    .arity = 1,
+                    .callable = compute_acsc
+                })
+            },
+            {
+                "acot", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "acot",
+                    .arity = 1,
+                    .callable = compute_acot
                 })
             },
         };
