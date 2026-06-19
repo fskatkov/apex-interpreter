@@ -19,6 +19,22 @@ namespace stdlib::MathsBuiltins {
             return value < 0 ? -1.0 : value > 0 ? 1.0 : 0.0;
         }
 
+        Value check_evenness(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::fmod(args.front().get<double>(), 2) == 0;
+        }
+
+        Value check_oddness(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::fmod(args.front().get<double>(), 2) != 0;
+        }
+
         Value find_min_value(const Value &, const std::vector<Value> &args) {
             if (!args.front().is<double>() || !args[1].is<double>()) {
                 throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
@@ -262,6 +278,49 @@ namespace stdlib::MathsBuiltins {
             return pi / 2.0;
         }
 
+        Value compute_factorial(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {}", args.front().type()));
+            }
+
+            return std::tgamma(args.front().get<double>() + 1.0);
+        }
+
+        Value compute_permutations_number(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>() || !args[1].is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
+            }
+
+            const auto &n = args.front().get<double>();
+            const auto &r = args[1].get<double>();
+
+            double permutations_number = 1.0;
+            for (auto i = 0; i < r; i += 1.0) {
+                permutations_number *= n - i;
+            }
+
+            return permutations_number;
+        }
+
+        Value compute_combinations_number(const Value &, const std::vector<Value> &args) {
+            if (!args.front().is<double>() || !args[1].is<double>()) {
+                throw std::invalid_argument(std::format("expected Number but got {} and {}", args.front().type(), args[1].type()));
+            }
+
+            const auto &n = args.front().get<double>();
+
+            auto r = args[1].get<double>();
+            r = std::min(r, n - r);
+
+            double combinations_number = 1.0;
+            for (auto i = 1.0; i <= r; i += 1.0) {
+                combinations_number *= n - r + i;
+                combinations_number /= i;
+            }
+
+            return combinations_number;
+        }
+
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
@@ -278,6 +337,20 @@ namespace stdlib::MathsBuiltins {
                     .name = "sign",
                     .arity = 1,
                     .callable = check_value_sign
+                })
+            },
+            {
+                "isEven", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "isEven",
+                    .arity = 1,
+                    .callable = check_evenness
+                })
+            },
+            {
+                "isOdd", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "isOdd",
+                    .arity = 1,
+                    .callable = check_oddness
                 })
             },
             {
@@ -474,6 +547,27 @@ namespace stdlib::MathsBuiltins {
                     .name = "acot",
                     .arity = 1,
                     .callable = compute_acot
+                })
+            },
+            {
+                "factorial", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "factorial",
+                    .arity = 1,
+                    .callable = compute_factorial
+                })
+            },
+            {
+                "countPermutations", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "countPermutations",
+                    .arity = 2,
+                    .callable = compute_permutations_number
+                })
+            },
+            {
+                "countCombinations", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "countCombinations",
+                    .arity = 2,
+                    .callable = compute_combinations_number
                 })
             },
         };
