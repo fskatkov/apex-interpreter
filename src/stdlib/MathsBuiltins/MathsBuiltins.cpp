@@ -15,8 +15,8 @@ namespace stdlib::MathsBuiltins {
             return std::make_shared<NativeFunction>(NativeFunction{
                 .name = name,
                 .arity = 1,
-                .callable = [f = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
-                    return f(retrieve_number_value(args.front()));
+                .callable = [func = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
+                    return func(retrieve_number_value(args.front()));
                 }
             });
         }
@@ -26,8 +26,8 @@ namespace stdlib::MathsBuiltins {
             return std::make_shared<NativeFunction>(NativeFunction{
                 .name = name,
                 .arity = 2,
-                .callable = [f = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
-                    return f(retrieve_number_value(args[0]), retrieve_number_value(args[1]));
+                .callable = [func = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
+                    return func(retrieve_number_value(args[0]), retrieve_number_value(args[1]));
                 }
             });
         }
@@ -37,8 +37,8 @@ namespace stdlib::MathsBuiltins {
             return std::make_shared<NativeFunction>(NativeFunction{
                 .name = name,
                 .arity = 3,
-                .callable = [f = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
-                    return f(retrieve_number_value(args[0]), retrieve_number_value(args[1]),
+                .callable = [func = std::forward<T>(function)](const Value &, const std::vector<Value> &args) -> Value {
+                    return func(retrieve_number_value(args[0]), retrieve_number_value(args[1]),
                              retrieve_number_value(args[2]));
                 }
             });
