@@ -14,7 +14,7 @@ namespace stdlib::CharacterBuiltins {
         }
     }
 
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         std::unordered_map<std::string, std::shared_ptr<NativeFunction> > methods_table;
 
         auto register_zero_arity_function = [&methods_table](std::string name, auto &&func) {

@@ -11,7 +11,7 @@ namespace stdlib::StandardIOBuiltins {
         }
     }
 
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
             {
                 "println", std::make_shared<NativeFunction>(NativeFunction{

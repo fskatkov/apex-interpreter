@@ -1,13 +1,13 @@
 #include "stdlib/StdLib/StdLib.h"
 
 StdLib::StdLib()
-    : std_array_methods(stdlib::ArrayBuiltins::registerMethods()),
-      std_set_methods(stdlib::SetBuiltins::registerMethods()),
-      std_dictionary_methods(stdlib::DictionaryBuiltins::registerMethods()),
-      std_string_methods(stdlib::StringBuiltins::registerMethods()),
-      std_character_methods(stdlib::CharacterBuiltins::registerMethods()),
-      std_io_methods(stdlib::StandardIOBuiltins::registerMethods()),
-      std_maths_methods(stdlib::MathsBuiltins::registerMethods()) {
+    : std_array_methods(stdlib::ArrayBuiltins::register_methods()),
+      std_set_methods(stdlib::SetBuiltins::register_methods()),
+      std_dictionary_methods(stdlib::DictionaryBuiltins::register_methods()),
+      std_string_methods(stdlib::StringBuiltins::register_methods()),
+      std_character_methods(stdlib::CharacterBuiltins::register_methods()),
+      std_io_methods(stdlib::StandardIOBuiltins::register_methods()),
+      std_maths_methods(stdlib::MathsBuiltins::register_methods()) {
 }
 
 std::shared_ptr<NativeFunction> StdLib::get_array_method(const std::string &name) {

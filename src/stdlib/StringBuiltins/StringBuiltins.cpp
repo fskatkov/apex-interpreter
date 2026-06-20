@@ -210,7 +210,7 @@ namespace stdlib::StringBuiltins {
         }
     }
 
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
             {
                 "len", std::make_shared<NativeFunction>(NativeFunction{

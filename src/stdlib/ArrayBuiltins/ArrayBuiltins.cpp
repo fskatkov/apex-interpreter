@@ -2,329 +2,239 @@
 
 namespace stdlib::ArrayBuiltins {
     namespace {
-        Value retrieveArraySize(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            return static_cast<double>(receivedObject->size());
+        template<typename T>
+        decltype(auto) get_from_value(const Value &value) {
+            if constexpr (std::is_same_v<std::remove_cvref_t<T>, Value>) {
+                return (value);
+            } else if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<
+                                     T>, bool>) {
+                if (!value.is<double>()) [[unlikely]] {
+                    throw std::invalid_argument("array index must be a number");
+                }
+
+                const auto val = value.get<double>();
+
+                if (val < 0) [[unlikely]] {
+                    throw std::out_of_range("array indices must be non-negative");
+                }
+
+                return static_cast<std::remove_cvref_t<T>>(val);
+            } else if constexpr (std::is_floating_point_v<std::remove_cvref_t<T> >) {
+                if (!value.is<double>()) [[unlikely]] {
+                    throw std::invalid_argument("expected Number");
+                }
+
+                return static_cast<std::remove_cvref_t<T>>(value.get<double>());
+            } else {
+                if (!value.is<std::remove_cvref_t<T> >()) [[unlikely]] {
+                    throw std::invalid_argument(std::format("type mismatch; got {}", value.type()));
+                }
+
+                return (value.get<std::remove_cvref_t<T> >());
+            }
         }
 
-        Value clearArray(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            receivedObject->clear();
-            return receivedObject;
+        template<typename T>
+        Value convert_to_value(T &&value) {
+            if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<T>,
+                              bool>) {
+                return Value(static_cast<double>(value));
+            } else if constexpr (std::is_void_v<std::remove_cvref_t<T> >) {
+                return NIL{};
+            } else {
+                return Value(std::forward<T>(value));
+            }
         }
 
-        Value createArrayClone(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            return std::make_shared<Array>(*receivedObject);
+        template<auto Func>
+        struct MethodTraits;
+
+        template<typename R, typename... Args, R(*Func)(const std::shared_ptr<Array> &, Args...)>
+        struct MethodTraits<Func> {
+            static constexpr int Arity = sizeof...(Args);
+
+            static Value invoke(Value receiver, const std::vector<Value> &args) {
+                const auto &array = receiver.get<std::shared_ptr<Array> >();
+
+                if (args.size() != Arity) [[unlikely]] {
+                    throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
+                }
+
+                return invoke_implementation(array, args, std::make_index_sequence<Arity>{});
+            }
+
+        private:
+            template<std::size_t... Is>
+            static Value invoke_implementation(const std::shared_ptr<Array> &array, const std::vector<Value> &args,
+                                               std::index_sequence<Is...>) {
+                if constexpr (std::is_void_v<R>) {
+                    Func(array, get_from_value<Args>(args[Is])...);
+                    return NIL{};
+                } else {
+                    return convert_to_value(Func(array, get_from_value<Args>(args[Is])...));
+                }
+            }
+        };
+
+        template<auto Func>
+        std::pair<std::string, std::shared_ptr<NativeFunction> > bind_method(const std::string &name) {
+            return {
+                name,
+                std::make_shared<NativeFunction>(NativeFunction{
+                    .name = name,
+                    .arity = MethodTraits<Func>::Arity,
+                    .callable = MethodTraits<Func>::invoke
+                })
+            };
         }
 
-        Value reverseArray(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            std::ranges::reverse(*receivedObject);
-            return NIL{};
+        std::size_t retrieve_array_size(const std::shared_ptr<Array> &array) {
+            return array->size();
         }
 
-        Value checkArrayEmptiness(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            return receivedObject->empty();
+        std::shared_ptr<Array> clear_array(const std::shared_ptr<Array> &array) {
+            array->clear();
+            return array;
         }
 
-        Value getFrontArrayElement(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            if (receivedObject->empty()) [[unlikely]] {
-                throw std::runtime_error("array is empty but asked to get the front element");
-            }
-            return receivedObject->front();
+        std::shared_ptr<Array> copy_array(const std::shared_ptr<Array> &array) {
+            return std::make_shared<Array>(*array);
         }
 
-        Value getBackArrayElement(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            if (receivedObject->empty()) [[unlikely]] {
-                throw std::runtime_error("array is empty but asked to get the back element");
-            }
-            return receivedObject->back();
+        void reverse_array(const std::shared_ptr<Array> &array) {
+            std::ranges::reverse(*array);
         }
 
-        Value getElementByIndex(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            if (!args.front().is<double>()) [[unlikely]] {
-                throw std::invalid_argument("array index must be a number");
-            }
-
-            const auto idx = static_cast<std::size_t>(args.front().get<double>());
-            if (idx >= receivedObject->size()) [[unlikely]] {
-                throw std::out_of_range("array index out of bounds");
-            }
-
-            return (*receivedObject)[idx];
+        bool check_array_emptiness(const std::shared_ptr<Array> &array) {
+            return array->empty();
         }
 
-        Value updateElementByIndex(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            if (!args.front().is<double>()) [[unlikely]] {
-                throw std::invalid_argument("array index must be a number");
+        Value retrieve_first_array_element(const std::shared_ptr<Array> &array) {
+            if (array->empty()) [[unlikely]] {
+                throw std::runtime_error("array is empty but asked to get the first element");
             }
 
-            const auto idx = static_cast<std::size_t>(args.front().get<double>());
-            if (idx >= receivedObject->size()) [[unlikely]] {
-                throw std::out_of_range("array index out of bounds");
-            }
-
-            (*receivedObject)[idx] = args[1];
-            return receivedObject;
+            return array->front();
         }
 
-        Value appendElementToArrayEnd(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            receivedObject->push_back(args.front());
-            return NIL{};
+        Value retrieve_last_array_element(const std::shared_ptr<Array> &array) {
+            if (array->empty()) [[unlikely]] {
+                throw std::runtime_error("array is empty but asked to get the last element");
+            }
+
+            return array->back();
         }
 
-        Value appendElementByIndex(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            if (!args.front().is<double>()) [[unlikely]] {
-                throw std::invalid_argument("array index must be a number");
+        Value retrieve_element_by_index(const std::shared_ptr<Array> &array, const std::size_t &index) {
+            if (index >= array->size()) [[unlikely]] {
+                throw std::out_of_range("array index out of range");
             }
 
-            const auto idx = static_cast<std::size_t>(args.front().get<double>());
-            if (idx > receivedObject->size()) [[unlikely]] {
-                throw std::out_of_range("array index out of bounds");
-            }
-
-            receivedObject->insert(receivedObject->begin() + idx, args[1]);
-            return NIL{};
+            return (*array)[index];
         }
 
-        Value removeElementFromArrayEnd(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            if (receivedObject->empty()) [[unlikely]] {
-                throw std::runtime_error("cannot pop from an empty array");
+        std::shared_ptr<Array> set_element_by_index(const std::shared_ptr<Array> &array, const std::size_t &index,
+                                                    const Value &value) {
+            if (index >= array->size()) [[unlikely]] {
+                throw std::out_of_range("array index out of range");
             }
 
-            auto backElement = std::move(receivedObject->back());
-            receivedObject->pop_back();
-            return backElement;
+            (*array)[index] = value;
+            return array;
         }
 
-        Value removeElementByIndex(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            if (!args.front().is<double>()) [[unlikely]] {
-                throw std::invalid_argument("array index must be a number");
-            }
-
-            const auto idx = static_cast<std::size_t>(args.front().get<double>());
-            if (idx >= receivedObject->size()) [[unlikely]] {
-                throw std::out_of_range("array index out of bounds");
-            }
-
-            receivedObject->erase(receivedObject->begin() + idx);
-            return NIL{};
+        void add_element_to_array(const std::shared_ptr<Array> &array, const Value &value) {
+            array->push_back(value);
         }
 
-        Value sliceArray(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            if (!args.front().is<double>() || !args[1].is<double>()) [[unlikely]] {
-                throw std::invalid_argument("array index must be a number");
+        void insert_element_at_index(const std::shared_ptr<Array> &array, const std::size_t &index,
+                                     const Value &value) {
+            if (index > array->size()) [[unlikely]] {
+                throw std::out_of_range("array index out of range");
             }
 
-            if (args.front().get<double>() < 0 || args[1].get<double>() < 0) [[unlikely]] {
-                throw std::out_of_range("array indices must be non-negative");
+            array->insert(array->begin() + index, value);
+        }
+
+        Value remove_element_from_array(const std::shared_ptr<Array> &array) {
+            if (array->empty()) [[unlikely]] {
+                throw std::runtime_error("cannot remove from an empty array");
             }
 
-            const auto startingIndex = static_cast<std::size_t>(args.front().get<double>());
-            const auto finalIndex = static_cast<std::size_t>(args[1].get<double>());
+            auto last_element = std::move(array->back());
+            array->pop_back();
+            return last_element;
+        }
 
-            if (startingIndex >= receivedObject->size() || startingIndex > finalIndex) [[unlikely]] {
+        void remove_element_at_index(const std::shared_ptr<Array> &array, const std::size_t &index) {
+            if (index >= array->size()) [[unlikely]] {
+                throw std::out_of_range("array index out of range");
+            }
+
+            array->erase(array->begin() + index);
+        }
+
+        std::shared_ptr<Array> slice_array(const std::shared_ptr<Array> &array, const std::size_t &starting_index,
+                                           const std::size_t &ending_index) {
+            if (starting_index >= array->size() || starting_index > ending_index) [[unlikely]] {
                 return std::make_shared<Array>();
             }
 
-            const auto resultingIndex = std::min(receivedObject->size() - 1, finalIndex);
-
-            return std::make_shared<Array>(
-                receivedObject->begin() + startingIndex,
-                receivedObject->begin() + resultingIndex + 1
-            );
+            const auto real_ending = std::min(array->size() - 1, ending_index);
+            return std::make_shared<Array>(array->begin() + starting_index, array->begin() + real_ending + 1);
         }
 
-        Value concatenateTwoArrays(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
+        void concat_two_arrays(const std::shared_ptr<Array> &first_operand,
+                               const std::shared_ptr<Array> &second_operand) {
+            first_operand->reserve(first_operand->size() + second_operand->size());
+            first_operand->insert(first_operand->end(), second_operand->begin(), second_operand->end());
+        }
 
-            if (!args.front().is<std::shared_ptr<Array> >()) [[unlikely]] {
-                throw std::invalid_argument(std::format("cannot concatenate array and {}", args.front().type()));
+        double retrieve_first_index_of(const std::shared_ptr<Array> &array, const Value &value) {
+            const auto it = std::ranges::find(*array, value);
+
+            if (it == array->end()) [[unlikely]] {
+                throw std::runtime_error(std::format("not found {}", value.str()));
             }
 
-            const auto &anotherArray = args.front().get<std::shared_ptr<Array> >();
-            receivedObject->reserve(receivedObject->size() + anotherArray->size());
-            receivedObject->insert(receivedObject->end(), anotherArray->begin(), anotherArray->end());
-            return NIL{};
+            return static_cast<double>(std::ranges::distance(array->begin(), it));
         }
 
-        Value retrieveFirstIndexOfArrayElement(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
+        double retrieve_last_index_of(const std::shared_ptr<Array> &array, const Value &value) {
+            const auto it = std::ranges::find(std::ranges::rbegin(*array), std::ranges::rend(*array), value);
 
-            const auto it = std::ranges::find(*receivedObject, args.front());
-            if (it == receivedObject->end()) [[unlikely]] {
-                throw std::runtime_error(std::format("not found element {}", it->str()));
+            if (it == array->rend()) [[unlikely]] {
+                throw std::runtime_error(std::format("not found {}", value.str()));
             }
 
-            return static_cast<double>(std::ranges::distance(receivedObject->begin(), it));
+            return static_cast<double>(array->size() - 1 - std::distance(std::ranges::rbegin(*array), it));
         }
 
-        Value retrieveLastIndexOfArrayElement(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-
-            const auto it = std::ranges::find(std::ranges::rbegin(*receivedObject), std::ranges::rend(*receivedObject),
-                                              args.front());
-            if (it == receivedObject->rend()) {
-                throw std::runtime_error(std::format("not found element {}", it->str()));
-            }
-
-            const auto index = receivedObject->size() - 1 - std::ranges::distance(
-                                   std::ranges::rbegin(*receivedObject), it);
-            return static_cast<double>(index);
-        }
-
-        Value containsValue(Value receiver, const std::vector<Value> &args) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Array> >();
-            return std::ranges::contains(*receivedObject, args.front());
+        bool contains_element(const std::shared_ptr<Array> &array, const Value &value) {
+            return std::ranges::contains(*array, value);
         }
     }
 
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > registerMethods() {
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
-            {
-                "len", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "len",
-                    .arity = 0,
-                    .callable = retrieveArraySize
-                })
-            },
-            {
-                "clear", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "clear",
-                    .arity = 0,
-                    .callable = clearArray
-                })
-            },
-            {
-                "copy", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "copy",
-                    .arity = 0,
-                    .callable = createArrayClone
-                })
-            },
-            {
-                "reverse", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "reverse",
-                    .arity = 0,
-                    .callable = reverseArray
-                })
-            },
-            {
-                "isEmpty", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isEmpty",
-                    .arity = 0,
-                    .callable = checkArrayEmptiness
-                })
-            },
-            {
-                "first", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "first",
-                    .arity = 0,
-                    .callable = getFrontArrayElement
-                })
-            },
-            {
-                "last", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "last",
-                    .arity = 0,
-                    .callable = getBackArrayElement
-                })
-            },
-            {
-                "at", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "at",
-                    .arity = 1,
-                    .callable = getElementByIndex
-                })
-            },
-            {
-                "set", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "set",
-                    .arity = 2,
-                    .callable = updateElementByIndex
-                })
-            },
-            {
-                "append", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "append",
-                    .arity = 1,
-                    .callable = appendElementToArrayEnd
-                })
-            },
-            {
-                "insertAt", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "insertAt",
-                    .arity = 2,
-                    .callable = appendElementByIndex
-                })
-            },
-
-            {
-                "pop", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "pop",
-                    .arity = 0,
-                    .callable = removeElementFromArrayEnd
-                })
-            },
-            {
-                "removeAt", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "removeAt",
-                    .arity = 1,
-                    .callable = removeElementByIndex
-                })
-            },
-            {
-                "slice", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "slice",
-                    .arity = 2,
-                    .callable = sliceArray
-                })
-            },
-            {
-                "concat", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "concat",
-                    .arity = 1,
-                    .callable = concatenateTwoArrays
-                })
-            },
-            {
-                "indexOf", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "indexOf",
-                    .arity = 1,
-                    .callable = retrieveFirstIndexOfArrayElement
-                })
-            },
-            {
-                "lastIndexOf", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "lastIndexOf",
-                    .arity = 1,
-                    .callable = retrieveLastIndexOfArrayElement
-                })
-            },
-            {
-                "contains", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "contains",
-                    .arity = 1,
-                    .callable = containsValue
-                })
-            },
+            bind_method<retrieve_array_size>("len"),
+            bind_method<clear_array>("clear"),
+            bind_method<copy_array>("copy"),
+            bind_method<reverse_array>("reverse"),
+            bind_method<check_array_emptiness>("isEmpty"),
+            bind_method<retrieve_first_array_element>("first"),
+            bind_method<retrieve_last_array_element>("last"),
+            bind_method<retrieve_element_by_index>("at"),
+            bind_method<set_element_by_index>("set"),
+            bind_method<add_element_to_array>("append"),
+            bind_method<insert_element_at_index>("insertAt"),
+            bind_method<remove_element_from_array>("pop"),
+            bind_method<remove_element_at_index>("removeAt"),
+            bind_method<slice_array>("slice"),
+            bind_method<concat_two_arrays>("concat"),
+            bind_method<retrieve_first_index_of>("indexOf"),
+            bind_method<retrieve_last_index_of>("lastIndexOf"),
+            bind_method<contains_element>("contains"),
         };
     }
 }
