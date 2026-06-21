@@ -2,213 +2,160 @@
 
 namespace stdlib::DictionaryBuiltins {
     namespace {
-        Value getDictionaryLength(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            return static_cast<double>(receivedObject->size());
+        template<typename T>
+        decltype(auto) get_from_value(const Value &value) {
+            if constexpr (std::is_same_v<std::remove_cvref_t<T>, Value>) {
+                return (value);
+            } else if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<
+                                     T>, bool>) {
+                if (!value.is<double>() || !value.is<std::string>()) [[unlikely]] {
+                    throw std::invalid_argument("dictionary index must be a number or string");
+                }
+
+                return static_cast<std::remove_cvref_t<T>>(value.get<double>());
+            } else if constexpr (std::is_floating_point_v<std::remove_cvref_t<T> >) {
+                if (!value.is<double>()) [[unlikely]] {
+                    throw std::invalid_argument("expected Number");
+                }
+
+                return static_cast<std::remove_cvref_t<T>>(value.get<double>());
+            } else {
+                if (!value.is<std::remove_cvref_t<T> >()) [[unlikely]] {
+                    throw std::invalid_argument(std::format("type mismatch; got {}", value.type()));
+                }
+
+                return (value.get<std::remove_cvref_t<T> >());
+            }
         }
 
-        Value createDictionaryCopy(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            return std::make_shared<Dictionary>(*receivedObject);
+        template<typename T>
+        Value convert_to_value(T &&value) {
+            if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<T>,
+                              bool>) {
+                return Value(static_cast<double>(value));
+            } else if constexpr (std::is_void_v<std::remove_cvref_t<T> >) {
+                return NIL{};
+            } else {
+                return Value(std::forward<T>(value));
+            }
         }
 
-        Value clearDictionary(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            receivedObject->clear();
-            return receivedObject;
-        }
+        template<auto Func>
+        struct MethodTraits;
 
-        Value checkDictionaryEmptiness(Value receiver, const std::vector<Value> &) {
-            return receiver.get<std::shared_ptr<Dictionary> >()->empty();
-        }
+        template<typename R, typename... Args, R(*Func)(const std::shared_ptr<Dictionary> &, Args...)>
+        struct MethodTraits<Func> {
+            static constexpr int Arity = sizeof...(Args);
 
-        Value containsValue(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("dictionary key must be Number or String");
+            static Value invoke(Value receiver, const std::vector<Value> &args) {
+                const auto &dictionary = receiver.get<std::shared_ptr<Dictionary> >();
+
+                if (args.size() != Arity) [[unlikely]] {
+                    throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
+                }
+
+                return invoke_implementation(dictionary, args, std::make_index_sequence<Arity>{});
             }
 
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            return receivedObject->contains(args.front());
+        private:
+            template<std::size_t... Is>
+            static Value invoke_implementation(const std::shared_ptr<Dictionary> &dictionary,
+                                               const std::vector<Value> &args,
+                                               std::index_sequence<Is...>) {
+                if constexpr (std::is_void_v<R>) {
+                    return NIL{};
+                } else {
+                    return convert_to_value(Func(dictionary, get_from_value<Args>(args[Is])...));
+                }
+            }
+        };
+
+        template<auto Func>
+        std::pair<std::string, std::shared_ptr<NativeFunction>> bind_methods(const std::string &name) {
+            return {
+                name,
+                std::make_shared<NativeFunction>(NativeFunction{
+                    .name = name,
+                    .arity = MethodTraits<Func>::Arity,
+                    .callable = MethodTraits<Func>::invoke
+                })
+            };
         }
 
-        Value getDictionaryElementByKey(Value receiver, const std::vector<Value> &args) {
-            if (args.empty()) [[unlikely]] {
-                throw std::invalid_argument("get requires at least one element");
-            }
+        double retrieve_dictionary_length(const std::shared_ptr<Dictionary> &dictionary) {
+            return static_cast<double>(dictionary->size());
+        }
 
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            const auto &defaultValue = args.size() > 1 ? args[1] : NIL{};
+        std::shared_ptr<Dictionary> copy_dictionary(const std::shared_ptr<Dictionary> &dictionary) {
+            return std::make_shared<Dictionary>(*dictionary);
+        }
 
-            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("dictionary key must be Number or String");
-            }
+        std::shared_ptr<Dictionary> clear_dictionary(const std::shared_ptr<Dictionary> &dictionary) {
+            dictionary->clear();
+            return dictionary;
+        }
 
-            if (const auto it = receivedObject->find(args.front()); it != receivedObject->end()) {
+        bool check_dictionary_emptiness(const std::shared_ptr<Dictionary> &dictionary) {
+            return dictionary->empty();
+        }
+
+        bool contains_dictionary_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key) {
+            return dictionary->contains(key);
+        }
+
+        Value get_dictionary_element_by_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key, const Value &default_value) {
+            if (const auto it = dictionary->find(key); it != dictionary->end()) {
                 return it->second;
             }
 
-            return defaultValue;
+            return default_value;
         }
 
-        Value setDictionaryElementByKey(Value receiver, const std::vector<Value> &args) {
-            if (args.empty()) [[unlikely]] {
-                throw std::invalid_argument("setDefault requires at least one element");
-            }
-
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("dictionary key must be Number or String");
-            }
-
-            const auto &key = args.front();
-            const auto &defaultValue = args.size() > 1 ? args[1] : NIL{};
-
-            auto [it, insertedElement] = receivedObject->try_emplace(key, defaultValue);
-            return it->second;
+        bool set_dictionary_element_by_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key, const Value &value) {
+            auto [it, inserted_element] = dictionary->try_emplace(key, value);
+            return inserted_element;
         }
 
-        Value retrieveDictionaryKeys(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            return std::make_shared<Array>(std::views::keys(*receivedObject) | std::ranges::to<Array>());
+        std::shared_ptr<Array> retrieve_dictionary_keys(const std::shared_ptr<Dictionary> &dictionary) {
+            return std::make_shared<Array>(std::views::keys(*dictionary) | std::ranges::to<Array>());
         }
 
-        Value retrieveDictionaryValues(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-            return std::make_shared<Array>(std::views::values(*receivedObject) | std::ranges::to<Array>());
+        std::shared_ptr<Array> retrieve_dictionary_values(const std::shared_ptr<Dictionary> &dictionary) {
+            return std::make_shared<Array>(std::views::values(*dictionary) | std::ranges::to<Array>());
         }
 
-        Value mergeDictionaries(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::shared_ptr<Dictionary> >()) [[unlikely]] {
-                throw std::invalid_argument(std::format("expected Dictionary but got {}", args.front().type()));
+        std::shared_ptr<Dictionary> merge_dictionaries(const std::shared_ptr<Dictionary> &first_operand, const std::shared_ptr<Dictionary> &second_operand) {
+            for (const auto &[key, value] : *second_operand) {
+                first_operand->insert_or_assign(key, value);
             }
 
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            const auto &otherObject = args.front().get<std::shared_ptr<Dictionary> >();
-
-            for (const auto &[key, value]: *otherObject) {
-                receivedObject->insert_or_assign(key, value);
-            }
-
-            return receivedObject;
+            return first_operand;
         }
 
-        Value insertDictionary(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::shared_ptr<Dictionary> >()) [[unlikely]] {
-                throw std::invalid_argument(std::format("expected Dictionary but got {}", args.front().type()));
+        Value remove_dictionary_element_by_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key) {
+            if (const auto it = dictionary->find(key); it != dictionary->end()) {
+                auto extracted_value = std::move(it->second);
+                dictionary->erase(it);
+                return extracted_value;
             }
 
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            const auto otherObject = args.front().get<std::shared_ptr<Dictionary> >();
-            receivedObject->insert(otherObject->begin(), otherObject->end());
-            return receivedObject;
-        }
-
-        Value removeDictionaryElementByKey(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<double>() && !args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("dictionary key must be Number or String");
-            }
-
-            const auto &receivedObject = receiver.get<std::shared_ptr<Dictionary> >();
-
-            if (auto it = receivedObject->find(args.front()); it != receivedObject->end()) {
-                auto extractedValue = std::move(it->second);
-                receivedObject->erase(it);
-                return extractedValue;
-            }
-
-            throw std::runtime_error("dictionary element does not exist");
+            throw std::runtime_error("dictionary key does not exist");
         }
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
-            {
-                "len", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "len",
-                    .arity = 0,
-                    .callable = getDictionaryLength
-                })
-            },
-            {
-                "clear", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "clear",
-                    .arity = 0,
-                    .callable = clearDictionary
-                })
-            },
-            {
-                "copy", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "copy",
-                    .arity = 0,
-                    .callable = createDictionaryCopy
-                })
-            },
-            {
-                "isEmpty", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isEmpty",
-                    .arity = 0,
-                    .callable = checkDictionaryEmptiness
-                })
-            },
-            {
-                "insert", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "insert",
-                    .arity = 1,
-                    .callable = insertDictionary
-                })
-            },
-            {
-                "remove", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "remove",
-                    .arity = 1,
-                    .callable = removeDictionaryElementByKey
-                })
-            },
-            {
-                "contains", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "contains",
-                    .arity = 1,
-                    .callable = containsValue
-                })
-            },
-            {
-                "get", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "get",
-                    .arity = -1,
-                    .callable = getDictionaryElementByKey
-                })
-            },
-            {
-                "setDefault", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "setDefault",
-                    .arity = -1,
-                    .callable = setDictionaryElementByKey
-                })
-            },
-            {
-                "keys", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "keys",
-                    .arity = 0,
-                    .callable = retrieveDictionaryKeys
-                })
-            },
-            {
-                "values", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "values",
-                    .arity = 0,
-                    .callable = retrieveDictionaryValues
-                })
-            },
-            {
-                "merge", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "merge",
-                    .arity = 1,
-                    .callable = mergeDictionaries
-                })
-            }
+            bind_methods<retrieve_dictionary_length>("len"),
+            bind_methods<clear_dictionary>("clear"),
+            bind_methods<copy_dictionary>("copy"),
+            bind_methods<check_dictionary_emptiness>("isEmpty"),
+            bind_methods<contains_dictionary_key>("contains"),
+            bind_methods<get_dictionary_element_by_key>("get"),
+            bind_methods<set_dictionary_element_by_key>("set"),
+            bind_methods<retrieve_dictionary_keys>("keys"),
+            bind_methods<retrieve_dictionary_values>("values"),
+            bind_methods<merge_dictionaries>("merge"),
+            bind_methods<remove_dictionary_element_by_key>("remove"),
         };
     }
 }
