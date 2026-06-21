@@ -32,7 +32,7 @@ private:
     const std::uint8_t* address = nullptr;
 
     Frames frames;
-    Array stack;
+    std::vector<Value> stack;
 
     std::unordered_map<std::string, Value> globalVariables;
     std::unordered_set<std::string> constants;

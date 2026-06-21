@@ -15,7 +15,7 @@ namespace stdlib::DictionaryBuiltins {
                 return static_cast<std::remove_cvref_t<T>>(value.get<double>());
             } else if constexpr (std::is_floating_point_v<std::remove_cvref_t<T> >) {
                 if (!value.is<double>()) [[unlikely]] {
-                    throw std::invalid_argument("expected Number");
+                    throw std::invalid_argument("expected number");
                 }
 
                 return static_cast<std::remove_cvref_t<T>>(value.get<double>());
@@ -30,8 +30,7 @@ namespace stdlib::DictionaryBuiltins {
 
         template<typename T>
         Value convert_to_value(T &&value) {
-            if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<T>,
-                              bool>) {
+            if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<T>, bool>) {
                 return Value(static_cast<double>(value));
             } else if constexpr (std::is_void_v<std::remove_cvref_t<T> >) {
                 return NIL{};
@@ -43,12 +42,12 @@ namespace stdlib::DictionaryBuiltins {
         template<auto Func>
         struct MethodTraits;
 
-        template<typename R, typename... Args, R(*Func)(const std::shared_ptr<Dictionary> &, Args...)>
+        template<typename R, typename... Args, R(*Func)(const Dictionary &, Args...)>
         struct MethodTraits<Func> {
             static constexpr int Arity = sizeof...(Args);
 
             static Value invoke(Value receiver, const std::vector<Value> &args) {
-                const auto &dictionary = receiver.get<std::shared_ptr<Dictionary> >();
+                const auto &dictionary = receiver.get<Dictionary>();
 
                 if (args.size() != Arity) [[unlikely]] {
                     throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
@@ -59,8 +58,7 @@ namespace stdlib::DictionaryBuiltins {
 
         private:
             template<std::size_t... Is>
-            static Value invoke_implementation(const std::shared_ptr<Dictionary> &dictionary,
-                                               const std::vector<Value> &args,
+            static Value invoke_implementation(const Dictionary &dictionary, const std::vector<Value> &args,
                                                std::index_sequence<Is...>) {
                 if constexpr (std::is_void_v<R>) {
                     return NIL{};
@@ -71,7 +69,7 @@ namespace stdlib::DictionaryBuiltins {
         };
 
         template<auto Func>
-        std::pair<std::string, std::shared_ptr<NativeFunction>> bind_methods(const std::string &name) {
+        std::pair<std::string, std::shared_ptr<NativeFunction> > bind_methods(const std::string &name) {
             return {
                 name,
                 std::make_shared<NativeFunction>(NativeFunction{
@@ -82,28 +80,28 @@ namespace stdlib::DictionaryBuiltins {
             };
         }
 
-        double retrieve_dictionary_length(const std::shared_ptr<Dictionary> &dictionary) {
+        double retrieve_dictionary_length(const Dictionary &dictionary) {
             return static_cast<double>(dictionary->size());
         }
 
-        std::shared_ptr<Dictionary> copy_dictionary(const std::shared_ptr<Dictionary> &dictionary) {
-            return std::make_shared<Dictionary>(*dictionary);
+        Dictionary copy_dictionary(const Dictionary &dictionary) {
+            return std::make_shared<std::unordered_map<Value, Value, ValueHasher> >(*dictionary);
         }
 
-        std::shared_ptr<Dictionary> clear_dictionary(const std::shared_ptr<Dictionary> &dictionary) {
+        Dictionary clear_dictionary(const Dictionary &dictionary) {
             dictionary->clear();
             return dictionary;
         }
 
-        bool check_dictionary_emptiness(const std::shared_ptr<Dictionary> &dictionary) {
+        bool check_dictionary_emptiness(const Dictionary &dictionary) {
             return dictionary->empty();
         }
 
-        bool contains_dictionary_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key) {
+        bool contains_dictionary_key(const Dictionary &dictionary, const Value &key) {
             return dictionary->contains(key);
         }
 
-        Value get_dictionary_element_by_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key, const Value &default_value) {
+        Value get_dictionary_element_by_key(const Dictionary &dictionary, const Value &key, const Value &default_value) {
             if (const auto it = dictionary->find(key); it != dictionary->end()) {
                 return it->second;
             }
@@ -111,28 +109,30 @@ namespace stdlib::DictionaryBuiltins {
             return default_value;
         }
 
-        bool set_dictionary_element_by_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key, const Value &value) {
+        bool set_dictionary_element_by_key(const Dictionary &dictionary, const Value &key, const Value &value) {
             auto [it, inserted_element] = dictionary->try_emplace(key, value);
             return inserted_element;
         }
 
-        std::shared_ptr<Array> retrieve_dictionary_keys(const std::shared_ptr<Dictionary> &dictionary) {
-            return std::make_shared<Array>(std::views::keys(*dictionary) | std::ranges::to<Array>());
+        Array retrieve_dictionary_keys(const Dictionary &dictionary) {
+            return std::make_shared<std::vector<Value> >(
+                std::views::keys(*dictionary) | std::ranges::to<std::vector<Value> >());
         }
 
-        std::shared_ptr<Array> retrieve_dictionary_values(const std::shared_ptr<Dictionary> &dictionary) {
-            return std::make_shared<Array>(std::views::values(*dictionary) | std::ranges::to<Array>());
+        Array retrieve_dictionary_values(const Dictionary &dictionary) {
+            return std::make_shared<std::vector<Value> >(
+                std::views::values(*dictionary) | std::ranges::to<std::vector<Value> >());
         }
 
-        std::shared_ptr<Dictionary> merge_dictionaries(const std::shared_ptr<Dictionary> &first_operand, const std::shared_ptr<Dictionary> &second_operand) {
-            for (const auto &[key, value] : *second_operand) {
+        Dictionary merge_dictionaries(const Dictionary &first_operand, const Dictionary &second_operand) {
+            for (const auto &[key, value]: *second_operand) {
                 first_operand->insert_or_assign(key, value);
             }
 
             return first_operand;
         }
 
-        Value remove_dictionary_element_by_key(const std::shared_ptr<Dictionary> &dictionary, const Value &key) {
+        Value remove_dictionary_element_by_key(const Dictionary &dictionary, const Value &key) {
             if (const auto it = dictionary->find(key); it != dictionary->end()) {
                 auto extracted_value = std::move(it->second);
                 dictionary->erase(it);

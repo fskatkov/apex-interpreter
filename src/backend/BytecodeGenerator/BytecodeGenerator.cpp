@@ -309,7 +309,7 @@ void BytecodeGenerator::compileVariableStatement(VariableStatement *statement) {
         return;
     }
 
-    buffer->values.emplace_back(statement->name.lexeme);
+    buffer->values.emplace_back(std::make_shared<std::string>(statement->name.lexeme));
 
     emitByte(
         std::to_underlying(statement->isConst
@@ -350,7 +350,7 @@ void BytecodeGenerator::compileFunctionStatement(FunctionStatement *statement) {
     emitByte(std::to_underlying(InstructionType::OP_CONSTANT), statement->name.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
 
-    buffer->values.emplace_back(statement->name.lexeme);
+    buffer->values.emplace_back(std::make_shared<std::string>(statement->name.lexeme));
 
     emitByte(std::to_underlying(InstructionType::OP_DEFINE_GLOBAL), statement->name.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), statement->name.sourceLocation.line);
@@ -430,7 +430,7 @@ void BytecodeGenerator::compileVariableExpression(VariableExpression *originalEx
                  originalExpression->name.sourceLocation.line);
         emitByte(static_cast<std::uint8_t>(arg), originalExpression->name.sourceLocation.line);
     } else {
-        buffer->values.emplace_back(originalExpression->name.lexeme);
+        buffer->values.emplace_back(std::make_shared<std::string>(originalExpression->name.lexeme));
 
         emitByte(std::to_underlying(InstructionType::OP_GET_GLOBAL),
                  originalExpression->name.sourceLocation.line);
@@ -447,7 +447,7 @@ void BytecodeGenerator::compileAssignmentExpression(const AssignmentExpression *
                      variableExpression->name.sourceLocation.line);
             emitByte(static_cast<std::uint8_t>(arg), variableExpression->name.sourceLocation.line);
         } else {
-            buffer->values.emplace_back(variableExpression->name.lexeme);
+            buffer->values.emplace_back(std::make_shared<std::string>(variableExpression->name.lexeme));
 
             emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL),
                      variableExpression->name.sourceLocation.line);
@@ -501,7 +501,7 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
             emitByte(std::to_underlying(InstructionType::OP_SET_LOCAL), line);
             emitByte(static_cast<std::uint8_t>(arg), line);
         } else {
-            buffer->values.emplace_back(variableExpression->name.lexeme);
+            buffer->values.emplace_back(std::make_shared<std::string>(variableExpression->name.lexeme));
 
             emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL), line);
             emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
@@ -680,7 +680,7 @@ void BytecodeGenerator::compileUpdateExpression(const UpdateExpression *original
         emitByte(std::to_underlying(InstructionType::OP_SET_LOCAL), line);
         emitByte(static_cast<std::uint8_t>(arg), line);
     } else {
-        buffer->values.emplace_back(variableExpression->name.lexeme);
+        buffer->values.emplace_back(std::make_shared<std::string>(variableExpression->name.lexeme));
         emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL), line);
         emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), line);
     }
@@ -688,7 +688,7 @@ void BytecodeGenerator::compileUpdateExpression(const UpdateExpression *original
 
 void BytecodeGenerator::compileGetPropertyExpression(const GetPropertyExpression *originalExpression) {
     compileExpression(originalExpression->object.get());
-    buffer->values.emplace_back(originalExpression->name.lexeme);
+    buffer->values.emplace_back(std::make_shared<std::string>(originalExpression->name.lexeme));
     emitByte(std::to_underlying(InstructionType::OP_GET_PROPERTY), originalExpression->name.sourceLocation.line);
     emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), originalExpression->name.sourceLocation.line);
 }

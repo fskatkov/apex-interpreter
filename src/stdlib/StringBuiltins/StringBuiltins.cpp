@@ -2,364 +2,246 @@
 
 namespace stdlib::StringBuiltins {
     namespace {
-        Value retrieveStringLength(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            return static_cast<double>(receivedObject.size());
+        template<typename T>
+        decltype(auto) get_from_value(const Value &value) {
+            if constexpr (std::is_same_v<std::remove_cvref_t<T>, Value>) {
+                return (value);
+            } else if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<
+                                     T>, bool>) {
+                if (!value.is<double>()) [[unlikely]] {
+                    throw std::invalid_argument("string index must be a number");
+                }
+
+                const auto val = value.get<double>();
+
+                if (val < 0) [[unlikely]] {
+                    throw std::out_of_range("string indices must be non-negative");
+                }
+
+                return static_cast<std::remove_cvref_t<T>>(val);
+            } else if constexpr (std::is_floating_point_v<std::remove_cvref_t<T> >) {
+                if (!value.is<double>()) [[unlikely]] {
+                    throw std::invalid_argument("expected number");
+                }
+
+                return static_cast<std::remove_cvref_t<T>>(value.get<double>());
+            } else {
+                if (!value.is<std::remove_cvref_t<T> >()) [[unlikely]] {
+                    throw std::invalid_argument(std::format("type mismatch; got {}", value.type()));
+                }
+
+                return value.get<std::remove_cvref_t<T> >();
+            }
         }
 
-        Value copyString(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            return receivedObject;
+        template<typename T>
+        Value convert_to_value(T &&value) {
+            if constexpr (std::is_integral_v<std::remove_cvref_t<T> > && !std::is_same_v<std::remove_cvref_t<T>,
+                              bool>) {
+                return Value(static_cast<double>(value));
+            } else if constexpr (std::is_void_v<std::remove_cvref_t<T> >) {
+                return NIL{};
+            } else {
+                return Value(std::forward<T>(value));
+            }
         }
 
-        Value clearString(Value receiver, const std::vector<Value> &) {
-            auto &receivedObject = receiver.get<std::string>();
-            receivedObject.clear();
-            return receivedObject;
-        }
+        template<auto Func>
+        struct MethodTraits;
 
-        Value checkStringEmptiness(Value receiver, const std::vector<Value> &) {
-            return receiver.get<std::string>().empty();
-        }
+        template<typename R, typename... Args, R(*Func)(const String &, Args...)>
+        struct MethodTraits<Func> {
+            static constexpr int Arity = sizeof...(Args);
 
-        Value reverseString(Value receiver, const std::vector<Value> &) {
-            auto receivedObject = receiver.get<std::string>();
-            std::ranges::reverse(receivedObject);
-            return receivedObject;
-        }
+            static Value invoke(Value receiver, const std::vector<Value> &args) {
+                const auto &string = receiver.get<String>();
 
-        Value retrieveCharacterByIndex(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) [[unlikely]] {
-                throw std::invalid_argument("string index must be Number");
+                if (args.size() != Arity) [[unlikely]] {
+                    throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
+                }
+
+                return invoke_implementation(string, args, std::make_index_sequence<Arity>{});
             }
 
-            const auto &receivedObject = receiver.get<std::string>();
-
-            const auto &index = static_cast<std::size_t>(args.front().get<double>());
-            if (index >= receivedObject.size()) [[unlikely]] {
-                throw std::out_of_range("string index out of bounds");
+        private:
+            template<std::size_t... Is>
+            static Value invoke_implementation(const String &string, const std::vector<Value> &args,
+                                               std::index_sequence<Is...>) {
+                if constexpr (std::is_void_v<R>) {
+                    Func(string, get_from_value<Args>(args[Is])...);
+                    return NIL{};
+                } else {
+                    return convert_to_value(Func(string, get_from_value<Args>(args[Is])...));
+                }
             }
+        };
 
-            return receivedObject[index];
+        template<auto Func>
+        std::pair<std::string, std::shared_ptr<NativeFunction> > bind_method(const std::string &name) {
+            return {
+                name,
+                std::make_shared<NativeFunction>(NativeFunction{
+                    .name = name,
+                    .arity = MethodTraits<Func>::Arity,
+                    .callable = MethodTraits<Func>::invoke
+                })
+            };
         }
 
-        Value getIndexOfSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("expected substring of type String");
+        double retrieve_string_length(const String &string) {
+            return static_cast<double>(string->size());
+        }
+
+        String copy_string(const String &string) {
+            return std::make_shared<std::string>(*string);
+        }
+
+        void clear_string(const String &string) {
+            string->clear();
+        }
+
+        bool check_string_emptiness(const String &string) {
+            return string->empty();
+        }
+
+        void reverse_string(const String &string) {
+            std::ranges::reverse(*string);
+        }
+
+        bool contains_substring(const String &string, const String &substring) {
+            return string->contains(*substring);
+        }
+
+        char retrieve_char_by_index(const String &string, const Value &index) {
+            const auto &idx = static_cast<std::size_t>(index.get<double>());
+
+            if (idx >= string->size()) [[unlikely]] {
+                throw std::out_of_range(std::format("string index out of bounds"));
             }
 
-            const auto &receivedObject = receiver.get<std::string>();
-            const auto &targetSubstring = args.front().get<std::string>();
+            return string->at(idx);
+        }
 
-            const auto it = receivedObject.find(targetSubstring);
+        double retrieve_index_of_substring(const String &string, const String &substring) {
+            const auto it = string->find(*substring);
             if (it == std::string::npos) return -1.0;
             return static_cast<double>(it);
         }
 
-        Value getLastIndexOfSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("expected substring of type String");
-            }
-
-            const auto receivedObject = receiver.get<std::string>();
-            const auto &targetSubstring = args.front().get<std::string>();
-
-            const auto it = receivedObject.rfind(targetSubstring);
+        double retrieve_last_index_of_substring(const String &string, const String &substring) {
+            const auto it = string->rfind(*substring);
             if (it == std::string::npos) return -1.0;
             return static_cast<double>(it);
         }
 
-        Value containsSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("expected substring of type String");
-            }
-
-            const auto &receivedObject = receiver.get<std::string>();
-            return receivedObject.contains(args.front().get<std::string>());
+        bool starts_with_substring(const String &string, const String &substring) {
+            return string->starts_with(*substring);
         }
 
-        Value starsWithSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("expected substring of type String");
-            }
-
-            const auto &receivedObject = receiver.get<std::string>();
-            return receivedObject.starts_with(args.front().get<std::string>());
+        bool ends_with_substring(const String &string, const String &substring) {
+            return string->ends_with(*substring);
         }
 
-        Value endsWithSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>()) [[unlikely]] {
-                throw std::invalid_argument("expected substring of type String");
+        String take_substring(const String &string, const double &lhs, const double &rhs) {
+            const auto &starting_index = static_cast<std::size_t>(lhs);
+            const auto &ending_index = static_cast<std::size_t>(rhs);
+
+            if (starting_index >= string->size()) [[unlikely]] {
+                return std::make_shared<std::string>("");
             }
 
-            const auto &receivedObject = receiver.get<std::string>();
-            return receivedObject.ends_with(args.front().get<std::string>());
+            return std::make_shared<std::string>(string->substr(starting_index, ending_index));
         }
 
-        Value takeSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<double>() || !args[1].is<double>()) [[unlikely]] {
-                throw std::runtime_error("substring borders must be Number");
-            }
-
-            const auto &receivedObject = receiver.get<std::string>();
-
-            const auto lhs = static_cast<std::size_t>(args.front().get<double>());
-            const auto rhs = static_cast<std::size_t>(args[1].get<double>());
-            if (lhs >= receivedObject.size()) [[unlikely]] {
-                return "";
-            }
-
-            return receivedObject.substr(lhs, rhs);
-        }
-
-        Value convertUppercase(Value receiver, const std::vector<Value> &) {
-            auto receivedObject = receiver.get<std::string>();
-            std::ranges::transform(receivedObject, receivedObject.begin(), [](const unsigned char letter) {
-                return std::toupper(letter);
+        void convert_to_uppercase(const String &string) {
+            std::ranges::transform(*string, string->begin(), [](const unsigned char &symbol) {
+                return std::toupper(symbol);
             });
-            return receivedObject;
         }
 
-        Value convertLowercase(Value receiver, const std::vector<Value> &) {
-            auto receivedObject = receiver.get<std::string>();
-            std::ranges::transform(receivedObject, receivedObject.begin(), [](const unsigned char letter) {
-                return std::tolower(letter);
+        void convert_to_lowercase(const String &string) {
+            std::ranges::transform(*string, string->begin(), [](const unsigned char &symbol) {
+                return std::tolower(symbol);
             });
-            return receivedObject;
         }
 
-        Value trimString(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            const auto startingIndex = receivedObject.find_first_not_of(" \t\n\r\f\v");
-
-            if (startingIndex == std::string::npos) [[unlikely]] {
-                return "";
-            }
-
-            const auto endingIndex = receivedObject.find_last_not_of(" \t\n\r\f\v");
-            return receivedObject.substr(startingIndex, endingIndex - startingIndex + 1);
+        bool check_alpha(const String &string) {
+            return !string->empty() && std::ranges::all_of(*string, [](const auto &symbol) {
+                return std::isalpha(symbol);
+            });
         }
 
-        Value replaceSubstring(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>() && !args[1].is<std::string>()) [[unlikely]] {
-                throw std::runtime_error("expected substring of type String");
-            }
-
-            auto receivedObject = receiver.get<std::string>();
-
-            const auto &targetSubstring = args.front().get<std::string>();
-            const auto &replacementSubstring = args[1].get<std::string>();
-
-            if (targetSubstring.empty()) return receivedObject;
-
-            if (const auto it = receivedObject.find(targetSubstring); it != std::string::npos) {
-                receivedObject.replace(it, targetSubstring.length(), replacementSubstring);
-            }
-
-            return receivedObject;
+        bool check_numeric(const String &string) {
+            return !string->empty() && std::ranges::all_of(*string, [](const auto &symbol) {
+                return std::isdigit(symbol);
+            });
         }
 
-        Value replaceAllSubstrings(Value receiver, const std::vector<Value> &args) {
-            if (!args.front().is<std::string>() && !args[1].is<std::string>()) [[unlikely]] {
-                throw std::runtime_error("expected substring of type String");
-            }
+        bool check_alpha_numeric(const String &string) {
+            return !string->empty() && std::ranges::all_of(*string, [](const auto &symbol) {
+                return std::isalnum(symbol);
+            });
+        }
 
-            auto receivedObject = receiver.get<std::string>();
-            const auto &targetSubstring = args.front().get<std::string>();
-            const auto &replacementSubstring = args[1].get<std::string>();
+        bool check_whitespace(const String &string) {
+            return !string->empty() && std::ranges::all_of(*string, [](const auto &symbol) {
+                return std::isspace(symbol);
+            });
+        }
 
-            if (targetSubstring.empty()) [[unlikely]] {
-                return receivedObject;
+        String trim_string(const String &string) {
+            const auto &starting_index = string->find_first_not_of(" \t\n\r\f\v");
+
+            if (starting_index == std::string::npos) return std::make_shared<std::string>("");
+
+            const auto &ending_index = string->find_last_not_of(" \t\n\r\f\v");
+            return std::make_shared<std::string>(string->substr(starting_index, ending_index - starting_index + 1));
+        }
+
+        void replace_substring(const String &string, const String &original_substring,
+                               const String &replacement_substring) {
+            if (original_substring->empty()) return;
+
+            if (const auto it = string->find(*original_substring); it != std::string::npos) {
+                string->replace(it, original_substring->length(), *replacement_substring);
             }
+        }
+
+        void replace_all_substrings(const String &string, const String &original_substring,
+                                    const String &replacement_substring) {
+            if (original_substring->empty()) return;
 
             std::size_t it = 0;
-            while ((it = receivedObject.find(targetSubstring, it)) != std::string::npos) {
-                receivedObject.replace(it, targetSubstring.length(), replacementSubstring);
-                it += replacementSubstring.length();
+            while ((it = string->find(*original_substring, it)) != std::string::npos) {
+                string->replace(it, original_substring->length(), *replacement_substring);
+                it += replacement_substring->length();
             }
-
-            return receivedObject;
-        }
-
-        Value checkIfAlpha(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](const unsigned char letter) {
-                return std::isalpha(letter);
-            });
-        }
-
-        Value checkIfNumeric(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](const unsigned char letter) {
-                return std::isdigit(letter);
-            });
-        }
-
-        Value checkIfAlphaNumeric(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](const unsigned char letter) {
-                return std::isalnum(letter);
-            });
-        }
-
-        Value checkIfWhitespace(Value receiver, const std::vector<Value> &) {
-            const auto &receivedObject = receiver.get<std::string>();
-            return !receivedObject.empty() && std::ranges::all_of(receivedObject, [](const unsigned char letter) {
-                return std::isspace(letter);
-            });
         }
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
-            {
-                "len", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "len",
-                    .arity = 0,
-                    .callable = retrieveStringLength
-                })
-            },
-            {
-                "copy", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "copy",
-                    .arity = 0,
-                    .callable = copyString
-                })
-            },
-            {
-                "clear", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "clear",
-                    .arity = 0,
-                    .callable = clearString
-                })
-            },
-            {
-                "isEmpty", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isEmpty",
-                    .arity = 0,
-                    .callable = checkStringEmptiness
-                })
-            },
-            {
-                "reverse", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "reverse",
-                    .arity = 0,
-                    .callable = reverseString
-                })
-            },
-            {
-                "at", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "at",
-                    .arity = 1,
-                    .callable = retrieveCharacterByIndex
-                })
-            },
-            {
-                "indexOf", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "indexOf",
-                    .arity = 1,
-                    .callable = getIndexOfSubstring
-                })
-            },
-            {
-                "lastIndexOf", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "lastIndexOf",
-                    .arity = 1,
-                    .callable = getLastIndexOfSubstring
-                })
-            },
-            {
-                "contains", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "contains",
-                    .arity = 1,
-                    .callable = containsSubstring
-                })
-            },
-            {
-                "startsWith", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "startsWith",
-                    .arity = 1,
-                    .callable = starsWithSubstring
-                })
-            },
-            {
-                "endsWith", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "endsWith",
-                    .arity = 1,
-                    .callable = endsWithSubstring
-                })
-            },
-            {
-                "substring", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "substring",
-                    .arity = 2,
-                    .callable = takeSubstring
-                })
-            },
-            {
-                "toLower", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "toLower",
-                    .arity = 0,
-                    .callable = convertLowercase
-                })
-            },
-
-            {
-                "toUpper", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "toUpper",
-                    .arity = 0,
-                    .callable = convertUppercase
-                })
-            },
-            {
-                "trim", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "trim",
-                    .arity = 0,
-                    .callable = trimString
-                })
-            },
-            {
-                "replace", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "replace",
-                    .arity = 2,
-                    .callable = replaceSubstring
-                })
-            },
-            {
-                "replaceAll", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "replaceAll",
-                    .arity = 2,
-                    .callable = replaceAllSubstrings
-                })
-            },
-            {
-                "isAlpha", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isAlpha",
-                    .arity = 0,
-                    .callable = checkIfAlpha
-                })
-            },
-            {
-                "isNumeric", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isNumeric",
-                    .arity = 0,
-                    .callable = checkIfNumeric
-                })
-            },
-            {
-                "isAlphaNumeric", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isAlphaNumeric",
-                    .arity = 0,
-                    .callable = checkIfAlphaNumeric
-                })
-            },
-            {
-                "isWhitespace", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "isWhitespace",
-                    .arity = 0,
-                    .callable = checkIfWhitespace
-                })
-            },
+            bind_method<retrieve_string_length>("len"),
+            bind_method<clear_string>("clear"),
+            bind_method<copy_string>("copy"),
+            bind_method<reverse_string>("reverse"),
+            bind_method<check_string_emptiness>("isEmpty"),
+            bind_method<contains_substring>("contains"),
+            bind_method<retrieve_char_by_index>("at"),
+            bind_method<retrieve_index_of_substring>("indexOf"),
+            bind_method<retrieve_last_index_of_substring>("lastIndexOf"),
+            bind_method<starts_with_substring>("startsWith"),
+            bind_method<ends_with_substring>("endsWith"),
+            bind_method<take_substring>("substr"),
+            bind_method<convert_to_uppercase>("toUpper"),
+            bind_method<convert_to_lowercase>("toLower"),
+            bind_method<check_alpha>("isAlpha"),
+            bind_method<check_numeric>("isNumeric"),
+            bind_method<check_alpha_numeric>("isAlphaNumeric"),
+            bind_method<check_whitespace>("isWhitespace"),
+            bind_method<trim_string>("trim"),
+            bind_method<replace_substring>("replace"),
+            bind_method<replace_all_substrings>("replaceAll"),
         };
     }
 }

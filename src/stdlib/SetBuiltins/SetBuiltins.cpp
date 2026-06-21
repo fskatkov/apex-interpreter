@@ -36,12 +36,12 @@ namespace stdlib::SetBuiltins {
         template<auto Func>
         struct MethodTraits;
 
-        template<typename R, typename... Args, R(*Func)(const std::shared_ptr<Set> &, Args...)>
+        template<typename R, typename... Args, R(*Func)(const Set &, Args...)>
         struct MethodTraits<Func> {
             static constexpr int Arity = sizeof...(Args);
 
             static Value invoke(Value receiver, const std::vector<Value> &args) {
-                const auto &set = receiver.get<std::shared_ptr<Set> >();
+                const auto &set = receiver.get<Set>();
 
                 if (args.size() != Arity) [[unlikely]] {
                     throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
@@ -52,7 +52,7 @@ namespace stdlib::SetBuiltins {
 
         private:
             template<std::size_t... Is>
-            static Value invoke_implementation(const std::shared_ptr<Set> &set, const std::vector<Value> &args,
+            static Value invoke_implementation(const Set &set, const std::vector<Value> &args,
                                                std::index_sequence<Is...>) {
                 if constexpr (std::is_void_v<R>) {
                     Func(set, get_from_value<Args>(args[Is])...);
@@ -75,50 +75,48 @@ namespace stdlib::SetBuiltins {
             };
         }
 
-        double retrieve_set_size(const std::shared_ptr<Set> &set) {
+        double retrieve_set_size(const Set &set) {
             return static_cast<double>(set->size());
         }
 
-        bool check_set_emptiness(const std::shared_ptr<Set> &set) {
+        bool check_set_emptiness(const Set &set) {
             return set->empty();
         }
 
-        std::shared_ptr<Set> clear_set(const std::shared_ptr<Set> &set) {
+        Set clear_set(const Set &set) {
             set->clear();
             return set;
         }
 
-        std::shared_ptr<Set> copy_set(const std::shared_ptr<Set> &set) {
-            return std::make_shared<Set>(*set);
+        Set copy_set(const Set &set) {
+            return std::make_shared<std::unordered_set<Value, ValueHasher> >(*set);
         }
 
-        bool insert_element_to_set(const std::shared_ptr<Set> &set, const Value &value) {
+        bool insert_element_to_set(const Set &set, const Value &value) {
             return set->emplace(value).second;
         }
 
-        bool remove_element_from_set(const std::shared_ptr<Set> &set, const Value &value) {
+        bool remove_element_from_set(const Set &set, const Value &value) {
             return set->erase(value) > 0;
         }
 
-        bool contains_set_element(const std::shared_ptr<Set> &set, const Value &value) {
+        bool contains_set_element(const Set &set, const Value &value) {
             return set->contains(value);
         }
 
-        std::shared_ptr<Array> convert_set_to_array(const std::shared_ptr<Set> &set) {
-            return std::make_shared<Array>(std::ranges::to<Array>(*set));
+        Array convert_set_to_array(const Set &set) {
+            return std::make_shared<std::vector<Value> >(std::ranges::to<std::vector<Value> >(*set));
         }
 
 
-        std::shared_ptr<Set> apply_set_union(const std::shared_ptr<Set> &first_operand,
-                                             const std::shared_ptr<Set> &second_operand) {
+        Set apply_set_union(const Set &first_operand, const Set &second_operand) {
             auto final_union_set = *first_operand;
             final_union_set.reserve(final_union_set.size() + second_operand->size());
             final_union_set.insert(second_operand->begin(), second_operand->end());
-            return std::make_shared<Set>(std::move(final_union_set));
+            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_union_set));
         }
 
-        std::shared_ptr<Set> apply_set_intersection(const std::shared_ptr<Set> &first_operand,
-                                                    const std::shared_ptr<Set> &second_operand) {
+        Set apply_set_intersection(const Set &first_operand, const Set &second_operand) {
             const auto &smaller_set = first_operand->size() < second_operand->size()
                                           ? first_operand
                                           : second_operand;
@@ -126,7 +124,7 @@ namespace stdlib::SetBuiltins {
                                          ? second_operand
                                          : first_operand;
 
-            Set final_intersection_set;
+            std::unordered_set<Value, ValueHasher> final_intersection_set;
             final_intersection_set.reserve(smaller_set->size());
 
             for (const auto &set_element: *smaller_set) {
@@ -135,12 +133,11 @@ namespace stdlib::SetBuiltins {
                 }
             }
 
-            return std::make_shared<Set>(std::move(final_intersection_set));
+            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_intersection_set));
         }
 
-        std::shared_ptr<Set> apply_set_difference(const std::shared_ptr<Set> &first_operand,
-                                                  const std::shared_ptr<Set> &second_operand) {
-            Set final_difference_set;
+        Set apply_set_difference(const Set &first_operand, const Set &second_operand) {
+            std::unordered_set<Value, ValueHasher> final_difference_set;
             final_difference_set.reserve(first_operand->size());
 
             for (const auto &set_element: *first_operand) {
@@ -149,12 +146,11 @@ namespace stdlib::SetBuiltins {
                 }
             }
 
-            return std::make_shared<Set>(std::move(final_difference_set));
+            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_difference_set));
         }
 
-        std::shared_ptr<Set> apply_set_symmetric_difference(const std::shared_ptr<Set> &first_operand,
-                                                            const std::shared_ptr<Set> &second_operand) {
-            Set final_symmetric_difference_set;
+        Set apply_set_symmetric_difference(const Set &first_operand, const Set &second_operand) {
+            std::unordered_set<Value, ValueHasher> final_symmetric_difference_set;
             final_symmetric_difference_set.reserve(first_operand->size() + second_operand->size());
 
             for (const auto &set_element: *first_operand) {
@@ -169,7 +165,7 @@ namespace stdlib::SetBuiltins {
                 }
             }
 
-            return std::make_shared<Set>(std::move(final_symmetric_difference_set));
+            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_symmetric_difference_set));
         }
     }
 

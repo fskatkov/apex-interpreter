@@ -3,11 +3,11 @@
 ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine) : diagnosticEngine(diagnosticEngine) {
     stack.reserve(256);
 
-    for (const auto &[name, native_func] : builtins.get_standard_io_methods()) {
+    for (const auto &[name, native_func]: builtins.get_standard_io_methods()) {
         globalVariables[name] = native_func;
     }
 
-    for (const auto &[name, native_func] : builtins.get_maths_methods()) {
+    for (const auto &[name, native_func]: builtins.get_maths_methods()) {
         globalVariables[name] = native_func;
     }
 }
@@ -124,147 +124,147 @@ inline ExecutionResult ExecutionEngine::executeNullLiteral() {
 inline ExecutionResult ExecutionEngine::executeInterpolatedStringLiteral() {
     const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
 
-    std::string interpolatedString;
+    std::string interpolated_string;
 
-    for (const auto i : std::views::iota(0, count) | std::views::reverse) {
-        interpolatedString += stringify(peek(i), false);
+    for (const auto i: std::views::iota(0, count) | std::views::reverse) {
+        interpolated_string += stringify(peek(i), false);
     }
 
     for (int i = 0; i < count; ++i) {
         pop();
     }
 
-    push(interpolatedString);
+    push(std::make_shared<std::string>(interpolated_string));
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeAddition() {
     return executeOperation("+",
-        [&](const double &first, const double &second) {
-            push(first + second);
-            return ExecutionResult::OK;
-        },
-        [&](const double &first, const char &second) {
-            push(static_cast<char>(first + second));
-            return ExecutionResult::OK;
-        },
-        [&](const char &first, const double &second) {
-            push(static_cast<char>(first + second));
-            return ExecutionResult::OK;
-        },
-        [&](const std::string &first, const std::string &second) {
-            push(first + second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
-            auto newArray = *first;
-            newArray.append_range(*second);
-            push(std::make_shared<Array>(newArray));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(first + second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const double &first, const char &second) {
+                                push(static_cast<char>(first + second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const char &first, const double &second) {
+                                push(static_cast<char>(first + second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const String &first, const String &second) {
+                                push(std::make_shared<std::string>(*first + *second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Array &first, const Array &second) {
+                                auto newArray = *first;
+                                newArray.append_range(*second);
+                                push(std::make_shared<std::vector<Value> >(newArray));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeSubtraction() {
     return executeOperation("-",
-        [&](const double &first, const double &second) {
-            push(first - second);
-            return ExecutionResult::OK;
-        },
-        [&](const char &first, const double &second) {
-            push(static_cast<char>(first - second));
-            return ExecutionResult::OK;
-        },
-        [&](const double &first, const char &second) {
-            push(static_cast<char>(second - first));
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            Set difference;
-            for (const auto &elem : *first) {
-                if (!second->contains(elem)) {
-                    difference.insert(elem);
-                }
-            }
-            push(std::make_shared<Set>(difference));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(first - second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const char &first, const double &second) {
+                                push(static_cast<char>(first - second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const double &first, const char &second) {
+                                push(static_cast<char>(second - first));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                std::unordered_set<Value, ValueHasher> difference;
+                                for (const auto &elem: *first) {
+                                    if (!second->contains(elem)) {
+                                        difference.insert(elem);
+                                    }
+                                }
+                                push(std::make_shared<std::unordered_set<Value, ValueHasher> >(difference));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeMultiplication() {
     return executeOperation("*",
-        [&](const double &first, const double &second) {
-            push(first * second);
-            return ExecutionResult::OK;
-        },
-        [&](const char &first, const double &second) {
-            push(static_cast<char>(first * second));
-            return ExecutionResult::OK;
-        },
-        [&](const double &first, const char &second) {
-            push(static_cast<char>(first * second));
-            return ExecutionResult::OK;
-        },
-        [&](const double &first, const std::shared_ptr<Array> &second) {
-            Array newArray = *second;
-            for (auto i = 1; i < first; ++i) {
-                newArray.append_range(*second);
-            }
-            push(std::make_shared<Array>(newArray));
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Array> &first, const double &second) {
-            Array newArray = *first;
-            for (auto i = 1; i < second; ++i) {
-                newArray.append_range(*first);
-            }
-            push(std::make_shared<Array>(newArray));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(first * second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const char &first, const double &second) {
+                                push(static_cast<char>(first * second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const double &first, const char &second) {
+                                push(static_cast<char>(first * second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const double &first, const Array &second) {
+                                auto newArray = *second;
+                                for (auto i = 1; i < first; ++i) {
+                                    newArray.append_range(*second);
+                                }
+                                push(std::make_shared<std::vector<Value> >(newArray));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Array &first, const double &second) {
+                                auto newArray = *first;
+                                for (auto i = 1; i < second; ++i) {
+                                    newArray.append_range(*first);
+                                }
+                                push(std::make_shared<std::vector<Value> >(newArray));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeDivision() {
     return executeOperation("/",
-        [&](const double &first, const double &second) {
-            push(first / second);
-            return ExecutionResult::OK;
-        },
-        [&](const char &first, const double &second) {
-            push(static_cast<char>(first / second));
-            return ExecutionResult::OK;
-        },
-        [&](const double &first, const char &second) {
-            push(static_cast<char>(second / first));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(first / second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const char &first, const double &second) {
+                                push(static_cast<char>(first / second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const double &first, const char &second) {
+                                push(static_cast<char>(second / first));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeModuloDivision() {
     return executeOperation("%",
-        [&](const double &first, const double &second) {
-            push(std::fmod(first, second));
-            return ExecutionResult::OK;
-        },
-        [&](const char &first, const double &second) {
-            push(static_cast<char>(first % static_cast<int>(second)));
-            return ExecutionResult::OK;
-        },
-        [&](const double &first, const char &second) {
-            push(static_cast<char>(second % static_cast<int>(first)));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(std::fmod(first, second));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const char &first, const double &second) {
+                                push(static_cast<char>(first % static_cast<int>(second)));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const double &first, const char &second) {
+                                push(static_cast<char>(second % static_cast<int>(first)));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executePower() {
     return executeOperation("**",
-        [&](const double &first, const double &second) {
-            push(std::pow(first, second));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(std::pow(first, second));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
@@ -292,66 +292,66 @@ inline ExecutionResult ExecutionEngine::executeNegation() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseAnd() {
     return executeOperation("&",
-        [&](const double &first, const double &second) {
-            push(executeBitwiseBinaryOperation(first, second, std::bit_and<std::int64_t>{}));
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            const auto& smaller = first->size() < second->size() ? first : second;
-            const auto& larger = first->size() < second->size() ? second : first;
+                            [&](const double &first, const double &second) {
+                                push(executeBitwiseBinaryOperation(first, second, std::bit_and<std::int64_t>{}));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                const auto &smaller = first->size() < second->size() ? first : second;
+                                const auto &larger = first->size() < second->size() ? second : first;
 
-            Set intersection;
-            for (const auto& elem : *smaller) {
-                if (larger->contains(elem)) {
-                    intersection.insert(elem);
-                }
-            }
+                                std::unordered_set<Value, ValueHasher> intersection;
+                                for (const auto &elem: *smaller) {
+                                    if (larger->contains(elem)) {
+                                        intersection.insert(elem);
+                                    }
+                                }
 
-            push(std::make_shared<Set>(intersection));
-            return ExecutionResult::OK;
-        }
+                                push(std::make_shared<std::unordered_set<Value, ValueHasher> >(intersection));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseOr() {
     return executeOperation("|",
-        [&](const double &first, const double &second) {
-            push(executeBitwiseBinaryOperation(first, second, std::bit_or<std::int64_t>{}));
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            Set setUnion = *first;
-            setUnion.insert_range(*second);
-            push(std::make_shared<Set>(setUnion));
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(executeBitwiseBinaryOperation(first, second, std::bit_or<std::int64_t>{}));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                std::unordered_set<Value, ValueHasher> setUnion = *first;
+                                setUnion.insert_range(*second);
+                                push(std::make_shared<std::unordered_set<Value, ValueHasher> >(setUnion));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseXor() {
     return executeOperation("^",
-        [&](const double &first, const double &second) {
-            push(executeBitwiseBinaryOperation(first, second, std::bit_xor<std::int64_t>{}));
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            Set symmetricDifference;
+                            [&](const double &first, const double &second) {
+                                push(executeBitwiseBinaryOperation(first, second, std::bit_xor<std::int64_t>{}));
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                std::unordered_set<Value, ValueHasher> symmetricDifference;
 
-            for (const auto& elem : *first) {
-                if (!second->contains(elem)) {
-                    symmetricDifference.insert(elem);
-                }
-            }
+                                for (const auto &elem: *first) {
+                                    if (!second->contains(elem)) {
+                                        symmetricDifference.insert(elem);
+                                    }
+                                }
 
-            for (const auto& elem : *second) {
-                if (!first->contains(elem)) {
-                    symmetricDifference.insert(elem);
-                }
-            }
+                                for (const auto &elem: *second) {
+                                    if (!first->contains(elem)) {
+                                        symmetricDifference.insert(elem);
+                                    }
+                                }
 
-            push(std::make_shared<Set>(symmetricDifference));
-            return ExecutionResult::OK;
-        }
+                                push(std::make_shared<std::unordered_set<Value, ValueHasher> >(symmetricDifference));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
@@ -369,25 +369,25 @@ inline ExecutionResult ExecutionEngine::executeBitwiseNot() {
 
 inline ExecutionResult ExecutionEngine::executeBitwiseLeftShift() {
     return executeOperation("<<",
-        [&](const double &first, const double &second) {
-            const auto shift = static_cast<std::int64_t>(second);
-            const auto value = static_cast<std::int64_t>(first);
+                            [&](const double &first, const double &second) {
+                                const auto shift = static_cast<std::int64_t>(second);
+                                const auto value = static_cast<std::int64_t>(first);
 
-            push(static_cast<double>(value << (shift % 64)));
-            return ExecutionResult::OK;
-        }
+                                push(static_cast<double>(value << (shift % 64)));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeBitwiseRightShift() {
     return executeOperation(">>",
-        [&](const double &first, const double &second) {
-            const auto shift = static_cast<std::int64_t>(second);
-            const auto value = static_cast<std::int64_t>(first);
+                            [&](const double &first, const double &second) {
+                                const auto shift = static_cast<std::int64_t>(second);
+                                const auto value = static_cast<std::int64_t>(first);
 
-            push(static_cast<double>(value >> (shift % 64)));
-            return ExecutionResult::OK;
-        }
+                                push(static_cast<double>(value >> (shift % 64)));
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
@@ -406,132 +406,132 @@ inline ExecutionResult ExecutionEngine::executeEquality() {
 
 inline ExecutionResult ExecutionEngine::executeGreaterOperation() {
     return executeOperation(">",
-        [&](const double &first, const double &second) {
-            push(first > second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
-            push(*first > *second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            if (first->size() <= second->size()) {
-                push(false);
-                return ExecutionResult::OK;
-            }
+                            [&](const double &first, const double &second) {
+                                push(first > second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+                                push(*first > *second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                if (first->size() <= second->size()) {
+                                    push(false);
+                                    return ExecutionResult::OK;
+                                }
 
-            bool superset = false;
-            for (const auto &elem : *second) {
-                if (!first->contains(elem)) {
-                    superset = false;
-                    break;
-                }
-            }
-            push(superset);
-            return ExecutionResult::OK;
-        }
+                                bool superset = false;
+                                for (const auto &elem: *second) {
+                                    if (!first->contains(elem)) {
+                                        superset = false;
+                                        break;
+                                    }
+                                }
+                                push(superset);
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeGreaterThanOperation() {
     return executeOperation(">=",
-        [&](const double &first, const double &second) {
-            push(first >= second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
-            push(*first >= *second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            bool superset = false;
-            for (const auto &elem : *second) {
-                if (!first->contains(elem)) {
-                    superset = false;
-                    break;
-                }
-            }
-            push(superset);
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(first >= second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+                                push(*first >= *second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                bool superset = false;
+                                for (const auto &elem: *second) {
+                                    if (!first->contains(elem)) {
+                                        superset = false;
+                                        break;
+                                    }
+                                }
+                                push(superset);
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeLessOperation() {
     return executeOperation("<",
-        [&](const double &first, const double &second) {
-            push(first < second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
-            push(*first < *second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            if (first->size() >= second->size()) {
-                push(false);
-                return ExecutionResult::OK;
-            }
+                            [&](const double &first, const double &second) {
+                                push(first < second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+                                push(*first < *second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                if (first->size() >= second->size()) {
+                                    push(false);
+                                    return ExecutionResult::OK;
+                                }
 
-            bool subset = false;
-            for (const auto &elem : *first) {
-                if (!second->contains(elem)) {
-                    subset = false;
-                    break;
-                }
-            }
-            push(subset);
-            return ExecutionResult::OK;
-        }
+                                bool subset = false;
+                                for (const auto &elem: *first) {
+                                    if (!second->contains(elem)) {
+                                        subset = false;
+                                        break;
+                                    }
+                                }
+                                push(subset);
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeLessThanOperation() {
     return executeOperation("<=",
-        [&](const double &first, const double &second) {
-            push(first <= second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
-            push(*first <= *second);
-            return ExecutionResult::OK;
-        },
-        [&](const std::shared_ptr<Set> &first, const std::shared_ptr<Set> &second) {
-            bool subset = false;
-            for (const auto &elem : *first) {
-                if (!second->contains(elem)) {
-                    subset = false;
-                    break;
-                }
-            }
-            push(subset);
-            return ExecutionResult::OK;
-        }
+                            [&](const double &first, const double &second) {
+                                push(first <= second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const std::shared_ptr<Array> &first, const std::shared_ptr<Array> &second) {
+                                push(*first <= *second);
+                                return ExecutionResult::OK;
+                            },
+                            [&](const Set &first, const Set &second) {
+                                bool subset = false;
+                                for (const auto &elem: *first) {
+                                    if (!second->contains(elem)) {
+                                        subset = false;
+                                        break;
+                                    }
+                                }
+                                push(subset);
+                                return ExecutionResult::OK;
+                            }
     );
 }
 
 inline ExecutionResult ExecutionEngine::executeDefineGlobalVariable() {
-    const auto name = readConstant().get<std::string>();
-    globalVariables[name] = peek(0);
+    const auto name = readConstant().get<String>();
+    globalVariables[*name] = peek(0);
     pop();
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeDefineConstantVariable() {
-    const auto name = readConstant().get<std::string>();
-    globalVariables[name] = peek(0);
-    constants.insert(name);
+    const auto name = readConstant().get<String>();
+    globalVariables[*name] = peek(0);
+    constants.insert(*name);
     pop();
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeGetGlobalVariable() {
-    const auto name = readConstant().get<std::string>();
+    const auto name = readConstant().get<String>();
 
-    if (const auto it = globalVariables.find(name); it != globalVariables.end()) {
+    if (const auto it = globalVariables.find(*name); it != globalVariables.end()) {
         push(it->second);
     } else {
-        reportRuntimeError(std::format("undefined variable `{}`", name));
+        reportRuntimeError(std::format("undefined variable `{}`", *name));
         return ExecutionResult::RUNTIME_ERROR;
     }
 
@@ -539,17 +539,17 @@ inline ExecutionResult ExecutionEngine::executeGetGlobalVariable() {
 }
 
 inline ExecutionResult ExecutionEngine::executeSetGlobalVariable() {
-    const auto name = readConstant().get<std::string>();
+    const auto name = readConstant().get<String>();
 
-    if (constants.contains(name)) {
-        reportRuntimeError(std::format("cannot reassign constant variable `{}`", name));
+    if (constants.contains(*name)) {
+        reportRuntimeError(std::format("cannot reassign constant variable `{}`", *name));
         return ExecutionResult::RUNTIME_ERROR;
     }
 
-    if (const auto it = globalVariables.find(name); it != globalVariables.end()) {
-        globalVariables[name] = peek(0);
+    if (const auto it = globalVariables.find(*name); it != globalVariables.end()) {
+        globalVariables[*name] = peek(0);
     } else {
-        reportRuntimeError(std::format("undefined variable `{}`", name));
+        reportRuntimeError(std::format("undefined variable `{}`", *name));
         return ExecutionResult::RUNTIME_ERROR;
     }
 
@@ -575,68 +575,68 @@ inline ExecutionResult ExecutionEngine::executeSetLocalVariable() {
 
 inline ExecutionResult ExecutionEngine::executeBuildArray() {
     const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
-    Array array;
+    std::vector<Value> array;
     array.resize(count);
 
-    for (const auto i : std::views::iota(0, count) | std::views::reverse) {
+    for (const auto i: std::views::iota(0, count) | std::views::reverse) {
         array[i] = pop();
     }
 
-    push(std::make_shared<Array>(std::move(array)));
+    push(std::make_shared<std::vector<Value> >(std::move(array)));
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeBuildSet() {
     const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
 
-    Set set;
+    std::unordered_set<Value, ValueHasher> set;
     set.reserve(count);
 
     for (int i = 0; i < count; ++i) {
         set.insert(pop());
     }
 
-    push(std::make_shared<Set>(std::move(set)));
+    push(std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(set)));
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeBuildDictionary() {
     const auto count = (static_cast<std::uint16_t>(readByte()) << 8) | static_cast<std::uint16_t>(readByte());
 
-    Dictionary dict;
+    std::unordered_map<Value, Value, ValueHasher> dict;
     dict.reserve(count);
 
     for (int i = 0; i < count; ++i) {
         const auto val = pop();
         const auto key = pop();
 
-        std::string keyStr;
-        if (key.is<std::string>()) {
-            keyStr = key.get<std::string>();
+        String keyStr;
+        if (key.is<String>()) {
+            keyStr = key.get<String>();
         } else if (key.is<double>()) {
-            keyStr = stringify(key);
+            keyStr = std::make_shared<std::string>(stringify(key));
         } else {
-            reportRuntimeError(std::format("unsupported key `{}`", key.get<std::string>()));
+            reportRuntimeError(std::format("unsupported key `{}`", *key.get<String>()));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
         dict[keyStr] = val;
     }
 
-    push(std::make_shared<Dictionary>(std::move(dict)));
+    push(std::make_shared<std::unordered_map<Value, Value, ValueHasher> >(std::move(dict)));
     return ExecutionResult::OK;
 }
 
 inline ExecutionResult ExecutionEngine::executeGetIndex() {
     const auto secondValue = pop();
 
-    if (const auto firstValue = pop(); firstValue.is<std::shared_ptr<Array>>()) {
+    if (const auto firstValue = pop(); firstValue.is<Array>()) {
         if (!secondValue.is<double>()) {
             reportRuntimeError("array index must be an integer");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        const auto &arrayPtr = firstValue.get<std::shared_ptr<Array>>();
+        const auto &arrayPtr = firstValue.get<Array>();
         const auto idx = static_cast<int>(secondValue.get<double>());
 
         if (idx < 0 || idx >= arrayPtr->size()) {
@@ -645,37 +645,37 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
         }
 
         push((*arrayPtr)[idx]);
-    } else if (firstValue.is<std::string>()) {
+    } else if (firstValue.is<String>()) {
         if (!secondValue.is<double>()) {
             reportRuntimeError("string index must be an integer");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        const auto &str = firstValue.get<std::string>();
+        const auto &str = firstValue.get<String>();
         const auto idx = static_cast<int>(secondValue.get<double>());
 
-        if (idx < 0 || idx >= str.size()) {
+        if (idx < 0 || idx >= str->size()) {
             reportRuntimeError("string index out of bounds");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        push(str[idx]);
-    } else if (firstValue.is<std::shared_ptr<Dictionary>>()) {
-        std::string key;
+        push(str->at(idx));
+    } else if (firstValue.is<Dictionary>()) {
+        String key;
 
-        if (secondValue.is<std::string>()) {
-            key = secondValue.get<std::string>();
+        if (secondValue.is<String>()) {
+            key = secondValue.get<String>();
         } else if (secondValue.is<double>()) {
-            key = stringify(secondValue.get<double>());
+            key = std::make_shared<std::string>(stringify(secondValue.get<double>()));
         } else {
             reportRuntimeError("dictionary key must be number or string");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        const auto &dictionaryPtr = firstValue.get<std::shared_ptr<Dictionary>>();
+        const auto &dictionaryPtr = firstValue.get<Dictionary>();
 
         if (!dictionaryPtr->contains(key)) {
-            reportRuntimeError(std::format("key `{}` does not exist", key));
+            reportRuntimeError(std::format("key `{}` does not exist", *key));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -693,13 +693,13 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
     const auto secondValue = pop();
 
 
-    if (const auto firstValue = pop(); firstValue.is<std::shared_ptr<Array>>()) {
+    if (const auto firstValue = pop(); firstValue.is<Array>()) {
         if (!secondValue.is<double>()) {
             reportRuntimeError("array index must be a number");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        const auto& arrayPtr = firstValue.get<std::shared_ptr<Array>>();
+        const auto &arrayPtr = firstValue.get<Array>();
         const auto idx = static_cast<int>(secondValue.get<double>());
 
         if (idx < 0 || idx >= arrayPtr->size()) {
@@ -709,22 +709,22 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
 
         (*arrayPtr)[idx] = value;
         push(value);
-    } else if (firstValue.is<std::shared_ptr<Dictionary>>()) {
-        std::string key;
+    } else if (firstValue.is<Dictionary>()) {
+        String key;
 
-        if (secondValue.is<std::string>()) {
-            key = secondValue.get<std::string>();
+        if (secondValue.is<String>()) {
+            key = secondValue.get<String>();
         } else if (secondValue.is<double>()) {
-            key = stringify(secondValue.get<double>());
+            key = std::make_shared<std::string>(stringify(secondValue.get<double>()));
         } else {
             reportRuntimeError("dictionary key must be number or string");
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        const auto &dictionaryPtr = firstValue.get<std::shared_ptr<Dictionary>>();
+        const auto &dictionaryPtr = firstValue.get<Dictionary>();
 
         if (!dictionaryPtr->contains(key)) {
-            reportRuntimeError(std::format("key `{}` does not exist", key));
+            reportRuntimeError(std::format("key `{}` does not exist", *key));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -736,39 +736,39 @@ inline ExecutionResult ExecutionEngine::executeSetIndex() {
     }
 
     return ExecutionResult::OK;
-}   
+}
 
 inline ExecutionResult ExecutionEngine::executeGetProperty() {
-    const auto name = readConstant().get<std::string>();
+    const auto name = readConstant().get<String>();
 
-    if (const auto target = pop(); target.is<std::shared_ptr<Array>>()) {
-        if (auto method = builtins.get_array_method(name)) {
+    if (const auto target = pop(); target.is<Array>()) {
+        if (auto method = builtins.get_array_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
-    } else if (target.is<std::shared_ptr<Set>>()) {
-        if (auto method = builtins.get_set_method(name)) {
+    } else if (target.is<Set>()) {
+        if (auto method = builtins.get_set_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
-    } else if (target.is<std::shared_ptr<Dictionary>>()) {
-        if (auto method = builtins.get_dictionary_method(name)) {
+    } else if (target.is<Dictionary>()) {
+        if (auto method = builtins.get_dictionary_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
-    } else if (target.is<std::string>()) {
-        if (auto method = builtins.get_string_method(name)) {
+    } else if (target.is<String>()) {
+        if (auto method = builtins.get_string_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     } else if (target.is<char>()) {
-        if (auto method = builtins.get_character_method(name)) {
+        if (auto method = builtins.get_character_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
     }
 
-    reportRuntimeError(std::format("property `{}` does not exist", name));
+    reportRuntimeError(std::format("property `{}` does not exist", *name));
     return ExecutionResult::OK;
 }
 
@@ -823,11 +823,12 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
     const auto argCount = readByte();
     const auto callee = peek(argCount);
 
-    if (callee.is<std::shared_ptr<Function>>()) {
-        const auto &func = callee.get<std::shared_ptr<Function>>();
+    if (callee.is<std::shared_ptr<Function> >()) {
+        const auto &func = callee.get<std::shared_ptr<Function> >();
 
         if (argCount != func->arity) {
-            reportRuntimeError(std::format("expected {} arguments but got {}", std::to_string(func->arity), std::to_string(argCount)));
+            reportRuntimeError(std::format("expected {} arguments but got {}", std::to_string(func->arity),
+                                           std::to_string(argCount)));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
@@ -841,16 +842,16 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
         return ExecutionResult::OK;
     }
 
-    if (callee.is<std::shared_ptr<NativeFunction>>()) {
-        const auto &nativeFunc = callee.get<std::shared_ptr<NativeFunction>>();
+    if (callee.is<std::shared_ptr<NativeFunction> >()) {
+        const auto &nativeFunc = callee.get<std::shared_ptr<NativeFunction> >();
 
         if (nativeFunc->arity != -1 && argCount != nativeFunc->arity) {
             reportRuntimeError(std::format("expected {} arguments but got {}", nativeFunc->arity, argCount));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        Array args;
-        for (const auto i : std::views::iota(0, static_cast<int>(argCount)) | std::views::reverse) {
+        std::vector<Value> args;
+        for (const auto i: std::views::iota(0, static_cast<int>(argCount)) | std::views::reverse) {
             args.push_back(peek(i));
         }
 
@@ -871,17 +872,18 @@ inline ExecutionResult ExecutionEngine::executeFunctionCall() {
         return ExecutionResult::OK;
     }
 
-    if (callee.is<std::shared_ptr<BoundNativeMethod>>()) {
-        const auto &bound = callee.get<std::shared_ptr<BoundNativeMethod>>();
+    if (callee.is<std::shared_ptr<BoundNativeMethod> >()) {
+        const auto &bound = callee.get<std::shared_ptr<BoundNativeMethod> >();
         const auto &nativeFunc = bound->method;
 
         if (nativeFunc->arity != -1 && argCount != nativeFunc->arity) {
-            reportRuntimeError(std::format("expected {} arguments but got {}", std::to_string(nativeFunc->arity), std::to_string(argCount)));
+            reportRuntimeError(std::format("expected {} arguments but got {}", std::to_string(nativeFunc->arity),
+                                           std::to_string(argCount)));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
         std::vector<Value> args;
-        for (const auto i : std::views::iota(0, static_cast<int>(argCount)) | std::views::reverse) {
+        for (const auto i: std::views::iota(0, static_cast<int>(argCount)) | std::views::reverse) {
             args.push_back(peek(i));
         }
 
@@ -910,34 +912,34 @@ inline ExecutionResult ExecutionEngine::executeInOperator() {
     const auto rhs = pop();
     const auto lhs = pop();
 
-    if (rhs.is<std::shared_ptr<Array>>()) {
-        const auto &arrayPtr = rhs.get<std::shared_ptr<Array>>();
+    if (rhs.is<Array>()) {
+        const auto &arrayPtr = rhs.get<Array>();
         push(std::ranges::contains(*arrayPtr, lhs));
-    } else if (rhs.is<std::shared_ptr<Set>>()) {
-        const auto &setPtr = rhs.get<std::shared_ptr<Set>>();
+    } else if (rhs.is<Set>()) {
+        const auto &setPtr = rhs.get<Set>();
         push(setPtr->contains(lhs));
-    } else if (rhs.is<std::shared_ptr<Dictionary>>()) {
-        const auto &dictionaryPtr = rhs.get<std::shared_ptr<Dictionary>>();
+    } else if (rhs.is<Dictionary>()) {
+        const auto &dictionaryPtr = rhs.get<Dictionary>();
 
-        std::string key;
-        if (lhs.is<std::string>()) {
-            key = lhs.get<std::string>();
+        String key;
+        if (lhs.is<String>()) {
+            key = lhs.get<String>();
         } else if (lhs.is<double>()) {
-            key = stringify(lhs.get<double>());
+            key = std::make_shared<std::string>(stringify(lhs.get<double>()));
         } else {
             push(false);
             return ExecutionResult::OK;
         }
 
         push(dictionaryPtr->contains(key));
-    } else if (rhs.is<std::string>()) {
-        if (!lhs.is<std::string>()) {
+    } else if (rhs.is<String>()) {
+        if (!lhs.is<String>()) {
             reportRuntimeError(std::format("element is of type {}, but not string", stringify(lhs)));
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        const auto &stringPtr = rhs.get<std::string>();
-        push(stringPtr.contains(lhs.get<std::string>()));
+        const auto &stringPtr = rhs.get<String>();
+        push(stringPtr->contains(*lhs.get<String>()));
     } else {
         reportRuntimeError("right-hand side of `in` must be container or string literal");
         return ExecutionResult::RUNTIME_ERROR;
@@ -947,7 +949,7 @@ inline ExecutionResult ExecutionEngine::executeInOperator() {
 }
 
 inline ExecutionResult ExecutionEngine::executeTypeofOperator() {
-    push(pop().type());
+    push(std::make_shared<std::string>(pop().type()));
     return ExecutionResult::OK;
 }
 
@@ -991,17 +993,20 @@ ExecutionResult ExecutionEngine::executeOperation(const std::string &symbol, T..
     const auto rhs = pop();
     const auto lhs = pop();
 
-    return std::visit<ExecutionResult>(overloaded {
-        items...,
-        [&](const auto &first, const auto &second) {
-            reportRuntimeError(std::format("unsupported operand types for `{}`: [{}] and [{}]", symbol, lhs.type(), rhs.type()));
-            return ExecutionResult::RUNTIME_ERROR;
-        }
-    }, lhs.as, rhs.as);
+    return std::visit<ExecutionResult>(overloaded{
+                                           items...,
+                                           [&](const auto &first, const auto &second) {
+                                               reportRuntimeError(std::format(
+                                                   "unsupported operand types for `{}`: [{}] and [{}]", symbol,
+                                                   lhs.type(), rhs.type()));
+                                               return ExecutionResult::RUNTIME_ERROR;
+                                           }
+                                       }, lhs.as, rhs.as);
 }
 
 template<std::invocable<std::uint64_t, std::uint64_t> Op>
-double ExecutionEngine::executeBitwiseBinaryOperation(const double& firstNumber, const double& secondNumber, Op operation) {
+double ExecutionEngine::executeBitwiseBinaryOperation(const double &firstNumber, const double &secondNumber,
+                                                      Op operation) {
     auto lhs = static_cast<std::int64_t>(firstNumber);
     auto rhs = static_cast<std::int64_t>(secondNumber);
     const std::int64_t result = operation(lhs, rhs);
@@ -1026,7 +1031,7 @@ Value ExecutionEngine::peek(const int &distance) const {
     return stack[stack.size() - distance - 1];
 }
 
-std::string ExecutionEngine::stringify(const Value& value, bool isNested) {
+std::string ExecutionEngine::stringify(const Value &value, bool isNested) {
     return value.str();
 }
 

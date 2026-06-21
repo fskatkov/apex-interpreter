@@ -49,12 +49,12 @@ namespace stdlib::ArrayBuiltins {
         template<auto Func>
         struct MethodTraits;
 
-        template<typename R, typename... Args, R(*Func)(const std::shared_ptr<Array> &, Args...)>
+        template<typename R, typename... Args, R(*Func)(const Array &, Args...)>
         struct MethodTraits<Func> {
             static constexpr int Arity = sizeof...(Args);
 
             static Value invoke(Value receiver, const std::vector<Value> &args) {
-                const auto &array = receiver.get<std::shared_ptr<Array> >();
+                const auto &array = receiver.get<Array>();
 
                 if (args.size() != Arity) [[unlikely]] {
                     throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
@@ -65,7 +65,7 @@ namespace stdlib::ArrayBuiltins {
 
         private:
             template<std::size_t... Is>
-            static Value invoke_implementation(const std::shared_ptr<Array> &array, const std::vector<Value> &args,
+            static Value invoke_implementation(const Array &array, const std::vector<Value> &args,
                                                std::index_sequence<Is...>) {
                 if constexpr (std::is_void_v<R>) {
                     Func(array, get_from_value<Args>(args[Is])...);
@@ -88,28 +88,28 @@ namespace stdlib::ArrayBuiltins {
             };
         }
 
-        std::size_t retrieve_array_size(const std::shared_ptr<Array> &array) {
+        std::size_t retrieve_array_size(const Array &array) {
             return array->size();
         }
 
-        std::shared_ptr<Array> clear_array(const std::shared_ptr<Array> &array) {
+        Array clear_array(const Array &array) {
             array->clear();
             return array;
         }
 
-        std::shared_ptr<Array> copy_array(const std::shared_ptr<Array> &array) {
-            return std::make_shared<Array>(*array);
+        Array copy_array(const Array &array) {
+            return array;
         }
 
-        void reverse_array(const std::shared_ptr<Array> &array) {
+        void reverse_array(const Array &array) {
             std::ranges::reverse(*array);
         }
 
-        bool check_array_emptiness(const std::shared_ptr<Array> &array) {
+        bool check_array_emptiness(const Array &array) {
             return array->empty();
         }
 
-        Value retrieve_first_array_element(const std::shared_ptr<Array> &array) {
+        Value retrieve_first_array_element(const Array &array) {
             if (array->empty()) [[unlikely]] {
                 throw std::runtime_error("array is empty but asked to get the first element");
             }
@@ -117,7 +117,7 @@ namespace stdlib::ArrayBuiltins {
             return array->front();
         }
 
-        Value retrieve_last_array_element(const std::shared_ptr<Array> &array) {
+        Value retrieve_last_array_element(const Array &array) {
             if (array->empty()) [[unlikely]] {
                 throw std::runtime_error("array is empty but asked to get the last element");
             }
@@ -125,7 +125,7 @@ namespace stdlib::ArrayBuiltins {
             return array->back();
         }
 
-        Value retrieve_element_by_index(const std::shared_ptr<Array> &array, const std::size_t &index) {
+        Value retrieve_element_by_index(const Array &array, const std::size_t &index) {
             if (index >= array->size()) [[unlikely]] {
                 throw std::out_of_range("array index out of range");
             }
@@ -133,8 +133,7 @@ namespace stdlib::ArrayBuiltins {
             return (*array)[index];
         }
 
-        std::shared_ptr<Array> set_element_by_index(const std::shared_ptr<Array> &array, const std::size_t &index,
-                                                    const Value &value) {
+        Array set_element_by_index(const Array &array, const std::size_t &index, const Value &value) {
             if (index >= array->size()) [[unlikely]] {
                 throw std::out_of_range("array index out of range");
             }
@@ -143,12 +142,11 @@ namespace stdlib::ArrayBuiltins {
             return array;
         }
 
-        void add_element_to_array(const std::shared_ptr<Array> &array, const Value &value) {
+        void add_element_to_array(const Array &array, const Value &value) {
             array->push_back(value);
         }
 
-        void insert_element_at_index(const std::shared_ptr<Array> &array, const std::size_t &index,
-                                     const Value &value) {
+        void insert_element_at_index(const Array &array, const std::size_t &index, const Value &value) {
             if (index > array->size()) [[unlikely]] {
                 throw std::out_of_range("array index out of range");
             }
@@ -156,7 +154,7 @@ namespace stdlib::ArrayBuiltins {
             array->insert(array->begin() + index, value);
         }
 
-        Value remove_element_from_array(const std::shared_ptr<Array> &array) {
+        Value remove_element_from_array(const Array &array) {
             if (array->empty()) [[unlikely]] {
                 throw std::runtime_error("cannot remove from an empty array");
             }
@@ -166,7 +164,7 @@ namespace stdlib::ArrayBuiltins {
             return last_element;
         }
 
-        void remove_element_at_index(const std::shared_ptr<Array> &array, const std::size_t &index) {
+        void remove_element_at_index(const Array &array, const std::size_t &index) {
             if (index >= array->size()) [[unlikely]] {
                 throw std::out_of_range("array index out of range");
             }
@@ -174,23 +172,23 @@ namespace stdlib::ArrayBuiltins {
             array->erase(array->begin() + index);
         }
 
-        std::shared_ptr<Array> slice_array(const std::shared_ptr<Array> &array, const std::size_t &starting_index,
-                                           const std::size_t &ending_index) {
+        Array slice_array(const Array &array, const std::size_t &starting_index, const std::size_t &ending_index) {
             if (starting_index >= array->size() || starting_index > ending_index) [[unlikely]] {
-                return std::make_shared<Array>();
+                return nullptr;
             }
 
             const auto real_ending = std::min(array->size() - 1, ending_index);
-            return std::make_shared<Array>(array->begin() + starting_index, array->begin() + real_ending + 1);
+            std::vector<Value> new_array(array->begin() + starting_index, array->begin() + real_ending + 1);
+
+            return std::make_shared<std::vector<Value> >(new_array);
         }
 
-        void concat_two_arrays(const std::shared_ptr<Array> &first_operand,
-                               const std::shared_ptr<Array> &second_operand) {
+        void concat_two_arrays(const Array &first_operand, const Array &second_operand) {
             first_operand->reserve(first_operand->size() + second_operand->size());
             first_operand->insert(first_operand->end(), second_operand->begin(), second_operand->end());
         }
 
-        double retrieve_first_index_of(const std::shared_ptr<Array> &array, const Value &value) {
+        double retrieve_first_index_of(const Array &array, const Value &value) {
             const auto it = std::ranges::find(*array, value);
 
             if (it == array->end()) [[unlikely]] {
@@ -200,7 +198,7 @@ namespace stdlib::ArrayBuiltins {
             return static_cast<double>(std::ranges::distance(array->begin(), it));
         }
 
-        double retrieve_last_index_of(const std::shared_ptr<Array> &array, const Value &value) {
+        double retrieve_last_index_of(const Array &array, const Value &value) {
             const auto it = std::ranges::find(std::ranges::rbegin(*array), std::ranges::rend(*array), value);
 
             if (it == array->rend()) [[unlikely]] {
@@ -210,7 +208,7 @@ namespace stdlib::ArrayBuiltins {
             return static_cast<double>(array->size() - 1 - std::distance(std::ranges::rbegin(*array), it));
         }
 
-        bool contains_element(const std::shared_ptr<Array> &array, const Value &value) {
+        bool contains_element(const Array &array, const Value &value) {
             return std::ranges::contains(*array, value);
         }
     }

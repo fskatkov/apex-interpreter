@@ -218,7 +218,8 @@ void Lexer::make_string_token() {
     }
 
     advance();
-    add(TokenKind::STRING, source.substr(start_position + 1, current_position - start_position - 2));
+    add(TokenKind::STRING,
+        std::make_shared<std::string>(source.substr(start_position + 1, current_position - start_position - 2)));
 }
 
 void Lexer::make_interpolated_string_token() {
@@ -233,7 +234,8 @@ void Lexer::make_interpolated_string_token() {
     }
 
     if (current_position > start_position) {
-        add(TokenKind::F_STRING_SLICE, source.substr(start_position, current_position - start_position));
+        add(TokenKind::F_STRING_SLICE,
+            std::make_shared<std::string>(source.substr(start_position, current_position - start_position)));
     }
 
     if (peek() == '{') {
