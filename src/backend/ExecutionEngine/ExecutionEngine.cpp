@@ -761,6 +761,11 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
+    } else if (target.is<File>()) {
+        if (auto method = builtins.get_file_method(*name)) {
+            push(std::make_shared<BoundNativeMethod>(target, method));
+            return ExecutionResult::OK;
+        }
     } else if (target.is<char>()) {
         if (auto method = builtins.get_character_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));

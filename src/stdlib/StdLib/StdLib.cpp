@@ -5,6 +5,7 @@ StdLib::StdLib()
       std_set_methods(stdlib::SetBuiltins::register_methods()),
       std_dictionary_methods(stdlib::DictionaryBuiltins::register_methods()),
       std_string_methods(stdlib::StringBuiltins::register_methods()),
+      std_file_methods(stdlib::FileBuiltins::register_methods()),
       std_character_methods(stdlib::CharacterBuiltins::register_methods()),
       std_io_methods(stdlib::StandardIOBuiltins::register_methods()),
       std_maths_methods(stdlib::MathsBuiltins::register_methods()) {
@@ -30,15 +31,20 @@ std::shared_ptr<NativeFunction> StdLib::get_string_method(const std::string &nam
     return nullptr;
 }
 
+std::shared_ptr<NativeFunction> StdLib::get_file_method(const std::string &name) {
+    if (const auto it = std_file_methods.find(name); it != std_file_methods.end()) return it->second;
+    return nullptr;
+}
+
 std::shared_ptr<NativeFunction> StdLib::get_character_method(const std::string &name) {
     if (const auto it = std_character_methods.find(name); it != std_character_methods.end()) return it->second;
     return nullptr;
 }
 
-const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& StdLib::get_standard_io_methods() const {
+const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_standard_io_methods() const {
     return std_io_methods;
 }
 
-const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& StdLib::get_maths_methods() const {
+const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_maths_methods() const {
     return std_maths_methods;
 }

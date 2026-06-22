@@ -31,10 +31,20 @@ struct ValueHasher {
     std::size_t operator()(const Value &v) const noexcept;
 };
 
+struct FileObject {
+    std::filesystem::path path;
+    bool is_file_closed{false};
+
+    explicit FileObject(std::filesystem::path path)
+        : path(std::move(path)) {
+    }
+};
+
 using String = std::shared_ptr<std::string>;
 using Array = std::shared_ptr<std::vector<Value> >;
 using Set = std::shared_ptr<std::unordered_set<Value, ValueHasher> >;
 using Dictionary = std::shared_ptr<std::unordered_map<Value, Value, ValueHasher> >;
+using File = std::shared_ptr<FileObject>;
 
 struct Function {
     std::string name;
@@ -51,7 +61,7 @@ struct NativeFunction {
 };
 
 struct Value {
-    using Type = std::variant<double, bool, char, String, NIL, Array, Set, Dictionary, std::shared_ptr<Function>,
+    using Type = std::variant<double, bool, char, String, NIL, Array, Set, Dictionary, File, std::shared_ptr<Function>,
         std::shared_ptr<NativeFunction>, std::shared_ptr<BoundNativeMethod> >;
     Type as;
 
@@ -83,6 +93,9 @@ struct Value {
     }
 
     Value(Dictionary val) : as(std::move(val)) {
+    }
+
+    Value(File val) : as(std::move(val)) {
     }
 
     Value(std::shared_ptr<Function> val) : as(std::move(val)) {
@@ -136,6 +149,9 @@ struct Value {
                               },
                               [](const Dictionary &val) -> std::string {
                                   return "Dictionary";
+                              },
+                              [](const File &val) -> std::string {
+                                  return "FileObject";
                               },
                               [](const std::shared_ptr<Function> &val) -> std::string {
                                   return "Function(" + std::to_string(val->arity) + " arguments)";
@@ -226,6 +242,13 @@ struct Value {
 
                                   result += "}";
                                   return result;
+                              },
+                              [](const File &val) -> std::string {
+                                  if (!val) {
+                                      return "<uninitialized file>";
+                                  }
+
+                                  return std::format("<file `{}`>", val->path.string());
                               },
                               [](const std::shared_ptr<Function> &val) -> std::string {
                                   return "<func `" + (val ? val->name : "anonymous") + ">` with " + std::to_string(
