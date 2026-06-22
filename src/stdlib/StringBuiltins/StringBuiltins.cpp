@@ -217,6 +217,22 @@ namespace stdlib::StringBuiltins {
                 it += replacement_substring->length();
             }
         }
+
+        double convert_string_to_number(const String &string) {
+            return std::stod(*string);
+        }
+
+        Array split_string(const String &string, const String &separator) {
+            auto split_string_view = *string
+                                     | std::views::split(*separator)
+                                     | std::views::transform([](auto &&range) {
+                                         auto substring = std::ranges::to<std::string>(range);
+                                         return std::make_shared<std::string>(std::move(substring));
+                                     });
+
+            auto resulting_split_string = std::ranges::to<std::vector<Value>>(split_string_view);
+            return std::make_shared<std::vector<Value>>(std::move(resulting_split_string));
+        }
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
@@ -242,6 +258,8 @@ namespace stdlib::StringBuiltins {
             bind_method<trim_string>("trim"),
             bind_method<replace_substring>("replace"),
             bind_method<replace_all_substrings>("replaceAll"),
+            bind_method<convert_string_to_number>("toNumber"),
+            bind_method<split_string>("split"),
         };
     }
 }

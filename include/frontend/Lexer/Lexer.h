@@ -41,7 +41,7 @@ private:
     [[nodiscard]] char peek_next() const;
     bool match(const char& expected);
     [[nodiscard]] TokenKind check(std::size_t starting, std::size_t ending, const std::string_view &rest, TokenKind kind) const;
-    void add(const TokenKind& kind, const Value& literal = "");
+    void add(const TokenKind& kind, const Value& literal = std::make_shared<std::string>(""));
     void make_string_token();
     void make_interpolated_string_token();
     void make_number_token();

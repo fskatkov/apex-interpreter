@@ -144,12 +144,12 @@ inline ExecutionResult ExecutionEngine::executeAddition() {
                                 push(first + second);
                                 return ExecutionResult::OK;
                             },
-                            [&](const double &first, const char &second) {
-                                push(static_cast<char>(first + second));
+                            [&](const double &first, const Character &second) {
+                                push(std::make_shared<char>(static_cast<char>(first + *second)));
                                 return ExecutionResult::OK;
                             },
-                            [&](const char &first, const double &second) {
-                                push(static_cast<char>(first + second));
+                            [&](const Character &first, const double &second) {
+                                push(std::make_shared<char>(static_cast<char>(*first + second)));
                                 return ExecutionResult::OK;
                             },
                             [&](const String &first, const String &second) {
@@ -171,12 +171,12 @@ inline ExecutionResult ExecutionEngine::executeSubtraction() {
                                 push(first - second);
                                 return ExecutionResult::OK;
                             },
-                            [&](const char &first, const double &second) {
-                                push(static_cast<char>(first - second));
+                            [&](const Character &first, const double &second) {
+                                push(std::make_shared<char>(static_cast<char>(*first - second)));
                                 return ExecutionResult::OK;
                             },
-                            [&](const double &first, const char &second) {
-                                push(static_cast<char>(second - first));
+                            [&](const double &first, const Character &second) {
+                                push(std::make_shared<char>(static_cast<char>(first - *second)));
                                 return ExecutionResult::OK;
                             },
                             [&](const Set &first, const Set &second) {
@@ -198,12 +198,12 @@ inline ExecutionResult ExecutionEngine::executeMultiplication() {
                                 push(first * second);
                                 return ExecutionResult::OK;
                             },
-                            [&](const char &first, const double &second) {
-                                push(static_cast<char>(first * second));
+                            [&](const Character &first, const double &second) {
+                                push(std::make_shared<char>(static_cast<char>(*first * second)));
                                 return ExecutionResult::OK;
                             },
-                            [&](const double &first, const char &second) {
-                                push(static_cast<char>(first * second));
+                            [&](const double &first, const Character &second) {
+                                push(std::make_shared<char>(static_cast<char>(first * *second)));
                                 return ExecutionResult::OK;
                             },
                             [&](const double &first, const Array &second) {
@@ -231,12 +231,12 @@ inline ExecutionResult ExecutionEngine::executeDivision() {
                                 push(first / second);
                                 return ExecutionResult::OK;
                             },
-                            [&](const char &first, const double &second) {
-                                push(static_cast<char>(first / second));
+                            [&](const Character &first, const double &second) {
+                                push(std::make_shared<char>(static_cast<char>(*first / second)));
                                 return ExecutionResult::OK;
                             },
-                            [&](const double &first, const char &second) {
-                                push(static_cast<char>(second / first));
+                            [&](const double &first, const Character &second) {
+                                push(std::make_shared<char>(static_cast<char>(first / *second)));
                                 return ExecutionResult::OK;
                             }
     );
@@ -248,12 +248,12 @@ inline ExecutionResult ExecutionEngine::executeModuloDivision() {
                                 push(std::fmod(first, second));
                                 return ExecutionResult::OK;
                             },
-                            [&](const char &first, const double &second) {
-                                push(static_cast<char>(first % static_cast<int>(second)));
+                            [&](const Character &first, const double &second) {
+                                push(std::make_shared<char>(static_cast<char>(*first % static_cast<int>(second))));
                                 return ExecutionResult::OK;
                             },
-                            [&](const double &first, const char &second) {
-                                push(static_cast<char>(second % static_cast<int>(first)));
+                            [&](const double &first, const Character &second) {
+                                push(std::make_shared<char>(static_cast<char>(*second % static_cast<int>(first))));
                                 return ExecutionResult::OK;
                             }
     );
@@ -659,7 +659,7 @@ inline ExecutionResult ExecutionEngine::executeGetIndex() {
             return ExecutionResult::RUNTIME_ERROR;
         }
 
-        push(str->at(idx));
+        push(std::make_shared<char>(str->at(idx)));
     } else if (firstValue.is<Dictionary>()) {
         String key;
 
@@ -766,7 +766,7 @@ inline ExecutionResult ExecutionEngine::executeGetProperty() {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;
         }
-    } else if (target.is<char>()) {
+    } else if (target.is<Character>()) {
         if (auto method = builtins.get_character_method(*name)) {
             push(std::make_shared<BoundNativeMethod>(target, method));
             return ExecutionResult::OK;

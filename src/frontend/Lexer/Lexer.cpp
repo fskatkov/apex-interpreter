@@ -15,7 +15,7 @@ std::vector<Token> Lexer::scan() {
     tokens.emplace_back(
         TokenKind::END_OF_FILE,
         "",
-        "",
+        std::make_shared<std::string>(""),
         SourceLocation{
             .line = line,
             .column = column,
@@ -307,7 +307,7 @@ void Lexer::make_character_token() {
     }
 
     advance();
-    add(TokenKind::CHARACTER, source[start_position + 1]);
+    add(TokenKind::CHARACTER, std::make_shared<char>(source[start_position + 1]));
 }
 
 void Lexer::make_identifier_token() {
@@ -315,7 +315,7 @@ void Lexer::make_identifier_token() {
         advance();
     }
 
-    add(check_identifier(), "");
+    add(check_identifier(), std::make_shared<std::string>(""));
 }
 
 TokenKind Lexer::check_identifier() const {

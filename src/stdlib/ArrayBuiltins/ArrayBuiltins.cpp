@@ -211,6 +211,15 @@ namespace stdlib::ArrayBuiltins {
         bool contains_element(const Array &array, const Value &value) {
             return std::ranges::contains(*array, value);
         }
+
+        String join_array(const Array &array, const String &separator) {
+            auto joined = *array | std::views::transform([](const Value &value) {
+                return value.str();
+            });
+
+            auto joined_view = joined | std::views::join_with(*separator);
+            return std::make_shared<std::string>(std::ranges::to<std::string>(joined_view));
+        }
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
@@ -233,6 +242,7 @@ namespace stdlib::ArrayBuiltins {
             bind_method<retrieve_first_index_of>("indexOf"),
             bind_method<retrieve_last_index_of>("lastIndexOf"),
             bind_method<contains_element>("contains"),
+            bind_method<join_array>("join"),
         };
     }
 }
