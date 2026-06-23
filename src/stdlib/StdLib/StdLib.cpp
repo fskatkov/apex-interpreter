@@ -8,7 +8,8 @@ StdLib::StdLib()
       std_file_methods(stdlib::FileBuiltins::register_methods()),
       std_character_methods(stdlib::CharacterBuiltins::register_methods()),
       std_io_methods(stdlib::StandardIOBuiltins::register_methods()),
-      std_maths_methods(stdlib::MathsBuiltins::register_methods()) {
+      std_maths_methods(stdlib::MathsBuiltins::register_methods()),
+      std_types_methods(stdlib::TypesBuiltins::register_methods()) {
 }
 
 std::shared_ptr<NativeFunction> StdLib::get_array_method(const std::string &name) {
@@ -47,4 +48,8 @@ const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib:
 
 const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_maths_methods() const {
     return std_maths_methods;
+}
+
+const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_types_methods() const {
+    return std_types_methods;
 }

@@ -50,12 +50,12 @@ struct NativeFunction {
     std::function<Value(Value receiver, const std::vector<Value> &)> callable;
 };
 
-using Character = std::shared_ptr<char>;
-using String = std::shared_ptr<std::string>;
-using Array = std::shared_ptr<std::vector<Value> >;
-using Set = std::shared_ptr<std::unordered_set<Value, ValueHasher> >;
+using Character  = std::shared_ptr<char>;
+using String     = std::shared_ptr<std::string>;
+using Array      = std::shared_ptr<std::vector<Value> >;
+using Set        = std::shared_ptr<std::unordered_set<Value, ValueHasher> >;
 using Dictionary = std::shared_ptr<std::unordered_map<Value, Value, ValueHasher> >;
-using File = std::shared_ptr<FileObject>;
+using File       = std::shared_ptr<FileObject>;
 
 struct Value {
     using Type = std::variant<
