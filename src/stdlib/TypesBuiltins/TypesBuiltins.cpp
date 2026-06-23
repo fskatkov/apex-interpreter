@@ -2,6 +2,55 @@
 
 namespace stdlib::TypesBuiltins {
     namespace {
+        String create_string(const Value &, const std::vector<Value> &args) {
+            if (args.empty()) {
+                return std::make_shared<std::string>();
+            }
+
+            if (args.front().is<Array>()) {
+                const auto &array = args.front().get<Array>();
+
+                if (!args.back().is<String>()) {
+                    throw std::invalid_argument("expected some separator");
+                }
+
+                auto joined = *array | std::views::transform([](const Value &value) {
+                    return value.str();
+                }) | std::views::join_with(*args.back().get<String>());
+
+                return std::make_shared<std::string>(std::ranges::to<std::string>(joined));
+            }
+
+            if (args.front().is<Set>()) {
+                const auto &array = args.front().get<Set>();
+
+                if (!args.back().is<String>()) {
+                    throw std::invalid_argument("expected some separator");
+                }
+
+                auto joined = *array | std::views::transform([](const Value &value) {
+                    return value.str();
+                }) | std::views::join_with(*args.back().get<String>());
+
+                return std::make_shared<std::string>(std::ranges::to<std::string>(joined));
+            }
+
+            if (args.front().is<double>()) {
+                if (!args.back().is<String>()) {
+                    throw std::invalid_argument(std::format("expected char but got {}", args.back().type()));
+                }
+
+                std::string resulting_string;
+                for (auto i = 0; i < args.front().get<double>(); ++i) {
+                    resulting_string += *args.back().get<String>();
+                }
+
+                return std::make_shared<std::string>(resulting_string);
+            }
+
+            throw std::invalid_argument(std::format("no viable constructor for type {}", args.front().type()));
+        }
+
         Set create_set(const Value &, const std::vector<Value> &args) {
             if (args.empty()) {
                 return std::make_shared<std::unordered_set<Value, ValueHasher> >();
@@ -74,6 +123,13 @@ namespace stdlib::TypesBuiltins {
                     .name = "dict",
                     .arity = -1,
                     .callable = create_dictionary
+                })
+            },
+            {
+                "string", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "string",
+                    .arity = -1,
+                    .callable = create_string
                 })
             }
         };
