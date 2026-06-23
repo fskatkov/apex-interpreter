@@ -2,6 +2,57 @@
 
 namespace stdlib::TypesBuiltins {
     namespace {
+        Array create_array(const Value &, const std::vector<Value> &args) {
+            if (args.empty()) {
+                return std::make_shared<std::vector<Value> >();
+            }
+
+            if (args.front().is<double>()) {
+                std::vector<Value> resulting_array;
+
+                resulting_array.reserve(static_cast<std::size_t>(args.front().get<double>()));
+                for (auto i = 0; i < args.front().get<double>(); ++i) {
+                    resulting_array.emplace_back(args.back());
+                }
+
+                return std::make_shared<std::vector<Value> >(std::move(resulting_array));
+            }
+
+            if (args.front().is<String>()) {
+                if (!args.back().is<String>()) {
+                    throw std::invalid_argument("expected some separator");
+                }
+
+                auto split_string_view = *args.front().get<String>()
+                                         | std::views::split(*args.back().get<String>())
+                                         | std::views::transform([](auto &&range) {
+                                             auto substring = std::ranges::to<std::string>(range);
+                                             return std::make_shared<std::string>(std::move(substring));
+                                         });
+
+                auto resulting_split_string = std::ranges::to<std::vector<Value> >(split_string_view);
+                return std::make_shared<std::vector<Value> >(std::move(resulting_split_string));
+            }
+
+            if (args.front().is<Set>()) {
+                const auto &values = args.front().get<Set>();
+                return std::make_shared<std::vector<Value> >(std::ranges::to<std::vector<Value> >(std::move(*values)));
+            }
+
+            if (args.front().is<Dictionary>()) {
+                std::vector<Value> resulting_array;
+
+                for (const auto &[key, value]: *args.front().get<Dictionary>()) {
+                    std::vector<Value> pair{key, value};
+                    resulting_array.emplace_back(std::move(std::make_shared<std::vector<Value> >(std::move(pair))));
+                }
+
+                return std::make_shared<std::vector<Value> >(std::move(resulting_array));
+            }
+
+            throw std::invalid_argument(std::format("no viable array constructor for {}", args.front().type()));
+        }
+
         String create_string(const Value &, const std::vector<Value> &args) {
             if (args.empty()) {
                 return std::make_shared<std::string>();
@@ -111,6 +162,13 @@ namespace stdlib::TypesBuiltins {
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
+            {
+                "array", std::make_shared<NativeFunction>(NativeFunction{
+                    .name = "array",
+                    .arity = -1,
+                    .callable = create_array
+                })
+            },
             {
                 "set", std::make_shared<NativeFunction>(NativeFunction{
                     .name = "set",
