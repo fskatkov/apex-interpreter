@@ -34,7 +34,7 @@ namespace stdlib::StandardIOBuiltins {
             }
 
             std::filesystem::path path(*args.front().get<String>());
-            return std::make_shared<FileObject>(path);
+            return std::make_shared<File::element_type>(path);
         }
 
     }

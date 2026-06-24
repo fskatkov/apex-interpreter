@@ -89,7 +89,7 @@ namespace stdlib::SetBuiltins {
         }
 
         Set copy_set(const Set &set) {
-            return std::make_shared<std::unordered_set<Value, ValueHasher> >(*set);
+            return std::make_shared<Set::element_type>(*set);
         }
 
         bool insert_element_to_set(const Set &set, const Value &value) {
@@ -105,7 +105,7 @@ namespace stdlib::SetBuiltins {
         }
 
         Array convert_set_to_array(const Set &set) {
-            return std::make_shared<std::vector<Value> >(std::ranges::to<std::vector<Value> >(*set));
+            return std::make_shared<Array::element_type>(std::ranges::to<Array::element_type>(*set));
         }
 
 
@@ -113,7 +113,7 @@ namespace stdlib::SetBuiltins {
             auto final_union_set = *first_operand;
             final_union_set.reserve(final_union_set.size() + second_operand->size());
             final_union_set.insert(second_operand->begin(), second_operand->end());
-            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_union_set));
+            return std::make_shared<Set::element_type>(std::move(final_union_set));
         }
 
         Set apply_set_intersection(const Set &first_operand, const Set &second_operand) {
@@ -124,7 +124,7 @@ namespace stdlib::SetBuiltins {
                                          ? second_operand
                                          : first_operand;
 
-            std::unordered_set<Value, ValueHasher> final_intersection_set;
+            Set::element_type final_intersection_set;
             final_intersection_set.reserve(smaller_set->size());
 
             for (const auto &set_element: *smaller_set) {
@@ -133,11 +133,11 @@ namespace stdlib::SetBuiltins {
                 }
             }
 
-            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_intersection_set));
+            return std::make_shared<Set::element_type>(std::move(final_intersection_set));
         }
 
         Set apply_set_difference(const Set &first_operand, const Set &second_operand) {
-            std::unordered_set<Value, ValueHasher> final_difference_set;
+            Set::element_type final_difference_set;
             final_difference_set.reserve(first_operand->size());
 
             for (const auto &set_element: *first_operand) {
@@ -146,11 +146,11 @@ namespace stdlib::SetBuiltins {
                 }
             }
 
-            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_difference_set));
+            return std::make_shared<Set::element_type>(std::move(final_difference_set));
         }
 
         Set apply_set_symmetric_difference(const Set &first_operand, const Set &second_operand) {
-            std::unordered_set<Value, ValueHasher> final_symmetric_difference_set;
+            Set::element_type final_symmetric_difference_set;
             final_symmetric_difference_set.reserve(first_operand->size() + second_operand->size());
 
             for (const auto &set_element: *first_operand) {
@@ -165,7 +165,7 @@ namespace stdlib::SetBuiltins {
                 }
             }
 
-            return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(final_symmetric_difference_set));
+            return std::make_shared<Set::element_type>(std::move(final_symmetric_difference_set));
         }
     }
 

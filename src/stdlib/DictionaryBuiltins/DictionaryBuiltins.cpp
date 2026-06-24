@@ -85,7 +85,7 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Dictionary copy_dictionary(const Dictionary &dictionary) {
-            return std::make_shared<std::unordered_map<Value, Value, ValueHasher> >(*dictionary);
+            return std::make_shared<Dictionary::element_type>(*dictionary);
         }
 
         Dictionary clear_dictionary(const Dictionary &dictionary) {
@@ -115,13 +115,13 @@ namespace stdlib::DictionaryBuiltins {
         }
 
         Array retrieve_dictionary_keys(const Dictionary &dictionary) {
-            return std::make_shared<std::vector<Value> >(
-                std::views::keys(*dictionary) | std::ranges::to<std::vector<Value> >());
+            return std::make_shared<Array::element_type>(
+                std::views::keys(*dictionary) | std::ranges::to<Array::element_type>());
         }
 
         Array retrieve_dictionary_values(const Dictionary &dictionary) {
-            return std::make_shared<std::vector<Value> >(
-                std::views::values(*dictionary) | std::ranges::to<std::vector<Value> >());
+            return std::make_shared<Array::element_type>(
+                std::views::values(*dictionary) | std::ranges::to<Array::element_type>());
         }
 
         Dictionary merge_dictionaries(const Dictionary &first_operand, const Dictionary &second_operand) {

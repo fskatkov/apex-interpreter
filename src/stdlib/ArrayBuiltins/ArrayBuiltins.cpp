@@ -180,7 +180,7 @@ namespace stdlib::ArrayBuiltins {
             const auto real_ending = std::min(array->size() - 1, ending_index);
             std::vector<Value> new_array(array->begin() + starting_index, array->begin() + real_ending + 1);
 
-            return std::make_shared<std::vector<Value> >(new_array);
+            return std::make_shared<Array::element_type>(new_array);
         }
 
         void concat_two_arrays(const Array &first_operand, const Array &second_operand) {
@@ -218,7 +218,7 @@ namespace stdlib::ArrayBuiltins {
             });
 
             auto joined_view = joined | std::views::join_with(*separator);
-            return std::make_shared<std::string>(std::ranges::to<std::string>(joined_view));
+            return std::make_shared<String::element_type>(std::ranges::to<String::element_type>(joined_view));
         }
     }
 

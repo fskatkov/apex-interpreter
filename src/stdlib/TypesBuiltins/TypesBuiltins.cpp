@@ -4,159 +4,141 @@ namespace stdlib::TypesBuiltins {
     namespace {
         Array create_array(const Value &, const std::vector<Value> &args) {
             if (args.empty()) {
-                return std::make_shared<std::vector<Value> >();
+                return std::make_shared<Array::element_type>();
             }
 
-            if (args.front().is<double>()) {
-                std::vector<Value> resulting_array;
+            return std::visit(overloaded{
+                [&](const double &array_size) -> Array  {
+                    return std::make_shared<Array::element_type>(static_cast<std::size_t>(array_size), args.back());
+                },
+                [&](const String &string_container) -> Array {
+                    if (args.size() < 2 || !args.back().is<String>()) {
+                        throw std::invalid_argument("expected some separator");
+                    }
 
-                resulting_array.reserve(static_cast<std::size_t>(args.front().get<double>()));
-                for (auto i = 0; i < args.front().get<double>(); ++i) {
-                    resulting_array.emplace_back(args.back());
-                }
+                    auto view = *string_container
+                                | std::views::split(*args.back().get<String>())
+                                | std::views::transform([](auto &&range) -> Value {
+                                    return std::make_shared<String::element_type>(
+                                        std::ranges::to<String::element_type>(range));
+                                });
 
-                return std::make_shared<std::vector<Value> >(std::move(resulting_array));
-            }
+                    return std::make_shared<Array::element_type>(std::ranges::to<Array::element_type>(view));
+                },
+                [](const Set &set_container) -> Array {
+                    return std::make_shared<Array::element_type>(std::ranges::to<Array::element_type>(*set_container));
+                },
+                [](const Dictionary &dictionary_container) -> Array {
+                    auto view = *dictionary_container | std::views::transform([](const auto &pair) -> Value {
+                        return std::make_shared<Array::element_type>(Array::element_type{pair.first, pair.second});
+                    });
 
-            if (args.front().is<String>()) {
-                if (!args.back().is<String>()) {
-                    throw std::invalid_argument("expected some separator");
-                }
-
-                auto split_string_view = *args.front().get<String>()
-                                         | std::views::split(*args.back().get<String>())
-                                         | std::views::transform([](auto &&range) {
-                                             auto substring = std::ranges::to<std::string>(range);
-                                             return std::make_shared<std::string>(std::move(substring));
-                                         });
-
-                auto resulting_split_string = std::ranges::to<std::vector<Value> >(split_string_view);
-                return std::make_shared<std::vector<Value> >(std::move(resulting_split_string));
-            }
-
-            if (args.front().is<Set>()) {
-                const auto &values = args.front().get<Set>();
-                return std::make_shared<std::vector<Value> >(std::ranges::to<std::vector<Value> >(std::move(*values)));
-            }
-
-            if (args.front().is<Dictionary>()) {
-                std::vector<Value> resulting_array;
-
-                for (const auto &[key, value]: *args.front().get<Dictionary>()) {
-                    std::vector<Value> pair{key, value};
-                    resulting_array.emplace_back(std::move(std::make_shared<std::vector<Value> >(std::move(pair))));
-                }
-
-                return std::make_shared<std::vector<Value> >(std::move(resulting_array));
-            }
-
-            throw std::invalid_argument(std::format("no viable array constructor for {}", args.front().type()));
+                    return std::make_shared<Array::element_type>(std::ranges::to<Array::element_type>(view));
+                },
+                [&](const auto &) -> Array {
+                    throw std::invalid_argument(std::format("no viable array constructor for {}", args.front().type()));
+                },
+            }, args.front().as);
         }
 
         String create_string(const Value &, const std::vector<Value> &args) {
             if (args.empty()) {
-                return std::make_shared<std::string>();
+                return std::make_shared<String::element_type>();
             }
 
-            if (args.front().is<Array>()) {
-                const auto &array = args.front().get<Array>();
+            if (args.size() == 1) {
+                return std::make_shared<String::element_type>(args.front().str());
+            }
 
+            auto join_container = [&](const auto &container_to_join) -> String {
                 if (!args.back().is<String>()) {
-                    throw std::invalid_argument("expected some separator");
+                    throw std::invalid_argument("expected string separator");
                 }
 
-                auto joined = *array | std::views::transform([](const Value &value) {
-                    return value.str();
-                }) | std::views::join_with(*args.back().get<String>());
+                auto joined = *container_to_join
+                            | std::views::transform([](const Value &value) { return value.str(); })
+                            | std::views::join_with(*args.back().get<String>());
 
-                return std::make_shared<std::string>(std::ranges::to<std::string>(joined));
-            }
+                return std::make_shared<String::element_type>(std::ranges::to<String::element_type>(joined));
+            };
 
-            if (args.front().is<Set>()) {
-                const auto &array = args.front().get<Set>();
+            return std::visit(overloaded{
+                [&](const Array &array_container) -> String {
+                    return join_container(array_container);
+                },
+                [&](const Set &set_container) -> String {
+                    return join_container(set_container);
+                },
+                [&](const double &size_of_string) -> String {
+                    if (!args.back().is<String>()) {
+                        throw std::invalid_argument(std::format("expected string but got {}", args.back().type()));
+                    }
 
-                if (!args.back().is<String>()) {
-                    throw std::invalid_argument("expected some separator");
+                    const auto &repeated_element = *args.back().get<String>();
+
+                    std::string resulting_string;
+                    resulting_string.reserve(repeated_element.size() * static_cast<std::size_t>(size_of_string));
+
+                    for (auto i = 0; i < size_of_string; ++i) {
+                        resulting_string += repeated_element;
+                    }
+
+                    return std::make_shared<String::element_type>(std::move(resulting_string));
+                },
+                [&](const auto &) -> String {
+                    throw std::invalid_argument(std::format("no viable string constructor for {}", args.front().type()));
                 }
-
-                auto joined = *array | std::views::transform([](const Value &value) {
-                    return value.str();
-                }) | std::views::join_with(*args.back().get<String>());
-
-                return std::make_shared<std::string>(std::ranges::to<std::string>(joined));
-            }
-
-            if (args.front().is<double>()) {
-                if (!args.back().is<String>()) {
-                    throw std::invalid_argument(std::format("expected char but got {}", args.back().type()));
-                }
-
-                std::string resulting_string;
-                for (auto i = 0; i < args.front().get<double>(); ++i) {
-                    resulting_string += *args.back().get<String>();
-                }
-
-                return std::make_shared<std::string>(resulting_string);
-            }
-
-            throw std::invalid_argument(std::format("no viable constructor for type {}", args.front().type()));
+            }, args.front().as);
         }
 
         Set create_set(const Value &, const std::vector<Value> &args) {
             if (args.empty()) {
-                return std::make_shared<std::unordered_set<Value, ValueHasher> >();
+                return std::make_shared<Set::element_type>();
             }
 
-            if (args.front().is<Array>()) {
-                const auto &values = args.front().get<Array>();
-                return std::make_shared<std::unordered_set<Value, ValueHasher> >(
-                    std::ranges::to<std::unordered_set<Value, ValueHasher> >(std::move(*values)));
-            }
+            return std::visit(overloaded{
+                [](const Array &array) -> Set {
+                    return std::make_shared<Set::element_type>(std::ranges::to<Set::element_type>(*array));
+                },
+                [](const String &string) -> Set {
+                    auto view = *string | std::views::transform([](const char &symbol) -> Value {
+                        return std::make_shared<std::string>(1, symbol);
+                    });
 
-            if (args.front().is<String>()) {
-                const auto &string = args.front().get<String>();
-
-                std::unordered_set<Value, ValueHasher> resulting_set;
-                for (const auto &letter: *string) {
-                    resulting_set.insert(std::make_shared<std::string>(std::string(1, letter)));
+                    return std::make_shared<Set::element_type>(std::ranges::to<Set::element_type>(view));
+                },
+                [&](const auto&) -> Set {
+                    throw std::invalid_argument(std::format("no viable set constructor for {}", args.front().type()));
                 }
-
-                return std::make_shared<std::unordered_set<Value, ValueHasher> >(std::move(resulting_set));
-            }
-
-            throw std::invalid_argument(std::format("expected string or array but got {}", args.front().type()));
+            }, args.front().as);
         }
 
         Dictionary create_dictionary(const Value &, const std::vector<Value> &args) {
             if (args.empty()) {
-                return std::make_shared<std::unordered_map<Value, Value, ValueHasher> >();
+                return std::make_shared<Dictionary::element_type>();
             }
 
-            if (args.front().is<Array>()) {
-                const auto &pairs = args.front().get<Array>();
+            return std::visit(overloaded{
+                [](const Array &array) -> Dictionary {
+                    auto view = *array | std::views::transform([](const Value &pair) {
+                        if (!pair.is<Array>()) {
+                            throw std::invalid_argument(std::format("expected array but got {}", pair.type()));
+                        }
 
-                std::unordered_map<Value, Value, ValueHasher> resulting_dictionary;
+                        const auto &array_pair = pair.get<Array>();
+                        if (array_pair->size() != 2) {
+                            throw std::invalid_argument(std::format("cannot use `dict` with an array of size {}", array_pair->size()));
+                        }
 
-                for (const auto &pair: *pairs) {
-                    if (!pair.is<Array>()) {
-                        throw std::invalid_argument(std::format("expected array but got {}", pair.type()));
-                    }
+                        return std::pair{(*array_pair)[0], (*array_pair)[1]};
+                    });
 
-                    const auto &array_pair = pair.get<Array>();
-
-                    if (array_pair->size() != 2) {
-                        throw std::runtime_error(std::format("cannot create dictionary pair from array of size {}",
-                                                             array_pair->size()));
-                    }
-
-                    resulting_dictionary.emplace(array_pair->at(0), array_pair->at(1));
+                    return std::make_shared<Dictionary::element_type>(std::ranges::to<Dictionary::element_type>(view));
+                },
+                [&](const auto&) -> Dictionary {
+                    throw std::invalid_argument(std::format("no viable dictionary constructor for {}", args.front().type()));
                 }
-
-                return std::make_shared<std::unordered_map<Value, Value,
-                    ValueHasher> >(std::move(resulting_dictionary));
-            }
-
-            throw std::invalid_argument(std::format("expected array but got {}", args.front().type()));
+            }, args.front().as);
         }
     }
 

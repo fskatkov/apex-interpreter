@@ -93,7 +93,7 @@ namespace stdlib::StringBuiltins {
         }
 
         String copy_string(const String &string) {
-            return std::make_shared<std::string>(*string);
+            return std::make_shared<String::element_type>(*string);
         }
 
         void clear_string(const String &string) {
@@ -147,10 +147,10 @@ namespace stdlib::StringBuiltins {
             const auto &ending_index = static_cast<std::size_t>(rhs);
 
             if (starting_index >= string->size()) [[unlikely]] {
-                return std::make_shared<std::string>("");
+                return std::make_shared<String::element_type>("");
             }
 
-            return std::make_shared<std::string>(string->substr(starting_index, ending_index));
+            return std::make_shared<String::element_type>(string->substr(starting_index, ending_index));
         }
 
         void convert_to_uppercase(const String &string) {
@@ -192,10 +192,10 @@ namespace stdlib::StringBuiltins {
         String trim_string(const String &string) {
             const auto &starting_index = string->find_first_not_of(" \t\n\r\f\v");
 
-            if (starting_index == std::string::npos) return std::make_shared<std::string>("");
+            if (starting_index == std::string::npos) return std::make_shared<String::element_type>("");
 
             const auto &ending_index = string->find_last_not_of(" \t\n\r\f\v");
-            return std::make_shared<std::string>(string->substr(starting_index, ending_index - starting_index + 1));
+            return std::make_shared<String::element_type>(string->substr(starting_index, ending_index - starting_index + 1));
         }
 
         void replace_substring(const String &string, const String &original_substring,
@@ -226,12 +226,12 @@ namespace stdlib::StringBuiltins {
             auto split_string_view = *string
                                      | std::views::split(*separator)
                                      | std::views::transform([](auto &&range) {
-                                         auto substring = std::ranges::to<std::string>(range);
-                                         return std::make_shared<std::string>(std::move(substring));
+                                         auto substring = std::ranges::to<String::element_type>(range);
+                                         return std::make_shared<String::element_type>(std::move(substring));
                                      });
 
-            auto resulting_split_string = std::ranges::to<std::vector<Value>>(split_string_view);
-            return std::make_shared<std::vector<Value>>(std::move(resulting_split_string));
+            auto resulting_split_string = std::ranges::to<Array::element_type>(split_string_view);
+            return std::make_shared<Array::element_type>(std::move(resulting_split_string));
         }
     }
 

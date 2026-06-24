@@ -76,7 +76,7 @@ namespace stdlib::FileBuiltins {
         }
 
         String check_file_extension(const File &file) {
-            return std::make_shared<std::string>(file->path.extension().string());
+            return std::make_shared<String::element_type>(file->path.extension().string());
         }
 
         String check_file_permissions(const File &file) {
@@ -100,7 +100,7 @@ namespace stdlib::FileBuiltins {
             check_permission(std::filesystem::perms::others_write, 'w');
             check_permission(std::filesystem::perms::others_exec, 'x');
 
-            return std::make_shared<std::string>(resulting_permissions);
+            return std::make_shared<String::element_type>(resulting_permissions);
         }
 
         String read_file_content(const File &file) {
@@ -116,7 +116,7 @@ namespace stdlib::FileBuiltins {
             std::ostringstream buffer;
             buffer << content.rdbuf();
 
-            return std::make_shared<std::string>(buffer.str());
+            return std::make_shared<String::element_type>(buffer.str());
         }
 
         void append_content_to_end_of_file(const File &file, const String &content) {
