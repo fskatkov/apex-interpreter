@@ -2,6 +2,75 @@
 
 namespace stdlib::UtilitiesBuiltins {
     namespace {
+        template<typename T>
+        decltype(auto) get_from_value(const Value &value) {
+            if (!value.is<std::decay_t<T> >()) {
+                throw std::invalid_argument(std::format("mismatch: got `{}`", value.type()));
+            }
+
+            return value.get<std::decay_t<T> >();
+        }
+
+        template<typename T>
+        concept standard_binding = requires(T func, const Value &value, const std::vector<Value> &args)
+        {
+            { func(value, args) } -> std::convertible_to<Value>;
+        };
+
+        template<typename Func>
+        struct MethodTraits;
+
+        template<typename R, typename... Args>
+        struct MethodTraits<R(*)(Args...)> {
+            static constexpr int Arity = sizeof...(Args);
+
+            static Value invoke(auto func, const std::vector<Value> &args) {
+                if (args.size() != Arity) [[unlikely]] {
+                    throw std::invalid_argument(std::format("expected {} arguments, but got {}", Arity, args.size()));
+                }
+
+                return invoke_implementation(func, args, std::index_sequence_for<Args...>{});
+            }
+
+        private:
+            template<std::size_t... Is>
+            static Value invoke_implementation(auto func, const std::vector<Value> &args,
+                                               std::index_sequence<Is...>) {
+                if constexpr (std::is_void_v<R>) {
+                    func(get_from_value<Args>(args[Is])...);
+                    return NIL{};
+                } else {
+                    return func(get_from_value<Args>(args[Is])...);
+                }
+            }
+        };
+
+        template<auto Func>
+        std::shared_ptr<NativeFunction> bind_function(std::string name, const int arity = -1) {
+            std::function<Value(Value, const std::vector<Value> &)> callable;
+            auto resulting_arity = arity;
+
+            if constexpr (standard_binding<decltype(Func)>) {
+                callable = [](const Value &receiver, const std::vector<Value> &args) -> Value {
+                    return Func(receiver, args);
+                };
+            } else {
+                if (resulting_arity == -1) {
+                    resulting_arity = MethodTraits<decltype(Func)>::Arity;
+                }
+
+                callable = [](Value, const std::vector<Value> &args) -> Value {
+                    return MethodTraits<decltype(Func)>::invoke(Func, args);
+                };
+            }
+
+            return std::make_shared<NativeFunction>(NativeFunction{
+                .name = std::move(name),
+                .arity = resulting_arity,
+                .callable = std::move(callable)
+            });
+        }
+
         NIL builtin_println(const Value &, const std::vector<Value> &args) {
             for (const auto &arg: args) {
                 std::cout << arg.str();
@@ -12,83 +81,57 @@ namespace stdlib::UtilitiesBuiltins {
 
         String builtin_read_line(const Value &, const std::vector<Value> &args) {
             if (!args.empty() && args.front().is<String>()) {
-                std::cout << *args.front().get<String>();
-                std::cout.flush();
+                std::cout << *args.front().get<String>() << std::flush;
             }
 
             if (std::string input; std::getline(std::cin, input)) {
-                return std::make_shared<std::string>(std::move(input));
+                return std::make_shared<String::element_type>(std::move(input));
             }
 
             throw std::runtime_error("invalid input format");
         }
 
-        File builtin_open_file(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<String>()) {
-                throw std::runtime_error(std::format("`{}`: No such file or directory", args.front().str()));
-            }
-
-            std::filesystem::path path(*args.front().get<String>());
+        File builtin_open_file(const String &original_path) {
+            std::filesystem::path path(*original_path);
             return std::make_shared<File::element_type>(path);
         }
 
-        Array generate_range(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("number is required but got {}", args.front().type()));
+        Array builtin_range(const Value &, const std::vector<Value> &args) {
+            if (args.size() < 2 || args.size() > 3) {
+                throw std::invalid_argument(std::format("expected 2 or 3 arguments, but got {}", args.size()));
             }
 
-            if (!args[1].is<double>()) {
-                throw std::invalid_argument(std::format("number is required but got {}", args[1].type()));
-            }
+            const auto start_side = get_from_value<double>(args[0]);
+            const auto end_side = get_from_value<double>(args[1]);
+            const auto step = args.size() == 3 ? get_from_value<double>(args[2]) : 1.0;
 
-            const auto &start_side = args.front().get<double>();
-            const auto &end_side = args[1].get<double>();
-
-            if (start_side > end_side) {
+            if ((step > 0 && start_side > end_side) || (step < 0 && start_side < end_side) || step == 0) {
                 throw std::runtime_error(std::format("cannot generate sequence [{}; {})", start_side, end_side));
             }
 
-            double step = 1;
-
-            if (args.size() == 3) {
-                if (!args[2].is<double>()) {
-                    throw std::invalid_argument(std::format("number is required but got {}", args[1].type()));
-                }
-
-                step = args[2].get<double>();
-            }
-
-            auto sequence_length = static_cast<int>(std::floor(end_side - start_side) / step) + 1;
+            auto sequence_length = static_cast<int>(std::floor((end_side - start_side) / step)) + 1;
             auto range = std::views::iota(0, sequence_length)
                          | std::views::transform([=](const auto &i) { return start_side + i * step; });
 
             return std::make_shared<Array::element_type>(std::ranges::to<Array::element_type>(range));
         }
 
-        double generate_random_number(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("number is required but got {}", args.front().type()));
-            }
-
-            if (!args.back().is<double>()) {
-                throw std::invalid_argument(std::format("number is required but got {}", args.back().type()));
-            }
-
-            const auto &minimum_side = static_cast<int>(args.front().get<double>());
-            const auto &maximum_side = static_cast<int>(args.back().get<double>());
-
+        double builtin_random(const double &minimum_side, const double &maximum_side) {
             if (minimum_side > maximum_side) {
-                throw std::runtime_error(std::format("cannot generate random number from [{}; {}]", minimum_side, maximum_side));
+                throw std::runtime_error(
+                    std::format("cannot generate number from [{}; {}]", minimum_side, maximum_side));
             }
 
-            std::random_device random_device;
-            std::mt19937 generator(random_device());
-            std::uniform_int_distribution<int> distribution(minimum_side, maximum_side);
+            thread_local std::mt19937 generator(std::random_device{}());
+            std::uniform_int_distribution<int> distribution(
+                static_cast<int>(minimum_side),
+                static_cast<int>(maximum_side)
+            );
 
             return distribution(generator);
         }
 
-        String print_time(const Value &, const std::vector<Value> &args) {
+        String builtin_time() {
             const auto current_time = std::chrono::system_clock::now();
             const auto time_t = std::chrono::system_clock::to_time_t(current_time);
 
@@ -98,85 +141,26 @@ namespace stdlib::UtilitiesBuiltins {
             return std::make_shared<std::string>(output.str());
         }
 
-        NIL make_executable_sleep(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("number is required but got {}", args.front().type()));
-            }
-
-            const std::chrono::duration<double> duration(args.front().get<double>());
-            std::this_thread::sleep_for(duration);
-            return NIL{};
+        void builtin_sleep(const double &seconds) {
+            std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
         }
 
-        NIL exit_program(const Value &, const std::vector<Value> &args) {
-            if (!args.front().is<double>()) {
-                throw std::invalid_argument(std::format("number is required but got {}", args.front().type()));
-            }
-
-            std::cout << "Finished with code " << std::to_string(static_cast<int>(args.front().get<double>())) << "\n";
-            std::exit(static_cast<int>(args.front().get<double>()));
+        void builtin_exit(const double &code) {
+            std::cout << std::format("Finished with code {}\n", static_cast<int>(code));
+            std::exit(static_cast<int>(code));
         }
-
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
         return {
-            {
-                "println", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "println",
-                    .arity = -1,
-                    .callable = builtin_println
-                })
-            },
-            {
-                "readLine", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "readLine",
-                    .arity = -1,
-                    .callable = builtin_read_line
-                })
-            },
-            {
-                "open", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "open",
-                    .arity = 1,
-                    .callable = builtin_open_file
-                })
-            },
-            {
-                "range", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "range",
-                    .arity = -1,
-                    .callable = generate_range
-                })
-            },
-            {
-                "random", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "random",
-                    .arity = 2,
-                    .callable = generate_random_number
-                })
-            },
-            {
-                "time", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "time",
-                    .arity = 0,
-                    .callable = print_time
-                })
-            },
-            {
-                "sleep", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "sleep",
-                    .arity = 1,
-                    .callable = make_executable_sleep
-                })
-            },
-            {
-                "exit", std::make_shared<NativeFunction>(NativeFunction{
-                    .name = "exit",
-                    .arity = 1,
-                    .callable = exit_program
-                })
-            },
+            {"println", bind_function<builtin_println>("println")},
+            {"readLine", bind_function<builtin_read_line>("readLine")},
+            {"open", bind_function<builtin_open_file>("open")},
+            {"range", bind_function<builtin_range>("range")},
+            {"random", bind_function<builtin_random>("random")},
+            {"time", bind_function<builtin_time>("time")},
+            {"sleep", bind_function<builtin_sleep>("sleep")},
+            {"exit", bind_function<builtin_exit>("exit")},
         };
     }
 }
