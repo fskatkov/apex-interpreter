@@ -7,7 +7,7 @@ StdLib::StdLib()
       std_string_methods(stdlib::StringBuiltins::register_methods()),
       std_file_methods(stdlib::FileBuiltins::register_methods()),
       std_character_methods(stdlib::CharacterBuiltins::register_methods()),
-      std_io_methods(stdlib::StandardIOBuiltins::register_methods()),
+      std_utilities_methods(stdlib::UtilitiesBuiltins::register_methods()),
       std_maths_methods(stdlib::MathsBuiltins::register_methods()),
       std_types_methods(stdlib::TypesBuiltins::register_methods()) {
 }
@@ -42,8 +42,8 @@ std::shared_ptr<NativeFunction> StdLib::get_character_method(const std::string &
     return nullptr;
 }
 
-const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_standard_io_methods() const {
-    return std_io_methods;
+const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_utilities_methods() const {
+    return std_utilities_methods;
 }
 
 const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_maths_methods() const {

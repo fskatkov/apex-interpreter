@@ -3,7 +3,7 @@
 ExecutionEngine::ExecutionEngine(DiagnosticEngine &diagnosticEngine) : diagnosticEngine(diagnosticEngine) {
     stack.reserve(256);
 
-    for (const auto &[name, native_func]: builtins.get_standard_io_methods()) {
+    for (const auto &[name, native_func]: builtins.get_utilities_methods()) {
         globalVariables[name] = native_func;
     }
 
