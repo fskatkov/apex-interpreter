@@ -1,6 +1,6 @@
-#include "stdlib/StandardIOBuiltins/StandardIOBuiltins.h"
+#include "stdlib/StandardIOBuiltins/UtilitiesBuiltins.h"
 
-namespace stdlib::StandardIOBuiltins {
+namespace stdlib::UtilitiesBuiltins {
     namespace {
         Value builtin_println(const Value &, const std::vector<Value> &args) {
             for (const auto &arg: args) {
