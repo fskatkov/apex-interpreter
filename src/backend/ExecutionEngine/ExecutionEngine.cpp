@@ -74,12 +74,13 @@ const std::array<ExecutionEngine::Handler, 256> ExecutionEngine::dispatchTable =
     table[std::to_underlying(InstructionType::OP_SET_GLOBAL)] = &ExecutionEngine::executeSetGlobalVariable;
     table[std::to_underlying(InstructionType::OP_GET_LOCAL)] = &ExecutionEngine::executeGetLocalVariable;
     table[std::to_underlying(InstructionType::OP_SET_LOCAL)] = &ExecutionEngine::executeSetLocalVariable;
-    table[std::to_underlying(InstructionType::OP_BUILD_ARRAY)] = &ExecutionEngine::executeBuildArray;
-    table[std::to_underlying(InstructionType::OP_BUILD_SET)] = &ExecutionEngine::executeBuildSet;
-    table[std::to_underlying(InstructionType::OP_BUILD_DICTIONARY)] = &ExecutionEngine::executeBuildDictionary;
     table[std::to_underlying(InstructionType::OP_INDEX_GET)] = &ExecutionEngine::executeGetIndex;
     table[std::to_underlying(InstructionType::OP_INDEX_SET)] = &ExecutionEngine::executeSetIndex;
     table[std::to_underlying(InstructionType::OP_GET_PROPERTY)] = &ExecutionEngine::executeGetProperty;
+
+    table[std::to_underlying(InstructionType::OP_BUILD_ARRAY)] = &ExecutionEngine::executeBuildArray;
+    table[std::to_underlying(InstructionType::OP_BUILD_SET)] = &ExecutionEngine::executeBuildSet;
+    table[std::to_underlying(InstructionType::OP_BUILD_DICTIONARY)] = &ExecutionEngine::executeBuildDictionary;
 
     table[std::to_underlying(InstructionType::OP_JUMP_IF_FALSE)] = &ExecutionEngine::executeJumpIfFalseOperation;
     table[std::to_underlying(InstructionType::OP_JUMP)] = &ExecutionEngine::executeJumpOperation;

@@ -381,6 +381,8 @@ void BytecodeGenerator::compileExpression(Expr *originalExpression) {
     } else if (const auto *compoundAssignmentExpression = dynamic_cast<CompoundAssignmentExpression *>(
         originalExpression)) {
         compileCompoundAssignmentExpression(compoundAssignmentExpression);
+    } else if (const auto *multi_assignment_expression = dynamic_cast<MultiAssignmentExpression *>(originalExpression)) {
+        compile_multi_assignment_expression(multi_assignment_expression);
     } else if (const auto *ternaryOperatorExpression = dynamic_cast<TernaryOperatorExpression *>(originalExpression)) {
         compileTernaryOperatorExpression(ternaryOperatorExpression);
     } else if (const auto *logicalExpression = dynamic_cast<LogicalExpression *>(originalExpression)) {
@@ -548,6 +550,36 @@ void BytecodeGenerator::compileCompoundAssignmentExpression(const CompoundAssign
             originalExpression->operatorSymbol.sourceLocation,
             "invalid target for compound assignment"
         );
+    }
+}
+
+void BytecodeGenerator::compile_multi_assignment_expression(const MultiAssignmentExpression* originalExpression) {
+    for (const auto &expr : originalExpression->expressions) {
+        compileExpression(expr.get());
+    }
+
+    for (int i = static_cast<int>(originalExpression->target_variables.size()) - 1; i >= 0; --i) {
+        const auto &variable_name = originalExpression->target_variables.at(i);
+
+        Token token{
+            .kind = TokenKind::IDENTIFIER,
+            .lexeme = variable_name,
+            .literal = NIL{},
+            .sourceLocation = SourceLocation{}
+        };
+
+        if (const auto arg = resolveLocal(token); arg != -1) {
+            emitByte(std::to_underlying(InstructionType::OP_SET_LOCAL), 0);
+            emitByte(static_cast<std::uint8_t>(arg), 0);
+        } else {
+            buffer->values.emplace_back(std::make_shared<std::string>(variable_name));
+            emitByte(std::to_underlying(InstructionType::OP_SET_GLOBAL), 0);
+            emitByte(static_cast<std::uint8_t>(buffer->values.size() - 1), 0);
+        }
+
+        if (i > 0) {
+            emitByte(std::to_underlying(InstructionType::OP_POP), 0);
+        }
     }
 }
 

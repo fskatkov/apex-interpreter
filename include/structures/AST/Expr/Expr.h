@@ -43,6 +43,16 @@ struct CompoundAssignmentExpression : Expr {
         : lhs(std::move(lhs)), operatorSymbol(std::move(operatorSymbol)), rhs(std::move(rhs)) {  }
 };
 
+struct MultiAssignmentExpression : Expr {
+    std::vector<std::string> target_variables;
+    std::vector<std::unique_ptr<Expr> > expressions;
+
+    explicit MultiAssignmentExpression(std::vector<std::string> target_variables,
+                                       std::vector<std::unique_ptr<Expr> > expressions)
+        : target_variables(std::move(target_variables)), expressions(std::move(expressions)) {
+    }
+};
+
 struct TernaryOperatorExpression : Expr {
     std::unique_ptr<Expr> condition;
     std::unique_ptr<Expr> thenBranch;

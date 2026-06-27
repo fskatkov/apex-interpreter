@@ -56,6 +56,7 @@ private:
     void compileVariableExpression(VariableExpression* originalExpression) const;
     void compileAssignmentExpression(const AssignmentExpression* originalExpression);
     void compileCompoundAssignmentExpression(const CompoundAssignmentExpression* originalExpression);
+    void compile_multi_assignment_expression(const MultiAssignmentExpression* originalExpression);
     void compileTernaryOperatorExpression(const TernaryOperatorExpression* originalExpression);
     void compileLogicalExpression(const LogicalExpression* originalExpression);
     void compileGroupingExpression(const GroupingExpression* originalExpression);
