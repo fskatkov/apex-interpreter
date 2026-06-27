@@ -6,10 +6,11 @@ StdLib::StdLib()
       std_dictionary_methods(stdlib::DictionaryBuiltins::register_methods()),
       std_string_methods(stdlib::StringBuiltins::register_methods()),
       std_file_methods(stdlib::FileBuiltins::register_methods()),
-      std_character_methods(stdlib::CharacterBuiltins::register_methods()),
-      std_utilities_methods(stdlib::UtilitiesBuiltins::register_methods()),
-      std_maths_methods(stdlib::MathsBuiltins::register_methods()),
-      std_types_methods(stdlib::TypesBuiltins::register_methods()) {
+      std_character_methods(stdlib::CharacterBuiltins::register_methods()) {
+    stdlib_functions.merge(stdlib::UtilitiesBuiltins::register_methods());
+    stdlib_functions.merge(stdlib::MathsBuiltins::register_methods());
+    stdlib_functions.merge(stdlib::TypesBuiltins::register_methods());
+    stdlib_functions.merge(stdlib::OSBuiltins::register_methods());
 }
 
 std::shared_ptr<NativeFunction> StdLib::get_array_method(const std::string &name) {
@@ -42,14 +43,8 @@ std::shared_ptr<NativeFunction> StdLib::get_character_method(const std::string &
     return nullptr;
 }
 
-const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_utilities_methods() const {
-    return std_utilities_methods;
-}
-
-const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_maths_methods() const {
-    return std_maths_methods;
-}
-
-const std::unordered_map<std::string, std::shared_ptr<NativeFunction> > &StdLib::get_types_methods() const {
-    return std_types_methods;
+void StdLib::get_stdlib_functions(std::unordered_map<std::string, Value> &global_variables) {
+    for (const auto &[name, native_function]: stdlib_functions) {
+        global_variables[name] = native_function;
+    }
 }

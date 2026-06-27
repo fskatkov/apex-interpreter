@@ -9,6 +9,7 @@
 #include "stdlib/MathsBuiltins/MathsBuiltins.h"
 #include "stdlib/FileBuiltins/FileBuiltins.h"
 #include "stdlib/TypesBuiltins/TypesBuiltins.h"
+#include "stdlib/OSBuiltins/OSBuiltins.h"
 
 class StdLib {
 public:
@@ -20,9 +21,8 @@ public:
     [[nodiscard]] std::shared_ptr<NativeFunction> get_string_method(const std::string &name);
     [[nodiscard]] std::shared_ptr<NativeFunction> get_file_method(const std::string &name);
     [[nodiscard]] std::shared_ptr<NativeFunction> get_character_method(const std::string &name);
-    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& get_utilities_methods() const;
-    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& get_maths_methods() const;
-    [[nodiscard]] const std::unordered_map<std::string, std::shared_ptr<NativeFunction>>& get_types_methods() const;
+
+    void get_stdlib_functions(std::unordered_map<std::string, Value> &global_variables);
 private:
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_array_methods;
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_set_methods;
@@ -30,7 +30,6 @@ private:
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_string_methods;
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_file_methods;
     std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_character_methods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_utilities_methods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_maths_methods;
-    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> std_types_methods;
+
+    std::unordered_map<std::string, std::shared_ptr<NativeFunction>> stdlib_functions;
 };
