@@ -55,11 +55,9 @@ namespace stdlib::UtilitiesBuiltins {
                     return Func(receiver, args);
                 };
             } else {
-                if (resulting_arity == -1) {
-                    resulting_arity = MethodTraits<decltype(Func)>::Arity;
-                }
+                resulting_arity = MethodTraits<decltype(Func)>::Arity;
 
-                callable = [](Value, const std::vector<Value> &args) -> Value {
+                callable = [](const Value &, const std::vector<Value> &args) -> Value {
                     return MethodTraits<decltype(Func)>::invoke(Func, args);
                 };
             }
@@ -144,11 +142,6 @@ namespace stdlib::UtilitiesBuiltins {
         void builtin_sleep(const double &seconds) {
             std::this_thread::sleep_for(std::chrono::duration<double>(seconds));
         }
-
-        void builtin_exit(const double &code) {
-            std::cout << std::format("Finished with code {}\n", static_cast<int>(code));
-            std::exit(static_cast<int>(code));
-        }
     }
 
     std::unordered_map<std::string, std::shared_ptr<NativeFunction> > register_methods() {
@@ -160,7 +153,6 @@ namespace stdlib::UtilitiesBuiltins {
             {"random", bind_function<builtin_random>("random")},
             {"time", bind_function<builtin_time>("time")},
             {"sleep", bind_function<builtin_sleep>("sleep")},
-            {"exit", bind_function<builtin_exit>("exit")},
         };
     }
 }
