@@ -83,6 +83,59 @@ namespace stdlib::OSBuiltins {
             return std::make_shared<String::element_type>(current_working_directory);
         }
 
+        void list_directory(const String &path) {
+            const std::filesystem::path current_working_directory(*path);
+            std::vector<std::string> directory_files;
+
+            for (const auto &directory_file : std::filesystem::directory_iterator(current_working_directory)) {
+                directory_files.push_back(directory_file.path().filename().string());
+            }
+
+            if (directory_files.empty()) return;
+
+            std::ranges::sort(directory_files);
+
+            const auto max_element = std::ranges::max_element(directory_files, {}, &std::string::length);
+            const auto max_length = max_element->length();
+
+            const auto number_of_columns = std::max<int>(1, 80 / (max_length + 2));
+            const int number_of_rows = std::ceil(static_cast<double>(directory_files.size()) / number_of_columns);
+
+            for (auto row = 0; row < number_of_rows; ++row) {
+                for (auto column = 0; column < number_of_columns; ++column) {
+                    if (const auto index = column * number_of_rows + row; index < directory_files.size()) {
+                        std::cout << std::format("{:<{}}", directory_files[index], max_length + 2);
+                    }
+                }
+
+                std::cout << "\n";
+            }
+        }
+
+        double execute_system_command(const String &command) {
+            return static_cast<double>(std::system(command->c_str()));
+        }
+
+        double get_process_id() {
+            return static_cast<double>(getpid());
+        }
+
+        String get_platform_name() {
+#if defined(_WIN32)
+            return std::make_shared<String::element_type>("Windows");
+#elif defined(__APPLE__) && defined(__MACH__)
+            return std::make_shared<String::element_type>("macOS");
+#elif defined(__linux__)
+            return std::make_shared<String::element_type>("Linux");
+#elif defined(__FreeBSD__)
+            return std::make_shared<String::element_type>("FreeBSD");
+#elif defined(__unix__)
+            return std::make_shared<String::element_type>("UNIX");
+#else
+            return std::make_shared<String::element_type>("Unknown");
+#endif
+        }
+
         void builtin_exit(const double &code) {
             std::cout << std::format("Finished with code {}\n", static_cast<int>(code));
             std::exit(static_cast<int>(code));
@@ -94,6 +147,10 @@ namespace stdlib::OSBuiltins {
             {"mkdir", bind_function<make_directory>("mkdir")},
             {"rmdir", bind_function<remove_directory>("rmdir")},
             {"cwd", bind_function<get_current_working_directory>("cwd")},
+            {"ls", bind_function<list_directory>("ls")},
+            {"system", bind_function<execute_system_command>("system")},
+            {"getPID", bind_function<get_process_id>("getPID")},
+            {"platform", bind_function<get_platform_name>("platform")},
             {"exit", bind_function<builtin_exit>("exit")},
         };
     }
